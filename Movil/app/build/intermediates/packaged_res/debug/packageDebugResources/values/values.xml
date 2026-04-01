@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="api_base_url">http://10.0.2.2:5005</string>
+    <string name="app_name">ProyectoCarpooling</string>
+    <string name="button_cancel_trip">Cancelar viaje</string>
+    <string name="button_create_trip">Crear viaje</string>
+    <string name="button_select_destination">Seleccionar destino</string>
+    <string name="button_select_origin">Seleccionar origen</string>
+    <string name="coordinate_value_format">Lat: %.5f, Lng: %.5f</string>
+    <string name="destination_placeholder">Destino: sin seleccionar</string>
+    <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
+    <string name="origin_placeholder">Origen: sin seleccionar</string>
+    <string name="route_time_format">Tiempo estimado: %.1f min</string>
+    <string name="route_time_idle">Tiempo estimado: --</string>
+    <string name="selection_instruction_destination">Toca el mapa para establecer el destino.</string>
+    <string name="selection_instruction_idle">Presiona un botón para elegir un punto en el mapa.</string>
+    <string name="selection_instruction_origin">Toca el mapa para establecer el origen.</string>
+    <string name="toast_destination_required">Selecciona un destino primero.</string>
+    <string name="toast_network_error">Error al comunicar con la API.</string>
+    <string name="toast_no_trip">No hay un viaje activo.</string>
+    <string name="toast_origin_required">Selecciona un origen primero.</string>
+    <string name="toast_select_mode_prompt">Presiona un botón para seleccionar origen o destino.</string>
+    <string name="toast_trip_cancelled">Viaje cancelado.</string>
+    <string name="toast_trip_created">Viaje creado correctamente.</string>
+    <string name="toast_trip_exists">Cancela el viaje activo antes de crear otro.</string>
+    <string name="trip_status_idle">Sin viaje activo</string>
+    <string name="trip_status_with_id">Viaje activo: %1$s</string>
+    <style name="Base.Theme.ProyectoCarpooling" parent="Theme.Material3.DayNight.NoActionBar">
+        
+        
+    </style>
+    <style name="Theme.ProyectoCarpooling" parent="Base.Theme.ProyectoCarpooling"/>
+</resources>

@@ -1,0 +1,217 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.proyectocarpooling"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+7-->INJECTED
+8        android:minSdkVersion="24"
+8-->INJECTED
+9        android:targetSdkVersion="34" />
+9-->INJECTED
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:5:5-67
+11-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:5:22-64
+12    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+12-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:6:5-79
+12-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:6:22-76
+13    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+13-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:7:5-81
+13-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:7:22-78
+14
+15    <!-- TODO: Remove once GL-Native increases their manifest -->
+16    <uses-feature
+16-->[com.mapbox.maps:base:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\51dc759e220701236fb2cdb855e09277\workspace\transformed\base-11.0.0\AndroidManifest.xml:8:5-10:35
+17        android:glEsVersion="0x00030000"
+17-->[com.mapbox.maps:base:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\51dc759e220701236fb2cdb855e09277\workspace\transformed\base-11.0.0\AndroidManifest.xml:9:9-41
+18        android:required="true" />
+18-->[com.mapbox.maps:base:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\51dc759e220701236fb2cdb855e09277\workspace\transformed\base-11.0.0\AndroidManifest.xml:10:9-32
+19    <uses-feature
+19-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:13:5-15:36
+20        android:name="android.hardware.wifi"
+20-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:14:9-45
+21        android:required="false" />
+21-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:15:9-33
+22
+23    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+23-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:18:5-79
+23-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:18:22-76
+24    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+24-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:19:5-76
+24-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:19:22-73
+25
+26    <permission
+26-->[androidx.core:core:1.9.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\9b7fc5af5f94f841bd0e5875cf4f13db\workspace\transformed\core-1.9.0\AndroidManifest.xml:22:5-24:47
+27        android:name="com.example.proyectocarpooling.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+27-->[androidx.core:core:1.9.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\9b7fc5af5f94f841bd0e5875cf4f13db\workspace\transformed\core-1.9.0\AndroidManifest.xml:23:9-81
+28        android:protectionLevel="signature" />
+28-->[androidx.core:core:1.9.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\9b7fc5af5f94f841bd0e5875cf4f13db\workspace\transformed\core-1.9.0\AndroidManifest.xml:24:9-44
+29
+30    <uses-permission android:name="com.example.proyectocarpooling.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+30-->[androidx.core:core:1.9.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\9b7fc5af5f94f841bd0e5875cf4f13db\workspace\transformed\core-1.9.0\AndroidManifest.xml:26:5-97
+30-->[androidx.core:core:1.9.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\9b7fc5af5f94f841bd0e5875cf4f13db\workspace\transformed\core-1.9.0\AndroidManifest.xml:26:22-94
+31
+32    <application
+32-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:9:5-38:19
+33        android:allowBackup="true"
+33-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:10:9-35
+34        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+34-->[androidx.core:core:1.9.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\9b7fc5af5f94f841bd0e5875cf4f13db\workspace\transformed\core-1.9.0\AndroidManifest.xml:28:18-86
+35        android:dataExtractionRules="@xml/data_extraction_rules"
+35-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:11:9-65
+36        android:debuggable="true"
+37        android:extractNativeLibs="false"
+37-->INJECTED
+38        android:fullBackupContent="@xml/backup_rules"
+38-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:12:9-54
+39        android:icon="@mipmap/ic_launcher"
+39-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:13:9-43
+40        android:label="@string/app_name"
+40-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:14:9-41
+41        android:roundIcon="@mipmap/ic_launcher_round"
+41-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:15:9-54
+42        android:supportsRtl="true"
+42-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:16:9-35
+43        android:testOnly="true"
+44        android:theme="@style/Theme.ProyectoCarpooling"
+44-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:18:9-56
+45        android:usesCleartextTraffic="true" >
+45-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:17:9-44
+46        <meta-data
+46-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:20:9-22:59
+47            android:name="com.mapbox.maps.token"
+47-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:21:13-49
+48            android:value="@string/mapbox_access_token" />
+48-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:22:13-56
+49
+50        <activity
+50-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:24:9-32:20
+51            android:name="com.example.proyectocarpooling.SplashActivity"
+51-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:25:13-43
+52            android:exported="true"
+52-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:26:13-36
+53            android:theme="@style/Theme.AppCompat.NoActionBar" >
+53-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:27:13-63
+54            <intent-filter>
+54-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:28:13-31:29
+55                <action android:name="android.intent.action.MAIN" />
+55-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:29:17-69
+55-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:29:25-66
+56
+57                <category android:name="android.intent.category.LAUNCHER" />
+57-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:30:17-77
+57-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:30:27-74
+58            </intent-filter>
+59        </activity>
+60        <activity
+60-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:34:9-36:40
+61            android:name="com.example.proyectocarpooling.MainActivity"
+61-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:35:13-41
+62            android:exported="false" />
+62-->C:\Users\HP\Desktop\Tarea_5toS\proyecto de sistema\equipo12-main\Movil\app\src\main\AndroidManifest.xml:36:13-37
+63
+64        <provider
+64-->[androidx.emoji2:emoji2:1.2.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\22b2a9e412585aff069b580779176208\workspace\transformed\emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+65            android:name="androidx.startup.InitializationProvider"
+65-->[androidx.emoji2:emoji2:1.2.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\22b2a9e412585aff069b580779176208\workspace\transformed\emoji2-1.2.0\AndroidManifest.xml:25:13-67
+66            android:authorities="com.example.proyectocarpooling.androidx-startup"
+66-->[androidx.emoji2:emoji2:1.2.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\22b2a9e412585aff069b580779176208\workspace\transformed\emoji2-1.2.0\AndroidManifest.xml:26:13-68
+67            android:exported="false" >
+67-->[androidx.emoji2:emoji2:1.2.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\22b2a9e412585aff069b580779176208\workspace\transformed\emoji2-1.2.0\AndroidManifest.xml:27:13-37
+68            <meta-data
+68-->[androidx.emoji2:emoji2:1.2.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\22b2a9e412585aff069b580779176208\workspace\transformed\emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+69                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+69-->[androidx.emoji2:emoji2:1.2.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\22b2a9e412585aff069b580779176208\workspace\transformed\emoji2-1.2.0\AndroidManifest.xml:30:17-75
+70                android:value="androidx.startup" />
+70-->[androidx.emoji2:emoji2:1.2.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\22b2a9e412585aff069b580779176208\workspace\transformed\emoji2-1.2.0\AndroidManifest.xml:31:17-49
+71            <meta-data
+71-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\HP\.gradle\caches\9.3.1\transforms\08da46085ad8a9416d5a5ddaa445e23b\workspace\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:29:13-31:52
+72                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+72-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\HP\.gradle\caches\9.3.1\transforms\08da46085ad8a9416d5a5ddaa445e23b\workspace\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:30:17-78
+73                android:value="androidx.startup" />
+73-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\HP\.gradle\caches\9.3.1\transforms\08da46085ad8a9416d5a5ddaa445e23b\workspace\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:31:17-49
+74            <meta-data
+74-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:27:13-29:52
+75                android:name="com.mapbox.maps.loader.MapboxMapsInitializer"
+75-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:28:17-76
+76                android:value="androidx.startup" /> <!-- This entry makes MapboxSDKCommonInitializer discoverable. -->
+76-->[com.mapbox.maps:android-core:11.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\1a6b2d53efccd22526b2ff8844c00e0c\workspace\transformed\android-core-11.0.0\AndroidManifest.xml:29:17-49
+77            <meta-data
+77-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:19:13-21:52
+78                android:name="com.mapbox.common.MapboxSDKCommonInitializer"
+78-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:20:17-76
+79                android:value="androidx.startup" />
+79-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:21:17-49
+80            <meta-data
+80-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+81                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+81-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+82                android:value="androidx.startup" />
+82-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+83        </provider>
+84
+85        <receiver
+85-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:24:9-31:20
+86            android:name="com.mapbox.common.location.LocationUpdatesReceiver"
+86-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:25:13-78
+87            android:enabled="true"
+87-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:26:13-35
+88            android:exported="false" >
+88-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:27:13-37
+89            <intent-filter>
+89-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:28:13-30:29
+90                <action android:name="com.mapbox.common.location.LocationUpdatesReceiver.ACTION_PROCESS_LOCATION_UPDATES" />
+90-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:29:17-125
+90-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:29:25-122
+91            </intent-filter>
+92        </receiver>
+93
+94        <service
+94-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:33:9-35:40
+95            android:name="com.mapbox.common.LifecycleService"
+95-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:34:13-62
+96            android:exported="false" />
+96-->[com.mapbox.common:common:24.0.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\23a2fab2b296ac28cd1cf2fbae2ac3ba\workspace\transformed\common-24.0.0\AndroidManifest.xml:35:13-37
+97
+98        <receiver
+98-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+99            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+99-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+100            android:directBootAware="false"
+100-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+101            android:enabled="true"
+101-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+102            android:exported="true"
+102-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+103            android:permission="android.permission.DUMP" >
+103-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+104            <intent-filter>
+104-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+105                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+105-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+105-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+106            </intent-filter>
+107            <intent-filter>
+107-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+108                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+108-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+108-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+109            </intent-filter>
+110            <intent-filter>
+110-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+111                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+111-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+111-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+112            </intent-filter>
+113            <intent-filter>
+113-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+114                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+114-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+114-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\HP\.gradle\caches\9.3.1\transforms\ebe609b14d3f475328d1211af1a6f2e1\workspace\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+115            </intent-filter>
+116        </receiver>
+117    </application>
+118
+119</manifest>
