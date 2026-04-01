@@ -1,0 +1,72 @@
+using CarPooling.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+
+namespace CarPooling.Data;
+
+public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : DbContext(options)
+{
+    public DbSet<Trip> Trips => Set<Trip>();
+
+    private static string StatusToString(TripStatus status)
+    {
+        return status == TripStatus.Ready
+            ? "listo"
+            : status == TripStatus.Cancelled
+                ? "cancelado"
+                : "activo";
+    }
+
+    private static TripStatus StatusFromString(string value)
+    {
+        var normalized = value.Trim().ToLower();
+
+        if (normalized == "activo" || normalized == "awaitingdestination" || normalized == "pending")
+        {
+            return TripStatus.AwaitingDestination;
+        }
+
+        if (normalized == "listo" || normalized == "ready")
+        {
+            return TripStatus.Ready;
+        }
+
+        if (normalized == "cancelado" || normalized == "cancelled")
+        {
+            return TripStatus.Cancelled;
+        }
+
+        return TripStatus.AwaitingDestination;
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Trip>(entity =>
+        {
+            entity.ToTable("Trips");
+            entity.HasKey(t => t.Id);
+
+            entity.Property(t => t.OriginLatitude)
+                .IsRequired();
+
+            entity.Property(t => t.OriginLongitude)
+                .IsRequired();
+
+            entity.Property(t => t.DestinationLatitude);
+            entity.Property(t => t.DestinationLongitude);
+
+            entity.Property(t => t.Status)
+                .HasConversion(new ValueConverter<TripStatus, string>(
+                    status => StatusToString(status),
+                    value => StatusFromString(value)))
+                .HasMaxLength(32)
+                .IsRequired();
+
+            entity.Property(t => t.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(t => t.UpdatedAt);
+            entity.Property(t => t.CancelledAt);
+        });
+    }
+}
