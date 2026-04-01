@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">ProyectoCarpooling</string>
+    <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
+</resources>
