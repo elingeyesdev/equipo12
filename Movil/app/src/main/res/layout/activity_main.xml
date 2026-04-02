@@ -5,34 +5,43 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/splash_gray"
     tools:context=".MainActivity">
 
     <LinearLayout
         android:id="@+id/controlPanel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:background="@android:color/white"
-        android:elevation="4dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_control_panel"
+        android:elevation="6dp"
         android:orientation="vertical"
         android:padding="16dp"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/menuToggleButton">
 
         <TextView
             android:id="@+id/selectionInstruction"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             android:text="@string/selection_instruction_idle"
-            android:textSize="16sp"
+            android:textColor="@color/carpool_text_primary"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/originText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_info_field"
+            android:padding="10dp"
+            android:textColor="@color/carpool_text_primary"
             android:text="@string/origin_placeholder"
             android:textSize="14sp" />
 
@@ -40,7 +49,10 @@
             android:id="@+id/destinationText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_info_field"
+            android:padding="10dp"
+            android:textColor="@color/carpool_text_primary"
             android:text="@string/destination_placeholder"
             android:textSize="14sp" />
 
@@ -49,20 +61,25 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:background="@drawable/bg_info_field"
+            android:padding="10dp"
             android:text="@string/trip_status_idle"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="@color/carpool_text_secondary"
             android:textSize="12sp" />
 
         <TextView
             android:id="@+id/routeTimeText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_info_field"
+            android:padding="10dp"
             android:text="@string/route_time_idle"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="@color/carpool_text_secondary"
             android:textSize="12sp" />
 
         <LinearLayout
+            android:id="@+id/selectionButtonsRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -75,6 +92,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
+                android:textColor="@color/white"
                 android:text="@string/button_select_origin" />
 
             <Button
@@ -82,10 +102,14 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
+                android:textColor="@color/white"
                 android:text="@string/button_select_destination" />
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/tripButtonsRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -98,6 +122,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
+                android:textColor="@color/white"
                 android:text="@string/button_create_trip" />
 
             <Button
@@ -105,11 +132,15 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
                 android:enabled="false"
+                android:textColor="@color/white"
                 android:text="@string/button_cancel_trip" />
         </LinearLayout>
-        
+
         <LinearLayout
+            android:id="@+id/passengerButtonsRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -122,7 +153,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
                 android:enabled="false"
+                android:textColor="@color/white"
                 android:text="@string/button_reserve_trip" />
 
             <Button
@@ -131,18 +165,84 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
                 android:enabled="false"
+                android:textColor="@color/white"
                 android:text="@string/button_cancel_passenger_reservation" />
 
             <Button
                 android:id="@+id/viewReservationsButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
                 android:enabled="false"
+                android:textColor="@color/white"
                 android:text="@string/button_view_reservations" />
+
+            <Button
+                android:id="@+id/viewBoardedPassengersButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
+                android:enabled="false"
+                android:textColor="@color/white"
+                android:text="@string/button_view_boarded_passengers" />
         </LinearLayout>
+
+        <Button
+            android:id="@+id/markBoardedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_primary_action"
+            android:backgroundTint="@null"
+            android:enabled="false"
+            android:textColor="@color/white"
+            android:text="@string/button_mark_boarded" />
+
+        <Button
+            android:id="@+id/startTripButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_primary_action"
+            android:backgroundTint="@null"
+            android:enabled="false"
+            android:textColor="@color/white"
+            android:text="@string/button_start_trip" />
+
+        <Button
+            android:id="@+id/finishTripButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_primary_action"
+            android:backgroundTint="@null"
+            android:enabled="false"
+            android:textColor="@color/white"
+            android:text="@string/button_finish_trip" />
     </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/menuToggleButton"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_primary_action"
+        android:backgroundTint="@null"
+        android:contentDescription="@string/button_collapse_panel"
+        android:padding="10dp"
+        android:src="@android:drawable/ic_menu_sort_by_size"
+        android:tint="@color/white"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.mapbox.maps.MapView
         android:id="@+id/mapView"

@@ -17,6 +17,8 @@ import android.widget.Toast;
 import android.app.AlertDialog;
 import android.widget.EditText;
 import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -75,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView destinationText;
     private TextView statusText;
     private TextView routeTimeText;
+    private ImageButton menuToggleButton;
     private Button selectOriginButton;
     private Button selectDestinationButton;
     private Button createTripButton;
@@ -82,6 +85,14 @@ public class MainActivity extends AppCompatActivity {
     private Button reserveTripButton;
     private Button cancelPassengerReservationButton;
     private Button viewReservationsButton;
+    private Button viewBoardedPassengersButton;
+    private Button markBoardedButton;
+    private Button startTripButton;
+    private Button finishTripButton;
+    private LinearLayout controlPanel;
+    private LinearLayout selectionButtonsRow;
+    private LinearLayout tripButtonsRow;
+    private LinearLayout passengerButtonsRow;
 
     private boolean isInitialPositionSet = false;
     private Point selectedOrigin;
@@ -91,6 +102,8 @@ public class MainActivity extends AppCompatActivity {
     private String lastTripStatusLabel;
     private String lastRouteTimeLabel;
     private int activeTripAvailableSeats = 0;
+    private Point currentDriverPosition;
+    private boolean isPanelCollapsed = true;
 
     private LocationComponentPlugin locationComponentPlugin;
     private PointAnnotationManager pointAnnotationManager;
@@ -119,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final OnIndicatorPositionChangedListener onIndicatorPositionChangedListener = point -> {
         runOnUiThread(() -> {
+            currentDriverPosition = point;
             if (!isInitialPositionSet) {
                 mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
                         .center(point)
@@ -126,11 +140,6 @@ public class MainActivity extends AppCompatActivity {
                         .build());
                 isInitialPositionSet = true;
                 setProgressVisible(false);
-                if (locationComponentPlugin != null) {
-                    mapView.post(() -> {
-                        locationComponentPlugin.removeOnIndicatorPositionChangedListener(MainActivity.this.onIndicatorPositionChangedListener);
-                    });
-                }
             }
         });
     };
@@ -163,12 +172,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void bindViews() {
         mapView = findViewById(R.id.mapView);
+        controlPanel = findViewById(R.id.controlPanel);
         loadingIndicator = findViewById(R.id.loadingIndicator);
         selectionInstruction = findViewById(R.id.selectionInstruction);
         originText = findViewById(R.id.originText);
         destinationText = findViewById(R.id.destinationText);
         statusText = findViewById(R.id.statusText);
         routeTimeText = findViewById(R.id.routeTimeText);
+        menuToggleButton = findViewById(R.id.menuToggleButton);
         selectOriginButton = findViewById(R.id.selectOriginButton);
         selectDestinationButton = findViewById(R.id.selectDestinationButton);
         createTripButton = findViewById(R.id.createTripButton);
@@ -176,12 +187,24 @@ public class MainActivity extends AppCompatActivity {
         reserveTripButton = findViewById(R.id.reserveTripButton);
         cancelPassengerReservationButton = findViewById(R.id.cancelPassengerReservationButton);
         viewReservationsButton = findViewById(R.id.viewReservationsButton);
+        viewBoardedPassengersButton = findViewById(R.id.viewBoardedPassengersButton);
+        markBoardedButton = findViewById(R.id.markBoardedButton);
+        startTripButton = findViewById(R.id.startTripButton);
+        finishTripButton = findViewById(R.id.finishTripButton);
+        selectionButtonsRow = findViewById(R.id.selectionButtonsRow);
+        tripButtonsRow = findViewById(R.id.tripButtonsRow);
+        passengerButtonsRow = findViewById(R.id.passengerButtonsRow);
 
+        menuToggleButton.setOnClickListener(v -> toggleControlPanel());
         selectOriginButton.setOnClickListener(v -> setSelectionMode(SelectionMode.ORIGIN));
         selectDestinationButton.setOnClickListener(v -> setSelectionMode(SelectionMode.DESTINATION));
         reserveTripButton.setOnClickListener(v -> reserveTrip());
         cancelPassengerReservationButton.setOnClickListener(v -> cancelPassengerReservation());
         viewReservationsButton.setOnClickListener(v -> viewReservations());
+        viewBoardedPassengersButton.setOnClickListener(v -> viewBoardedPassengers());
+        markBoardedButton.setOnClickListener(v -> markPassengerBoardedByName());
+        startTripButton.setOnClickListener(v -> startTrip());
+        finishTripButton.setOnClickListener(v -> finishTrip());
         createTripButton.setOnClickListener(v -> {
             if (activeTripId != null) {
                 Toast.makeText(this, R.string.toast_trip_exists, Toast.LENGTH_SHORT).show();
@@ -209,6 +232,15 @@ public class MainActivity extends AppCompatActivity {
         refreshButtons();
         updateStatusText();
         updateRouteTimeText();
+    }
+
+    private void toggleControlPanel() {
+        isPanelCollapsed = !isPanelCollapsed;
+        controlPanel.setVisibility(isPanelCollapsed ? View.GONE : View.VISIBLE);
+
+        menuToggleButton.setContentDescription(getString(
+                isPanelCollapsed ? R.string.button_expand_panel : R.string.button_collapse_panel
+        ));
     }
 
     private void initNetworking() {
@@ -596,6 +628,121 @@ public class MainActivity extends AppCompatActivity {
         reserveTripButton.setEnabled(activeTripId != null);
         cancelPassengerReservationButton.setEnabled(activeTripId != null);
         viewReservationsButton.setEnabled(activeTripId != null);
+        viewBoardedPassengersButton.setEnabled(activeTripId != null);
+        markBoardedButton.setEnabled(activeTripId != null);
+        startTripButton.setEnabled(activeTripId != null && isTripReadyToStart());
+        finishTripButton.setEnabled(activeTripId != null && isTripInProgress());
+    }
+
+    private boolean isTripReadyToStart() {
+        if (lastTripStatusLabel == null) return false;
+        var normalized = lastTripStatusLabel.trim().toLowerCase();
+        return normalized.equals("listo") || normalized.equals("ready") || normalized.equals("1");
+    }
+
+    private boolean isTripInProgress() {
+        if (lastTripStatusLabel == null) return false;
+        var normalized = lastTripStatusLabel.trim().toLowerCase();
+        return normalized.equals("en curso")
+                || normalized.equals("en_curso")
+                || normalized.equals("inprogress")
+                || normalized.equals("3");
+    }
+
+    private void startTrip() {
+        if (activeTripId == null) return;
+
+        setProgressVisible(true);
+        startTripButton.setEnabled(false);
+
+        final String tripId = activeTripId;
+        final Point driverPosition = currentDriverPosition;
+
+        networkExecutor.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                if (driverPosition != null) {
+                    body.put("latitude", driverPosition.latitude());
+                    body.put("longitude", driverPosition.longitude());
+                }
+
+                Request request = new Request.Builder()
+                        .url(apiBaseUrl + "/api/Trips/" + tripId + "/start")
+                        .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        String errorBody = response.body() != null ? response.body().string() : "";
+                        throw new IOException("Error starting trip: " + response.code() + " " + errorBody);
+                    }
+
+                    if (response.body() == null) throw new IOException("Respuesta vacía del servidor");
+                    String json = response.body().string();
+                    TripResponse tripResponse = TripResponse.fromJson(json);
+
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, R.string.toast_trip_started, Toast.LENGTH_SHORT).show();
+                        lastTripStatusLabel = tripResponse.status;
+                        activeTripAvailableSeats = tripResponse.availableSeats;
+                        updateStatusText();
+                        refreshButtons();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error starting trip", e);
+                runOnUiThread(() -> Toast.makeText(this, R.string.toast_trip_start_failed, Toast.LENGTH_SHORT).show());
+            } finally {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    refreshButtons();
+                });
+            }
+        });
+    }
+
+    private void finishTrip() {
+        if (activeTripId == null) return;
+
+        setProgressVisible(true);
+        finishTripButton.setEnabled(false);
+
+        final String tripId = activeTripId;
+        networkExecutor.execute(() -> {
+            try {
+                Request request = new Request.Builder()
+                        .url(apiBaseUrl + "/api/Trips/" + tripId + "/finish")
+                        .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        String errorBody = response.body() != null ? response.body().string() : "";
+                        throw new IOException("Error finishing trip: " + response.code() + " " + errorBody);
+                    }
+
+                    if (response.body() == null) throw new IOException("Respuesta vacía del servidor");
+                    String json = response.body().string();
+                    TripResponse tripResponse = TripResponse.fromJson(json);
+
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, R.string.toast_trip_finished, Toast.LENGTH_SHORT).show();
+                        lastTripStatusLabel = tripResponse.status;
+                        activeTripAvailableSeats = tripResponse.availableSeats;
+                        updateStatusText();
+                        refreshButtons();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error finishing trip", e);
+                runOnUiThread(() -> Toast.makeText(this, R.string.toast_trip_finish_failed, Toast.LENGTH_SHORT).show());
+            } finally {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    refreshButtons();
+                });
+            }
+        });
     }
 
     private void updateStatusText() {
@@ -830,9 +977,174 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter<ReservationResponse> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, reservations);
         new AlertDialog.Builder(this)
                 .setTitle(R.string.dialog_title_reservations)
+                .setAdapter(adapter, null)
+                .setNegativeButton(R.string.dialog_button_close, null)
+                .show();
+    }
+
+    private void showManualStatusOptions(ReservationResponse reservation, boolean refreshBoardedList) {
+        String[] statuses = new String[]{
+                getString(R.string.manual_status_active),
+                getString(R.string.manual_status_boarded),
+                getString(R.string.manual_status_cancelled)
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.dialog_title_manual_status) + ": " + reservation.passengerName)
+                .setItems(statuses, (dialog, which) -> {
+                    String targetStatus;
+                    if (which == 0) {
+                        targetStatus = "Active";
+                    } else if (which == 1) {
+                        targetStatus = "Boarded";
+                    } else {
+                        targetStatus = "Cancelled";
+                    }
+                    updatePassengerStatusManual(reservation, targetStatus, refreshBoardedList);
+                })
+                .setNegativeButton(R.string.dialog_button_cancel, null)
+                .show();
+    }
+
+    private void markPassengerBoardedByName() {
+        if (activeTripId == null) return;
+
+        final EditText input = new EditText(this);
+        input.setHint(R.string.dialog_message_mark_boarded);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_title_mark_boarded)
+                .setMessage(R.string.dialog_message_mark_boarded)
+                .setView(input)
+                .setPositiveButton(R.string.dialog_button_confirm, (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        Toast.makeText(this, "Nombre inválido", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    submitBoardingByName(name);
+                })
+                .setNegativeButton(R.string.dialog_button_cancel, null)
+                .show();
+    }
+
+    private void submitBoardingByName(String passengerName) {
+        setProgressVisible(true);
+        networkExecutor.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("passengerName", passengerName);
+
+                Request request = new Request.Builder()
+                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations/board")
+                        .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        String errorBody = response.body() != null ? response.body().string() : "";
+                        throw new IOException("Error validating boarding: " + response.code() + " " + errorBody);
+                    }
+
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
+                        viewReservations();
+                        viewBoardedPassengers();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error validating boarding by name", e);
+                runOnUiThread(() -> Toast.makeText(this, R.string.toast_boarding_failed, Toast.LENGTH_SHORT).show());
+            } finally {
+                runOnUiThread(() -> setProgressVisible(false));
+            }
+        });
+    }
+
+    private void updatePassengerStatusManual(ReservationResponse reservation, String targetStatus, boolean refreshBoardedList) {
+        setProgressVisible(true);
+        networkExecutor.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("status", targetStatus);
+
+                Request request = new Request.Builder()
+                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations/" + reservation.id + "/manual-status")
+                        .patch(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        String errorBody = response.body() != null ? response.body().string() : "";
+                        throw new IOException("Error updating status: " + response.code() + " " + errorBody);
+                    }
+
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, R.string.toast_manual_status_updated, Toast.LENGTH_SHORT).show();
+                        if (refreshBoardedList) {
+                            viewBoardedPassengers();
+                        } else {
+                            viewReservations();
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error updating passenger status manually", e);
+                runOnUiThread(() -> Toast.makeText(this, R.string.toast_manual_status_failed, Toast.LENGTH_SHORT).show());
+            } finally {
+                runOnUiThread(() -> setProgressVisible(false));
+            }
+        });
+    }
+
+    private void viewBoardedPassengers() {
+        if (activeTripId == null) return;
+        setProgressVisible(true);
+        networkExecutor.execute(() -> {
+            try {
+                Request request = new Request.Builder()
+                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations/boarded")
+                        .get()
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) throw new IOException("Error fetching boarded passengers");
+                    String json = response.body().string();
+                    JSONArray array = new JSONArray(json);
+                    List<ReservationResponse> boarded = new ArrayList<>();
+
+                    for (int i = 0; i < array.length(); i++) {
+                        JSONObject obj = array.getJSONObject(i);
+                        boarded.add(new ReservationResponse(
+                                obj.getString("id"),
+                                obj.getString("passengerName"),
+                                obj.getString("status")
+                        ));
+                    }
+
+                    runOnUiThread(() -> showBoardedPassengersDialog(boarded));
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error viewing boarded passengers", e);
+                runOnUiThread(() -> Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show());
+            } finally {
+                runOnUiThread(() -> setProgressVisible(false));
+            }
+        });
+    }
+
+    private void showBoardedPassengersDialog(List<ReservationResponse> boardedPassengers) {
+        if (boardedPassengers.isEmpty()) {
+            Toast.makeText(this, R.string.toast_no_boarded_passengers, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ArrayAdapter<ReservationResponse> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, boardedPassengers);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_title_boarded_passengers)
                 .setAdapter(adapter, (dialog, which) -> {
-                    ReservationResponse selected = reservations.get(which);
-                    confirmCancelReservation(selected);
+                    ReservationResponse selected = boardedPassengers.get(which);
+                    showManualStatusOptions(selected, true);
                 })
                 .setNegativeButton(R.string.dialog_button_close, null)
                 .show();
@@ -919,15 +1231,43 @@ public class MainActivity extends AppCompatActivity {
             JSONObject object = new JSONObject(json);
             Double destinationLat = object.isNull("destinationLatitude") ? null : object.getDouble("destinationLatitude");
             Double destinationLng = object.isNull("destinationLongitude") ? null : object.getDouble("destinationLongitude");
+
+            Object statusValue = object.has("status") ? object.get("status") : null;
+            String statusLabel = mapTripStatusToLabel(statusValue);
+
             return new TripResponse(
                     object.getString("id"),
                     object.getDouble("originLatitude"),
                     object.getDouble("originLongitude"),
                     destinationLat,
                     destinationLng,
-                    object.optString("status", ""),
+                    statusLabel,
                     object.optInt("availableSeats", 0)
             );
+        }
+
+        private static String mapTripStatusToLabel(Object statusValue) {
+            if (statusValue == null || statusValue == JSONObject.NULL) return "";
+
+            if (statusValue instanceof Number) {
+                int s = ((Number) statusValue).intValue();
+                if (s == 0) return "activo";
+                if (s == 1) return "listo";
+                if (s == 2) return "cancelado";
+                if (s == 3) return "en curso";
+                if (s == 4) return "finalizado";
+                return String.valueOf(s);
+            }
+
+            String normalized = String.valueOf(statusValue).trim().toLowerCase();
+            if (normalized.equals("0") || normalized.equals("awaitingdestination") || normalized.equals("activo")) return "activo";
+            if (normalized.equals("1") || normalized.equals("ready") || normalized.equals("listo")) return "listo";
+            if (normalized.equals("2") || normalized.equals("cancelled") || normalized.equals("cancelado")) return "cancelado";
+            if (normalized.equals("3") || normalized.equals("inprogress") || normalized.equals("in_progress") || normalized.equals("en_curso") || normalized.equals("en curso")) return "en curso";
+            if (normalized.equals("4") || normalized.equals("finished") || normalized.equals("completed") || normalized.equals("finalizado")) return "finalizado";
+
+            // Fallback: usa lo que venga desde el servidor.
+            return String.valueOf(statusValue);
         }
     }
 

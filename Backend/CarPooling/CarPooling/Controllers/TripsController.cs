@@ -83,6 +83,72 @@ public class TripsController(CarPoolingContext context) : ControllerBase
         return Ok(TripResponse.FromEntity(trip));
     }
 
+    [HttpPost("{id:guid}/start")]
+    public async Task<ActionResult<TripResponse>> StartTripAsync(Guid id, [FromBody] StartTripRequestDto? request)
+    {
+        var trip = await _context.Trips.FirstOrDefaultAsync(t => t.Id == id);
+        if (trip is null)
+        {
+            return NotFound();
+        }
+
+        if (trip.Status == TripStatus.Cancelled)
+        {
+            return BadRequest("El viaje fue cancelado y no puede iniciarse.");
+        }
+
+        if (trip.Status != TripStatus.Ready)
+        {
+            return BadRequest("El viaje aún no está listo para iniciar (debe tener destino confirmado).");
+        }
+
+        // Para iniciar, debe haber al menos un pasajero ya abordado.
+        var boardedPassengersCount = await _context.Reservations.CountAsync(r =>
+            r.TripId == id && r.Status == ReservationStatus.Boarded);
+
+        if (boardedPassengersCount <= 0)
+        {
+            return BadRequest("No se puede iniciar el viaje: debe haber al menos un pasajero abordado.");
+        }
+
+        trip.Status = TripStatus.InProgress;
+        trip.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return Ok(TripResponse.FromEntity(trip));
+    }
+
+    [HttpPost("{id:guid}/finish")]
+    public async Task<ActionResult<TripResponse>> FinishTripAsync(Guid id)
+    {
+        var trip = await _context.Trips.FirstOrDefaultAsync(t => t.Id == id);
+        if (trip is null)
+        {
+            return NotFound();
+        }
+
+        if (trip.Status == TripStatus.Cancelled)
+        {
+            return BadRequest("El viaje fue cancelado y no puede finalizarse.");
+        }
+
+        if (trip.Status == TripStatus.Finished)
+        {
+            return Ok(TripResponse.FromEntity(trip));
+        }
+
+        if (trip.Status != TripStatus.InProgress)
+        {
+            return BadRequest("Solo se puede finalizar un viaje que esté en curso.");
+        }
+
+        trip.Status = TripStatus.Finished;
+        trip.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return Ok(TripResponse.FromEntity(trip));
+    }
+
     [HttpGet("{id:guid}", Name = "GetTripById")]
     public async Task<ActionResult<TripResponse>> GetTripByIdAsync(Guid id)
     {

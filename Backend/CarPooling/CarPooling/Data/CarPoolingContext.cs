@@ -15,7 +15,11 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             ? "listo"
             : status == TripStatus.Cancelled
                 ? "cancelado"
-                : "activo";
+                : status == TripStatus.InProgress
+                    ? "en_curso"
+                    : status == TripStatus.Finished
+                        ? "finalizado"
+                        : "activo";
     }
 
     private static TripStatus StatusFromString(string value)
@@ -35,6 +39,16 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         if (normalized == "cancelado" || normalized == "cancelled")
         {
             return TripStatus.Cancelled;
+        }
+
+        if (normalized == "en_curso" || normalized == "en curso" || normalized == "inprogress" || normalized == "in_progress" || normalized == "ongoing")
+        {
+            return TripStatus.InProgress;
+        }
+
+        if (normalized == "finalizado" || normalized == "finished" || normalized == "completed" || normalized == "done")
+        {
+            return TripStatus.Finished;
         }
 
         return TripStatus.AwaitingDestination;
