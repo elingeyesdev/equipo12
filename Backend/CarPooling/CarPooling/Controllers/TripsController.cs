@@ -19,7 +19,9 @@ public class TripsController(CarPoolingContext context) : ControllerBase
         {
             OriginLatitude = request.Latitude,
             OriginLongitude = request.Longitude,
-            Status = TripStatus.AwaitingDestination
+            Status = TripStatus.AwaitingDestination,
+            UpdatedAt = null,
+            CancelledAt = null
         };
 
         _context.Trips.Add(trip);
@@ -50,6 +52,7 @@ public class TripsController(CarPoolingContext context) : ControllerBase
         trip.DestinationLatitude = request.Latitude;
         trip.DestinationLongitude = request.Longitude;
         trip.Status = TripStatus.Ready;
+        trip.CancelledAt = null;
         trip.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

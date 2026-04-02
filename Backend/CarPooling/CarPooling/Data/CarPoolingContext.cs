@@ -66,7 +66,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .HasDefaultValueSql("GETUTCDATE()");
 
             entity.Property(t => t.UpdatedAt);
-            entity.Property(t => t.CancelledAt);
+            entity.Property(t => t.CancelledAt)
+                .HasDefaultValueSql("NULL");
         });
     }
 }
