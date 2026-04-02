@@ -14,6 +14,9 @@ import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.app.AlertDialog;
+import android.widget.EditText;
+import android.widget.ArrayAdapter;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -76,6 +79,9 @@ public class MainActivity extends AppCompatActivity {
     private Button selectDestinationButton;
     private Button createTripButton;
     private Button cancelTripButton;
+    private Button reserveTripButton;
+    private Button cancelPassengerReservationButton;
+    private Button viewReservationsButton;
 
     private boolean isInitialPositionSet = false;
     private Point selectedOrigin;
@@ -84,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
     private String activeTripId;
     private String lastTripStatusLabel;
     private String lastRouteTimeLabel;
+    private int activeTripAvailableSeats = 0;
 
     private LocationComponentPlugin locationComponentPlugin;
     private PointAnnotationManager pointAnnotationManager;
@@ -111,18 +118,22 @@ public class MainActivity extends AppCompatActivity {
             });
 
     private final OnIndicatorPositionChangedListener onIndicatorPositionChangedListener = point -> {
-        if (!isInitialPositionSet) {
-            mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
-                    .center(point)
-                    .zoom(16.0)
-                    .build());
-            isInitialPositionSet = true;
-            setProgressVisible(false);
-        }
+        runOnUiThread(() -> {
+            if (!isInitialPositionSet) {
+                mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
+                        .center(point)
+                        .zoom(16.0)
+                        .build());
+                isInitialPositionSet = true;
+                setProgressVisible(false);
+                if (locationComponentPlugin != null) {
+                    mapView.post(() -> {
+                        locationComponentPlugin.removeOnIndicatorPositionChangedListener(MainActivity.this.onIndicatorPositionChangedListener);
+                    });
+                }
+            }
+        });
     };
-
-    private final OnIndicatorBearingChangedListener onIndicatorBearingChangedListener = bearing ->
-            mapView.getMapboxMap().setCamera(new CameraOptions.Builder().bearing(bearing).build());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -162,9 +173,15 @@ public class MainActivity extends AppCompatActivity {
         selectDestinationButton = findViewById(R.id.selectDestinationButton);
         createTripButton = findViewById(R.id.createTripButton);
         cancelTripButton = findViewById(R.id.cancelTripButton);
+        reserveTripButton = findViewById(R.id.reserveTripButton);
+        cancelPassengerReservationButton = findViewById(R.id.cancelPassengerReservationButton);
+        viewReservationsButton = findViewById(R.id.viewReservationsButton);
 
         selectOriginButton.setOnClickListener(v -> setSelectionMode(SelectionMode.ORIGIN));
         selectDestinationButton.setOnClickListener(v -> setSelectionMode(SelectionMode.DESTINATION));
+        reserveTripButton.setOnClickListener(v -> reserveTrip());
+        cancelPassengerReservationButton.setOnClickListener(v -> cancelPassengerReservation());
+        viewReservationsButton.setOnClickListener(v -> viewReservations());
         createTripButton.setOnClickListener(v -> {
             if (activeTripId != null) {
                 Toast.makeText(this, R.string.toast_trip_exists, Toast.LENGTH_SHORT).show();
@@ -199,6 +216,9 @@ public class MainActivity extends AppCompatActivity {
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(message -> Log.d(TAG, message));
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         httpClient = new OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
                 .addInterceptor(loggingInterceptor)
                 .build();
 
@@ -223,7 +243,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupMapClickListener() {
         GesturesUtils.getGestures(mapView).addOnMapClickListener(point -> {
-            handleMapClick(point);
+            runOnUiThread(() -> handleMapClick(point));
             return true;
         });
     }
@@ -232,7 +252,6 @@ public class MainActivity extends AppCompatActivity {
         locationComponentPlugin = LocationComponentUtils.getLocationComponent(mapView);
         locationComponentPlugin.setEnabled(true);
         locationComponentPlugin.addOnIndicatorPositionChangedListener(onIndicatorPositionChangedListener);
-        locationComponentPlugin.addOnIndicatorBearingChangedListener(onIndicatorBearingChangedListener);
     }
 
     private void initializeMapAnnotations() {
@@ -361,6 +380,7 @@ public class MainActivity extends AppCompatActivity {
                 RouteData routeData = fetchRouteData(origin, destination);
                 activeTripId = response.id;
                 lastTripStatusLabel = response.status;
+                activeTripAvailableSeats = response.availableSeats;
                 lastRouteTimeLabel = buildEstimatedTimeLabel(routeData.distanceMeters);
                 runOnUiThread(() -> {
                     if (routeData.points != null && !routeData.points.isEmpty()) {
@@ -392,6 +412,7 @@ public class MainActivity extends AppCompatActivity {
                 TripResponse response = cancelTripOnServer(tripId);
                 activeTripId = null;
                 lastTripStatusLabel = response.status;
+                activeTripAvailableSeats = 0;
                 lastRouteTimeLabel = null;
                 runOnUiThread(() -> {
                     Toast.makeText(this, R.string.toast_trip_cancelled, Toast.LENGTH_SHORT).show();
@@ -572,6 +593,9 @@ public class MainActivity extends AppCompatActivity {
         boolean canCreate = selectedOrigin != null && selectedDestination != null && activeTripId == null;
         createTripButton.setEnabled(canCreate);
         cancelTripButton.setEnabled(activeTripId != null);
+        reserveTripButton.setEnabled(activeTripId != null);
+        cancelPassengerReservationButton.setEnabled(activeTripId != null);
+        viewReservationsButton.setEnabled(activeTripId != null);
     }
 
     private void updateStatusText() {
@@ -579,7 +603,7 @@ public class MainActivity extends AppCompatActivity {
             statusText.setText(R.string.trip_status_idle);
         } else {
             String suffix = lastTripStatusLabel == null ? "" : " · " + lastTripStatusLabel;
-            statusText.setText(getString(R.string.trip_status_with_id, activeTripId) + suffix);
+            statusText.setText(getString(R.string.trip_status_with_id, activeTripId) + suffix + " · Cupos: " + activeTripAvailableSeats);
         }
     }
 
@@ -636,17 +660,234 @@ public class MainActivity extends AppCompatActivity {
             polylineAnnotationManager.deleteAll();
             polylineAnnotationManager = null;
         }
-        if (mapView != null) {
-            mapView.onDestroy();
-        }
         if (locationComponentPlugin != null) {
             locationComponentPlugin.removeOnIndicatorPositionChangedListener(onIndicatorPositionChangedListener);
-            locationComponentPlugin.removeOnIndicatorBearingChangedListener(onIndicatorBearingChangedListener);
+        }
+        if (mapView != null) {
+            mapView.onDestroy();
         }
         if (networkExecutor != null) {
             networkExecutor.shutdownNow();
         }
         super.onDestroy();
+    }
+
+    private void reserveTrip() {
+        if (activeTripId == null) return;
+        if (activeTripAvailableSeats <= 0) {
+            Toast.makeText(this, "No quedan cupos disponibles", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final EditText input = new EditText(this);
+        input.setHint(R.string.dialog_message_reserve);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_title_reserve)
+                .setView(input)
+                .setPositiveButton(R.string.dialog_button_confirm, (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    if (name.isEmpty()) name = "Pasajero " + (int)(Math.random() * 100);
+                    submitReservation(name);
+                })
+                .setNegativeButton(R.string.dialog_button_cancel, null)
+                .show();
+    }
+
+    private void submitReservation(String passengerName) {
+        setProgressVisible(true);
+        networkExecutor.execute(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("passengerName", passengerName);
+                
+                Request request = new Request.Builder()
+                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations")
+                        .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        String errorBody = response.body() != null ? response.body().string() : "";
+                        throw new IOException("Error: " + response.code() + " " + errorBody);
+                    }
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, R.string.toast_reservation_created, Toast.LENGTH_SHORT).show();
+                        activeTripAvailableSeats--;
+                        updateStatusText();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error creating reservation", e);
+                runOnUiThread(() -> Toast.makeText(this, R.string.toast_reservation_failed, Toast.LENGTH_SHORT).show());
+            } finally {
+                runOnUiThread(() -> setProgressVisible(false));
+            }
+        });
+    }
+
+    private void cancelPassengerReservation() {
+        if (activeTripId == null) return;
+
+        final EditText input = new EditText(this);
+        input.setHint("Nombre");
+        new AlertDialog.Builder(this)
+                .setTitle("Cancelar Reserva")
+                .setMessage("Ingresa tu nombre para buscar y cancelar tu reserva:")
+                .setView(input)
+                .setPositiveButton(R.string.dialog_button_confirm, (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    if (!name.isEmpty()) {
+                        findAndCancelPassengerReservation(name);
+                    } else {
+                        Toast.makeText(this, "Nombre inválido", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton(R.string.dialog_button_cancel, null)
+                .show();
+    }
+
+    private void findAndCancelPassengerReservation(String passengerName) {
+        setProgressVisible(true);
+        networkExecutor.execute(() -> {
+            try {
+                Request request = new Request.Builder()
+                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations")
+                        .get()
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) throw new IOException("Error fetching reservations");
+                    String json = response.body().string();
+                    JSONArray array = new JSONArray(json);
+                    
+                    String targetReservationId = null;
+                    for (int i = 0; i < array.length(); i++) {
+                        JSONObject obj = array.getJSONObject(i);
+                        if (obj.getString("passengerName").equalsIgnoreCase(passengerName)) {
+                            targetReservationId = obj.getString("id");
+                            break;
+                        }
+                    }
+
+                    if (targetReservationId != null) {
+                        final String idToCancel = targetReservationId;
+                        runOnUiThread(() -> executeCancelReservation(idToCancel));
+                    } else {
+                        runOnUiThread(() -> {
+                            Toast.makeText(this, "No se encontró reserva para: " + passengerName, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error finding reservation", e);
+                runOnUiThread(() -> Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show());
+            } finally {
+                runOnUiThread(() -> setProgressVisible(false));
+            }
+        });
+    }
+
+    private void viewReservations() {
+        if (activeTripId == null) return;
+        setProgressVisible(true);
+        networkExecutor.execute(() -> {
+            try {
+                Request request = new Request.Builder()
+                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations")
+                        .get()
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) throw new IOException("Error fetching reservations");
+                    String json = response.body().string();
+                    JSONArray array = new JSONArray(json);
+                    List<ReservationResponse> reservations = new ArrayList<>();
+                    for (int i = 0; i < array.length(); i++) {
+                        JSONObject obj = array.getJSONObject(i);
+                        reservations.add(new ReservationResponse(
+                                obj.getString("id"),
+                                obj.getString("passengerName"),
+                                obj.getString("status")
+                        ));
+                    }
+                    runOnUiThread(() -> showReservationsDialog(reservations));
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error viewing reservations", e);
+                runOnUiThread(() -> Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show());
+            } finally {
+                runOnUiThread(() -> setProgressVisible(false));
+            }
+        });
+    }
+
+    private void showReservationsDialog(List<ReservationResponse> reservations) {
+        if (reservations.isEmpty()) {
+            Toast.makeText(this, "No hay reservas para este viaje", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ArrayAdapter<ReservationResponse> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, reservations);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_title_reservations)
+                .setAdapter(adapter, (dialog, which) -> {
+                    ReservationResponse selected = reservations.get(which);
+                    confirmCancelReservation(selected);
+                })
+                .setNegativeButton(R.string.dialog_button_close, null)
+                .show();
+    }
+
+    private void confirmCancelReservation(ReservationResponse reservation) {
+        new AlertDialog.Builder(this)
+                .setTitle("Cancelar Reserva")
+                .setMessage("¿Deseas cancelar la reserva de " + reservation.passengerName + "?")
+                .setPositiveButton("Sí, Cancelar", (dialog, which) -> executeCancelReservation(reservation.id))
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    private void executeCancelReservation(String reservationId) {
+        setProgressVisible(true);
+        networkExecutor.execute(() -> {
+            try {
+                Request request = new Request.Builder()
+                        .url(apiBaseUrl + "/api/Reservations/" + reservationId)
+                        .delete()
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) throw new IOException("Error cancelling reservation");
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, R.string.toast_reservation_cancelled, Toast.LENGTH_SHORT).show();
+                        activeTripAvailableSeats++;
+                        updateStatusText();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error cancelling reservation", e);
+                runOnUiThread(() -> Toast.makeText(this, R.string.toast_reservation_failed, Toast.LENGTH_SHORT).show());
+            } finally {
+                runOnUiThread(() -> setProgressVisible(false));
+            }
+        });
+    }
+
+    private static class ReservationResponse {
+        final String id;
+        final String passengerName;
+        final String status;
+
+        ReservationResponse(String id, String passengerName, String status) {
+            this.id = id;
+            this.passengerName = passengerName;
+            this.status = status;
+        }
+
+        @Override
+        public String toString() {
+            return passengerName + " (" + status + ")";
+        }
     }
 
     private static class TripResponse {
@@ -656,19 +897,22 @@ public class MainActivity extends AppCompatActivity {
         final Double destinationLatitude;
         final Double destinationLongitude;
         final String status;
+        final int availableSeats;
 
         TripResponse(String id,
                      double originLatitude,
                      double originLongitude,
                      Double destinationLatitude,
                      Double destinationLongitude,
-                     String status) {
+                     String status,
+                     int availableSeats) {
             this.id = id;
             this.originLatitude = originLatitude;
             this.originLongitude = originLongitude;
             this.destinationLatitude = destinationLatitude;
             this.destinationLongitude = destinationLongitude;
             this.status = status;
+            this.availableSeats = availableSeats;
         }
 
         static TripResponse fromJson(String json) throws JSONException {
@@ -681,7 +925,8 @@ public class MainActivity extends AppCompatActivity {
                     object.getDouble("originLongitude"),
                     destinationLat,
                     destinationLng,
-                    object.optString("status", "")
+                    object.optString("status", ""),
+                    object.optInt("availableSeats", 0)
             );
         }
     }

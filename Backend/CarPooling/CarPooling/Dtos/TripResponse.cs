@@ -10,6 +10,7 @@ public class TripResponse
     public double? DestinationLatitude { get; init; }
     public double? DestinationLongitude { get; init; }
     public TripStatus Status { get; init; }
+    public int AvailableSeats { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public DateTime? CancelledAt { get; init; }
@@ -22,6 +23,7 @@ public class TripResponse
         DestinationLatitude = trip.DestinationLatitude,
         DestinationLongitude = trip.DestinationLongitude,
         Status = trip.Status,
+        AvailableSeats = trip.AvailableSeats,
         CreatedAt = trip.CreatedAt,
         UpdatedAt = trip.UpdatedAt,
         CancelledAt = trip.CancelledAt

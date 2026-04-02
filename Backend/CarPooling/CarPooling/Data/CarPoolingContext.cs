@@ -7,6 +7,7 @@ namespace CarPooling.Data;
 public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : DbContext(options)
 {
     public DbSet<Trip> Trips => Set<Trip>();
+    public DbSet<Reservation> Reservations => Set<Reservation>();
 
     private static string StatusToString(TripStatus status)
     {
@@ -68,6 +69,27 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(t => t.UpdatedAt);
             entity.Property(t => t.CancelledAt)
                 .HasDefaultValueSql("NULL");
+        });
+
+        modelBuilder.Entity<Reservation>(entity =>
+        {
+            entity.ToTable("Reservations");
+            entity.HasKey(r => r.Id);
+
+            entity.HasOne(r => r.Trip)
+                .WithMany()
+                .HasForeignKey(r => r.TripId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(r => r.PassengerName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(r => r.Status)
+                .IsRequired();
+
+            entity.Property(r => r.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
         });
     }
 }

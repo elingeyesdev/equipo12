@@ -108,6 +108,40 @@
                 android:enabled="false"
                 android:text="@string/button_cancel_trip" />
         </LinearLayout>
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/reserveTripButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:enabled="false"
+                android:text="@string/button_reserve_trip" />
+
+            <Button
+                android:id="@+id/cancelPassengerReservationButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:enabled="false"
+                android:text="@string/button_cancel_passenger_reservation" />
+
+            <Button
+                android:id="@+id/viewReservationsButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:enabled="false"
+                android:text="@string/button_view_reservations" />
+        </LinearLayout>
     </LinearLayout>
 
     <com.mapbox.maps.MapView

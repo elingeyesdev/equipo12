@@ -20,6 +20,8 @@ public class Trip
 
     public TripStatus Status { get; set; } = TripStatus.AwaitingDestination;
 
+    public int AvailableSeats { get; set; } = 4;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }

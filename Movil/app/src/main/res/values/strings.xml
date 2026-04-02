@@ -24,4 +24,19 @@
     <string name="toast_trip_cancelled">Viaje cancelado.</string>
     <string name="toast_no_trip">No hay un viaje activo.</string>
     <string name="toast_network_error">Error al comunicar con la API.</string>
+    
+    <!-- Reservation Strings -->
+    <string name="button_reserve_trip">Reservar</string>
+    <string name="button_cancel_passenger_reservation">Cancelar Reserva</string>
+    <string name="button_view_reservations">Ver Reservas</string>
+    <string name="toast_reservation_created">Reserva completada con éxito.</string>
+    <string name="toast_reservation_cancelled">Reserva cancelada.</string>
+    <string name="toast_reservation_failed">Ocurrió un error con la reserva.</string>
+    <string name="dialog_title_reservations">Reservas del Viaje</string>
+    <string name="dialog_button_close">Cerrar</string>
+    <string name="dialog_title_reserve">Nueva Reserva</string>
+    <string name="dialog_message_reserve">Ingresa el nombre del pasajero:</string>
+    <string name="dialog_button_confirm">Confirmar</string>
+    <string name="dialog_button_cancel">Cancelar</string>
+    <string name="button_cancel">Cancelar</string>
 </resources>
