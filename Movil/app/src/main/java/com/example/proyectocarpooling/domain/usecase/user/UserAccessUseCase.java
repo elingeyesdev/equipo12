@@ -2,6 +2,7 @@ package com.example.proyectocarpooling.domain.usecase.user;
 
 import com.example.proyectocarpooling.data.model.user.LoginUserRequest;
 import com.example.proyectocarpooling.data.model.user.RegisterUserRequest;
+import com.example.proyectocarpooling.data.model.user.UpdateUserRequest;
 import com.example.proyectocarpooling.data.model.user.UserResponse;
 import com.example.proyectocarpooling.domain.repository.user.UserRepository;
 
@@ -29,5 +30,13 @@ public class UserAccessUseCase {
 
     public UserResponse getByEmail(String email) throws IOException {
         return repository.getByEmail(email);
+    }
+
+    public UserResponse update(String userId, UpdateUserRequest request) throws IOException {
+        return repository.update(userId, request);
+    }
+
+    public void logout() throws IOException {
+        repository.logout();
     }
 }

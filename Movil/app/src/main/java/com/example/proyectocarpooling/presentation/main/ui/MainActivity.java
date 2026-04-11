@@ -1,6 +1,7 @@
 package com.example.proyectocarpooling.presentation.main.ui;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -25,15 +26,22 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectocarpooling.R;
+import com.example.proyectocarpooling.data.local.SessionManager;
+import com.example.proyectocarpooling.data.local.UserAccessProvider;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
 import com.example.proyectocarpooling.data.model.TripResponse;
 import com.example.proyectocarpooling.domain.model.CreateTripResult;
+import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
+import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 import com.example.proyectocarpooling.presentation.main.viewmodel.MainViewModel;
+import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
 
 import com.mapbox.geojson.Point;
 import com.mapbox.maps.CameraOptions;
@@ -50,6 +58,7 @@ import com.mapbox.maps.plugin.gestures.GesturesUtils;
 import com.mapbox.maps.plugin.locationcomponent.LocationComponentPlugin;
 import com.mapbox.maps.plugin.locationcomponent.LocationComponentUtils;
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener;
+import com.google.android.material.navigation.NavigationView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,7 +100,6 @@ public class MainActivity extends AppCompatActivity {
     private String lastRouteTimeLabel;
     private int activeTripAvailableSeats = 0;
     private Point currentDriverPosition;
-    private boolean isPanelCollapsed = true;
 
     private LocationComponentPlugin locationComponentPlugin;
     private PointAnnotationManager pointAnnotationManager;
@@ -101,6 +109,12 @@ public class MainActivity extends AppCompatActivity {
     private PointAnnotation destinationAnnotation;
     private Bitmap originMarkerBitmap;
     private Bitmap destinationMarkerBitmap;
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private TextView drawerUserTitle;
+    private TextView drawerUserSubtitle;
+    private SessionManager sessionManager;
+    private UserAccessUseCase userAccessUseCase;
     private MainViewModel mainViewModel;
 
     private final ActivityResultLauncher<String[]> locationPermissionRequest =
@@ -134,6 +148,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        sessionManager = new SessionManager(this);
+        userAccessUseCase = UserAccessProvider.create(this);
+        if (!sessionManager.isLoggedIn()) {
+            navigateToLogin();
+            return;
+        }
+
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         restoreStateFromViewModel();
 
@@ -178,6 +200,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bindViews() {
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
         mapView = findViewById(R.id.mapView);
         controlPanel = findViewById(R.id.controlPanel);
         loadingIndicator = findViewById(R.id.loadingIndicator);
@@ -201,6 +225,14 @@ public class MainActivity extends AppCompatActivity {
         selectionButtonsRow = findViewById(R.id.selectionButtonsRow);
         tripButtonsRow = findViewById(R.id.tripButtonsRow);
         passengerButtonsRow = findViewById(R.id.passengerButtonsRow);
+
+        if (navigationView != null) {
+            var header = navigationView.getHeaderView(0);
+            drawerUserTitle = header.findViewById(R.id.drawerUserTitle);
+            drawerUserSubtitle = header.findViewById(R.id.drawerUserSubtitle);
+        }
+
+        setupDrawer();
 
         menuToggleButton.setOnClickListener(v -> toggleControlPanel());
         selectOriginButton.setOnClickListener(v -> setSelectionMode(SelectionMode.ORIGIN));
@@ -241,13 +273,59 @@ public class MainActivity extends AppCompatActivity {
         updateRouteTimeText();
     }
 
-    private void toggleControlPanel() {
-        isPanelCollapsed = !isPanelCollapsed;
-        controlPanel.setVisibility(isPanelCollapsed ? View.GONE : View.VISIBLE);
+    private void setupDrawer() {
+        refreshDrawerUserInfo();
 
-        menuToggleButton.setContentDescription(getString(
-                isPanelCollapsed ? R.string.button_expand_panel : R.string.button_collapse_panel
-        ));
+        if (navigationView != null) {
+            navigationView.setNavigationItemSelectedListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.nav_edit_profile) {
+                    startActivity(new Intent(this, ProfileActivity.class));
+                } else if (id == R.id.nav_logout) {
+                    logout();
+                }
+
+                if (drawerLayout != null) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                }
+                return true;
+            });
+        }
+    }
+
+    private void refreshDrawerUserInfo() {
+        if (drawerUserTitle != null) {
+            drawerUserTitle.setText(sessionManager.getFullName());
+        }
+        if (drawerUserSubtitle != null) {
+            drawerUserSubtitle.setText(sessionManager.getEmail());
+        }
+    }
+
+    private void logout() {
+        new Thread(() -> {
+            try {
+                userAccessUseCase.logout();
+            } catch (Exception ignored) {
+            }
+        }).start();
+
+        sessionManager.clearSession();
+        Toast.makeText(this, R.string.logout_done, Toast.LENGTH_SHORT).show();
+        navigateToLogin();
+    }
+
+    private void navigateToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private void toggleControlPanel() {
+        if (drawerLayout != null) {
+            drawerLayout.openDrawer(GravityCompat.START);
+        }
     }
 
     private void checkLocationPermissions() {
@@ -681,6 +759,12 @@ public class MainActivity extends AppCompatActivity {
             mapView.onDestroy();
         }
         super.onDestroy();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshDrawerUserInfo();
     }
 
     private void reserveTrip() {

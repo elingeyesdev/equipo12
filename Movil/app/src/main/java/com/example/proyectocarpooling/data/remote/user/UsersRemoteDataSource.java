@@ -2,6 +2,7 @@ package com.example.proyectocarpooling.data.remote.user;
 
 import com.example.proyectocarpooling.data.model.user.LoginUserRequest;
 import com.example.proyectocarpooling.data.model.user.RegisterUserRequest;
+import com.example.proyectocarpooling.data.model.user.UpdateUserRequest;
 import com.example.proyectocarpooling.data.model.user.UserResponse;
 
 import org.json.JSONException;
@@ -101,6 +102,43 @@ public class UsersRemoteDataSource {
                 .build();
 
         return executeUserRequest(request, "Error consultando usuario por email");
+    }
+
+    public UserResponse update(String userId, UpdateUserRequest request) throws IOException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("fullName", request.fullName);
+            body.put("email", request.email);
+            if (request.phoneNumber != null && !request.phoneNumber.trim().isEmpty()) {
+                body.put("phoneNumber", request.phoneNumber);
+            }
+            if (request.newPassword != null && !request.newPassword.trim().isEmpty()) {
+                body.put("newPassword", request.newPassword);
+            }
+        } catch (JSONException e) {
+            throw new IOException("No se pudo construir actualización de perfil", e);
+        }
+
+        Request httpRequest = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/" + userId)
+                .put(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                .build();
+
+        return executeUserRequest(httpRequest, "Error actualizando perfil");
+    }
+
+    public void logout() throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/logout")
+                .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Error cerrando sesión: " + response.code() + " " + errorBody);
+            }
+        }
     }
 
     private UserResponse executeUserRequest(Request request, String errorPrefix) throws IOException {

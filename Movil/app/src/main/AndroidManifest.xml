@@ -35,6 +35,21 @@
             android:name=".presentation.main.ui.MainActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".presentation.auth.ui.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
+            android:name=".presentation.auth.ui.RegisterActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
+            android:name=".presentation.profile.ui.ProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
     </application>
 
 </manifest>
