@@ -151,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
         userAccessUseCase = UserAccessProvider.create(this);
-        if (!sessionManager.isLoggedIn()) {
+        if (!sessionManager.hasActiveSession()) {
             navigateToLogin();
             return;
         }

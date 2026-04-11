@@ -13,6 +13,8 @@ public class SessionManager {
     private static final String KEY_FULL_NAME = "full_name";
     private static final String KEY_EMAIL = "email";
     private static final String KEY_PHONE = "phone";
+    private static final String KEY_EXPIRES_AT = "expires_at";
+    private static final long THIRTY_DAYS_MILLIS = 30L * 24L * 60L * 60L * 1000L;
 
     private final SharedPreferences preferences;
 
@@ -21,17 +23,37 @@ public class SessionManager {
     }
 
     public void saveUser(UserResponse user) {
+        long expiresAt = System.currentTimeMillis() + THIRTY_DAYS_MILLIS;
+
         preferences.edit()
                 .putBoolean(KEY_LOGGED_IN, true)
                 .putString(KEY_USER_ID, user.id)
                 .putString(KEY_FULL_NAME, user.fullName)
                 .putString(KEY_EMAIL, user.email)
                 .putString(KEY_PHONE, user.phoneNumber)
-                .apply();
+                .putLong(KEY_EXPIRES_AT, expiresAt)
+                .commit();
     }
 
     public boolean isLoggedIn() {
-        return preferences.getBoolean(KEY_LOGGED_IN, false);
+        return hasActiveSession();
+    }
+
+    public boolean hasActiveSession() {
+        boolean loggedIn = preferences.getBoolean(KEY_LOGGED_IN, false);
+        String userId = preferences.getString(KEY_USER_ID, "");
+        String email = preferences.getString(KEY_EMAIL, "");
+        long expiresAt = preferences.getLong(KEY_EXPIRES_AT, 0L);
+
+        boolean hasMinimumData = userId != null && !userId.isBlank() && email != null && !email.isBlank();
+        boolean notExpired = expiresAt > System.currentTimeMillis();
+
+        boolean valid = loggedIn && hasMinimumData && notExpired;
+        if (!valid && loggedIn) {
+            clearSession();
+        }
+
+        return valid;
     }
 
     public String getUserId() {
@@ -51,6 +73,6 @@ public class SessionManager {
     }
 
     public void clearSession() {
-        preferences.edit().clear().apply();
+        preferences.edit().clear().commit();
     }
 }

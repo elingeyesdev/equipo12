@@ -39,7 +39,7 @@ public class LoginActivity extends AppCompatActivity {
         userAccessUseCase = UserAccessProvider.create(this);
         sessionManager = new SessionManager(this);
 
-        if (sessionManager.isLoggedIn()) {
+        if (sessionManager.hasActiveSession()) {
             navigateToMain();
             return;
         }

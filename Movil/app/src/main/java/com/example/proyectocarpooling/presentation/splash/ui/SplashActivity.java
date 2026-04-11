@@ -21,7 +21,7 @@ public class SplashActivity extends AppCompatActivity {
         SessionManager sessionManager = new SessionManager(this);
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Intent intent = sessionManager.isLoggedIn()
+            Intent intent = sessionManager.hasActiveSession()
                     ? new Intent(SplashActivity.this, MainActivity.class)
                     : new Intent(SplashActivity.this, LoginActivity.class);
             startActivity(intent);
