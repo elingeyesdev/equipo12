@@ -22,7 +22,7 @@
             android:value="@string/mapbox_access_token" />
 
         <activity
-            android:name=".SplashActivity"
+            android:name=".presentation.splash.ui.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.NoActionBar">
             <intent-filter>
@@ -32,7 +32,7 @@
         </activity>
 
         <activity
-            android:name=".MainActivity"
+            android:name=".presentation.main.ui.MainActivity"
             android:exported="false" />
 
     </application>

@@ -1,4 +1,4 @@
-package com.example.proyectocarpooling;
+package com.example.proyectocarpooling.presentation.main.ui;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -28,6 +27,13 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.example.proyectocarpooling.R;
+import com.example.proyectocarpooling.data.model.ReservationResponse;
+import com.example.proyectocarpooling.data.model.TripResponse;
+import com.example.proyectocarpooling.domain.model.CreateTripResult;
+import com.example.proyectocarpooling.presentation.main.viewmodel.MainViewModel;
 
 import com.mapbox.geojson.Point;
 import com.mapbox.maps.CameraOptions;
@@ -43,32 +49,14 @@ import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager;
 import com.mapbox.maps.plugin.gestures.GesturesUtils;
 import com.mapbox.maps.plugin.locationcomponent.LocationComponentPlugin;
 import com.mapbox.maps.plugin.locationcomponent.LocationComponentUtils;
-import com.mapbox.maps.plugin.locationcomponent.OnIndicatorBearingChangedListener;
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.logging.HttpLoggingInterceptor;
 
 public class MainActivity extends AppCompatActivity {
 
     private enum SelectionMode { NONE, ORIGIN, DESTINATION }
-
-    private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
-    private static final String TAG = "TripsApi";
 
     private MapView mapView;
     private ProgressBar loadingIndicator;
@@ -113,10 +101,7 @@ public class MainActivity extends AppCompatActivity {
     private PointAnnotation destinationAnnotation;
     private Bitmap originMarkerBitmap;
     private Bitmap destinationMarkerBitmap;
-    private OkHttpClient httpClient;
-    private ExecutorService networkExecutor;
-    private String apiBaseUrl;
-    private String mapboxAccessToken;
+    private MainViewModel mainViewModel;
 
     private final ActivityResultLauncher<String[]> locationPermissionRequest =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
@@ -149,9 +134,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        restoreStateFromViewModel();
 
         bindViews();
-        initNetworking();
         setProgressVisible(true);
 
         if (mapView != null) {
@@ -168,6 +154,27 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
+
+    private void restoreStateFromViewModel() {
+        selectedOrigin = mainViewModel.getSelectedOrigin();
+        selectedDestination = mainViewModel.getSelectedDestination();
+        activeTripId = mainViewModel.getActiveTripId();
+        lastTripStatusLabel = mainViewModel.getLastTripStatusLabel();
+        activeTripAvailableSeats = mainViewModel.getActiveTripAvailableSeats();
+        lastRouteTimeLabel = mainViewModel.getLastRouteTimeLabel();
+    }
+
+    private void syncSelectionStateToViewModel() {
+        mainViewModel.setSelectedOrigin(selectedOrigin);
+        mainViewModel.setSelectedDestination(selectedDestination);
+    }
+
+    private void syncTripStateToViewModel() {
+        mainViewModel.setActiveTripId(activeTripId);
+        mainViewModel.setLastTripStatusLabel(lastTripStatusLabel);
+        mainViewModel.setActiveTripAvailableSeats(activeTripAvailableSeats);
+        mainViewModel.setLastRouteTimeLabel(lastRouteTimeLabel);
     }
 
     private void bindViews() {
@@ -241,25 +248,6 @@ public class MainActivity extends AppCompatActivity {
         menuToggleButton.setContentDescription(getString(
                 isPanelCollapsed ? R.string.button_expand_panel : R.string.button_collapse_panel
         ));
-    }
-
-    private void initNetworking() {
-        networkExecutor = Executors.newSingleThreadExecutor();
-        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(message -> Log.d(TAG, message));
-        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-        httpClient = new OkHttpClient.Builder()
-                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                .writeTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                .addInterceptor(loggingInterceptor)
-                .build();
-
-        apiBaseUrl = getString(R.string.api_base_url);
-        if (apiBaseUrl.endsWith("/")) {
-            apiBaseUrl = apiBaseUrl.substring(0, apiBaseUrl.length() - 1);
-        }
-
-        mapboxAccessToken = getString(R.string.mapbox_access_token);
     }
 
     private void checkLocationPermissions() {
@@ -393,6 +381,8 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.button_select_destination, Toast.LENGTH_SHORT).show();
         }
 
+        syncSelectionStateToViewModel();
+
         updateCoordinateLabels();
         updateMapMarkers();
         refreshButtons();
@@ -405,31 +395,31 @@ public class MainActivity extends AppCompatActivity {
 
         final Point origin = selectedOrigin;
         final Point destination = selectedDestination;
-
-        networkExecutor.execute(() -> {
-            try {
-                TripResponse response = createTripOnServer(origin, destination);
-                RouteData routeData = fetchRouteData(origin, destination);
+        mainViewModel.createTrip(origin, destination, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(CreateTripResult result) {
+                TripResponse response = result.trip;
                 activeTripId = response.id;
                 lastTripStatusLabel = response.status;
                 activeTripAvailableSeats = response.availableSeats;
-                lastRouteTimeLabel = buildEstimatedTimeLabel(routeData.distanceMeters);
-                runOnUiThread(() -> {
-                    if (routeData.points != null && !routeData.points.isEmpty()) {
-                        drawRoute(routeData.points);
-                    }
-                    Toast.makeText(this, R.string.toast_trip_created, Toast.LENGTH_SHORT).show();
-                    updateStatusText();
-                    updateRouteTimeText();
-                });
-            } catch (IOException | JSONException e) {
-                Log.e(TAG, "Error creating trip", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    refreshButtons();
-                });
+                lastRouteTimeLabel = buildEstimatedTimeLabel(result.route.distanceMeters);
+                syncTripStateToViewModel();
+
+                if (result.route.points != null && !result.route.points.isEmpty()) {
+                    drawRoute(result.route.points);
+                }
+                Toast.makeText(MainActivity.this, R.string.toast_trip_created, Toast.LENGTH_SHORT).show();
+                updateStatusText();
+                updateRouteTimeText();
+                setProgressVisible(false);
+                refreshButtons();
+            }
+
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
+                refreshButtons();
             }
         });
     }
@@ -439,108 +429,35 @@ public class MainActivity extends AppCompatActivity {
         cancelTripButton.setEnabled(false);
         final String tripId = activeTripId;
 
-        networkExecutor.execute(() -> {
-            try {
-                TripResponse response = cancelTripOnServer(tripId);
+        mainViewModel.cancelTrip(tripId, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(TripResponse response) {
                 activeTripId = null;
                 lastTripStatusLabel = response.status;
                 activeTripAvailableSeats = 0;
                 lastRouteTimeLabel = null;
-                runOnUiThread(() -> {
-                    Toast.makeText(this, R.string.toast_trip_cancelled, Toast.LENGTH_SHORT).show();
-                    selectedOrigin = null;
-                    selectedDestination = null;
-                    clearRoute();
-                    setSelectionMode(SelectionMode.NONE);
-                    updateCoordinateLabels();
-                    updateMapMarkers();
-                    updateStatusText();
-                    updateRouteTimeText();
-                });
-            } catch (IOException | JSONException e) {
-                Log.e(TAG, "Error cancelling trip", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    refreshButtons();
-                });
+                syncTripStateToViewModel();
+                Toast.makeText(MainActivity.this, R.string.toast_trip_cancelled, Toast.LENGTH_SHORT).show();
+                selectedOrigin = null;
+                selectedDestination = null;
+                syncSelectionStateToViewModel();
+                clearRoute();
+                setSelectionMode(SelectionMode.NONE);
+                updateCoordinateLabels();
+                updateMapMarkers();
+                updateStatusText();
+                updateRouteTimeText();
+                setProgressVisible(false);
+                refreshButtons();
+            }
+
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
+                refreshButtons();
             }
         });
-    }
-
-    private TripResponse createTripOnServer(Point origin, Point destination) throws IOException, JSONException {
-        TripResponse createdTrip = sendCoordinateRequest(apiBaseUrl + "/api/Trips/origin", origin);
-        if (destination != null) {
-            createdTrip = sendCoordinateRequest(apiBaseUrl + "/api/Trips/" + createdTrip.id + "/destination", destination);
-        }
-        return createdTrip;
-    }
-
-    private TripResponse cancelTripOnServer(String tripId) throws IOException, JSONException {
-        Request request = new Request.Builder()
-                .url(apiBaseUrl + "/api/Trips/" + tripId + "/cancel")
-                .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
-                .build();
-        return executeRequest(request);
-    }
-
-    private TripResponse sendCoordinateRequest(String url, Point point) throws IOException, JSONException {
-        JSONObject body = new JSONObject();
-        body.put("latitude", point.latitude());
-        body.put("longitude", point.longitude());
-
-        Request request = new Request.Builder()
-                .url(url)
-                .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
-                .build();
-
-        return executeRequest(request);
-    }
-
-    private RouteData fetchRouteData(Point origin, Point destination) throws IOException, JSONException {
-        String routeUrl = String.format(
-                "https://api.mapbox.com/directions/v5/mapbox/driving/%f,%f;%f,%f?geometries=geojson&overview=full&access_token=%s",
-                origin.longitude(),
-                origin.latitude(),
-                destination.longitude(),
-                destination.latitude(),
-                mapboxAccessToken);
-
-        Request request = new Request.Builder()
-                .url(routeUrl)
-                .get()
-                .build();
-
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Unexpected route response: " + response);
-            }
-            if (response.body() == null) {
-                throw new IOException("Respuesta vacía de la ruta");
-            }
-
-            JSONObject json = new JSONObject(response.body().string());
-            JSONArray routes = json.getJSONArray("routes");
-            if (routes.length() == 0) {
-                throw new IOException("No se encontró ruta");
-            }
-
-            JSONObject route = routes.getJSONObject(0);
-            JSONObject geometry = route.getJSONObject("geometry");
-            double distanceMeters = route.optDouble("distance", 0.0);
-            JSONArray coordinates = geometry.getJSONArray("coordinates");
-
-            List<Point> points = new ArrayList<>();
-            for (int i = 0; i < coordinates.length(); i++) {
-                JSONArray coordinate = coordinates.getJSONArray(i);
-                double longitude = coordinate.getDouble(0);
-                double latitude = coordinate.getDouble(1);
-                points.add(Point.fromLngLat(longitude, latitude));
-            }
-
-            return new RouteData(points, distanceMeters);
-        }
     }
 
     private String buildEstimatedTimeLabel(double distanceMeters) {
@@ -550,19 +467,6 @@ public class MainActivity extends AppCompatActivity {
 
         double estimatedMinutes = distanceMeters / 1000.0;
         return getString(R.string.route_time_format, estimatedMinutes);
-    }
-
-    private TripResponse executeRequest(Request request) throws IOException, JSONException {
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Unexpected response: " + response);
-            }
-            if (response.body() == null) {
-                throw new IOException("Respuesta vacía del servidor");
-            }
-            String json = response.body().string();
-            return TripResponse.fromJson(json);
-        }
     }
 
     private void drawRoute(List<Point> routePoints) {
@@ -658,45 +562,23 @@ public class MainActivity extends AppCompatActivity {
         final String tripId = activeTripId;
         final Point driverPosition = currentDriverPosition;
 
-        networkExecutor.execute(() -> {
-            try {
-                JSONObject body = new JSONObject();
-                if (driverPosition != null) {
-                    body.put("latitude", driverPosition.latitude());
-                    body.put("longitude", driverPosition.longitude());
-                }
+        mainViewModel.startTrip(tripId, driverPosition, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(TripResponse tripResponse) {
+                Toast.makeText(MainActivity.this, R.string.toast_trip_started, Toast.LENGTH_SHORT).show();
+                lastTripStatusLabel = tripResponse.status;
+                activeTripAvailableSeats = tripResponse.availableSeats;
+                syncTripStateToViewModel();
+                updateStatusText();
+                setProgressVisible(false);
+                refreshButtons();
+            }
 
-                Request request = new Request.Builder()
-                        .url(apiBaseUrl + "/api/Trips/" + tripId + "/start")
-                        .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
-                        .build();
-
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        String errorBody = response.body() != null ? response.body().string() : "";
-                        throw new IOException("Error starting trip: " + response.code() + " " + errorBody);
-                    }
-
-                    if (response.body() == null) throw new IOException("Respuesta vacía del servidor");
-                    String json = response.body().string();
-                    TripResponse tripResponse = TripResponse.fromJson(json);
-
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, R.string.toast_trip_started, Toast.LENGTH_SHORT).show();
-                        lastTripStatusLabel = tripResponse.status;
-                        activeTripAvailableSeats = tripResponse.availableSeats;
-                        updateStatusText();
-                        refreshButtons();
-                    });
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error starting trip", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_trip_start_failed, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    refreshButtons();
-                });
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_trip_start_failed, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
+                refreshButtons();
             }
         });
     }
@@ -708,39 +590,24 @@ public class MainActivity extends AppCompatActivity {
         finishTripButton.setEnabled(false);
 
         final String tripId = activeTripId;
-        networkExecutor.execute(() -> {
-            try {
-                Request request = new Request.Builder()
-                        .url(apiBaseUrl + "/api/Trips/" + tripId + "/finish")
-                        .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
-                        .build();
 
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        String errorBody = response.body() != null ? response.body().string() : "";
-                        throw new IOException("Error finishing trip: " + response.code() + " " + errorBody);
-                    }
+        mainViewModel.finishTrip(tripId, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(TripResponse tripResponse) {
+                Toast.makeText(MainActivity.this, R.string.toast_trip_finished, Toast.LENGTH_SHORT).show();
+                lastTripStatusLabel = tripResponse.status;
+                activeTripAvailableSeats = tripResponse.availableSeats;
+                syncTripStateToViewModel();
+                updateStatusText();
+                setProgressVisible(false);
+                refreshButtons();
+            }
 
-                    if (response.body() == null) throw new IOException("Respuesta vacía del servidor");
-                    String json = response.body().string();
-                    TripResponse tripResponse = TripResponse.fromJson(json);
-
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, R.string.toast_trip_finished, Toast.LENGTH_SHORT).show();
-                        lastTripStatusLabel = tripResponse.status;
-                        activeTripAvailableSeats = tripResponse.availableSeats;
-                        updateStatusText();
-                        refreshButtons();
-                    });
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error finishing trip", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_trip_finish_failed, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    refreshButtons();
-                });
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_trip_finish_failed, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
+                refreshButtons();
             }
         });
     }
@@ -813,9 +680,6 @@ public class MainActivity extends AppCompatActivity {
         if (mapView != null) {
             mapView.onDestroy();
         }
-        if (networkExecutor != null) {
-            networkExecutor.shutdownNow();
-        }
         super.onDestroy();
     }
 
@@ -842,32 +706,20 @@ public class MainActivity extends AppCompatActivity {
 
     private void submitReservation(String passengerName) {
         setProgressVisible(true);
-        networkExecutor.execute(() -> {
-            try {
-                JSONObject body = new JSONObject();
-                body.put("passengerName", passengerName);
-                
-                Request request = new Request.Builder()
-                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations")
-                        .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
-                        .build();
+        mainViewModel.createReservation(activeTripId, passengerName, new MainViewModel.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(MainActivity.this, R.string.toast_reservation_created, Toast.LENGTH_SHORT).show();
+                activeTripAvailableSeats--;
+                syncTripStateToViewModel();
+                updateStatusText();
+                setProgressVisible(false);
+            }
 
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        String errorBody = response.body() != null ? response.body().string() : "";
-                        throw new IOException("Error: " + response.code() + " " + errorBody);
-                    }
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, R.string.toast_reservation_created, Toast.LENGTH_SHORT).show();
-                        activeTripAvailableSeats--;
-                        updateStatusText();
-                    });
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error creating reservation", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_reservation_failed, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> setProgressVisible(false));
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_reservation_failed, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
             }
         });
     }
@@ -895,41 +747,29 @@ public class MainActivity extends AppCompatActivity {
 
     private void findAndCancelPassengerReservation(String passengerName) {
         setProgressVisible(true);
-        networkExecutor.execute(() -> {
-            try {
-                Request request = new Request.Builder()
-                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations")
-                        .get()
-                        .build();
-
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) throw new IOException("Error fetching reservations");
-                    String json = response.body().string();
-                    JSONArray array = new JSONArray(json);
-                    
-                    String targetReservationId = null;
-                    for (int i = 0; i < array.length(); i++) {
-                        JSONObject obj = array.getJSONObject(i);
-                        if (obj.getString("passengerName").equalsIgnoreCase(passengerName)) {
-                            targetReservationId = obj.getString("id");
-                            break;
-                        }
-                    }
-
-                    if (targetReservationId != null) {
-                        final String idToCancel = targetReservationId;
-                        runOnUiThread(() -> executeCancelReservation(idToCancel));
-                    } else {
-                        runOnUiThread(() -> {
-                            Toast.makeText(this, "No se encontró reserva para: " + passengerName, Toast.LENGTH_SHORT).show();
-                        });
+        mainViewModel.getReservations(activeTripId, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(List<ReservationResponse> reservations) {
+                String targetReservationId = null;
+                for (ReservationResponse reservation : reservations) {
+                    if (reservation.passengerName.equalsIgnoreCase(passengerName)) {
+                        targetReservationId = reservation.id;
+                        break;
                     }
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Error finding reservation", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> setProgressVisible(false));
+
+                if (targetReservationId != null) {
+                    executeCancelReservation(targetReservationId);
+                } else {
+                    Toast.makeText(MainActivity.this, "No se encontró reserva para: " + passengerName, Toast.LENGTH_SHORT).show();
+                    setProgressVisible(false);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
             }
         });
     }
@@ -937,33 +777,17 @@ public class MainActivity extends AppCompatActivity {
     private void viewReservations() {
         if (activeTripId == null) return;
         setProgressVisible(true);
-        networkExecutor.execute(() -> {
-            try {
-                Request request = new Request.Builder()
-                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations")
-                        .get()
-                        .build();
+        mainViewModel.getReservations(activeTripId, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(List<ReservationResponse> reservations) {
+                showReservationsDialog(reservations);
+                setProgressVisible(false);
+            }
 
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) throw new IOException("Error fetching reservations");
-                    String json = response.body().string();
-                    JSONArray array = new JSONArray(json);
-                    List<ReservationResponse> reservations = new ArrayList<>();
-                    for (int i = 0; i < array.length(); i++) {
-                        JSONObject obj = array.getJSONObject(i);
-                        reservations.add(new ReservationResponse(
-                                obj.getString("id"),
-                                obj.getString("passengerName"),
-                                obj.getString("status")
-                        ));
-                    }
-                    runOnUiThread(() -> showReservationsDialog(reservations));
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error viewing reservations", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> setProgressVisible(false));
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
             }
         });
     }
@@ -1030,69 +854,41 @@ public class MainActivity extends AppCompatActivity {
 
     private void submitBoardingByName(String passengerName) {
         setProgressVisible(true);
-        networkExecutor.execute(() -> {
-            try {
-                JSONObject body = new JSONObject();
-                body.put("passengerName", passengerName);
+        mainViewModel.markBoardedByName(activeTripId, passengerName, new MainViewModel.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(MainActivity.this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
+                viewReservations();
+                viewBoardedPassengers();
+                setProgressVisible(false);
+            }
 
-                Request request = new Request.Builder()
-                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations/board")
-                        .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
-                        .build();
-
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        String errorBody = response.body() != null ? response.body().string() : "";
-                        throw new IOException("Error validating boarding: " + response.code() + " " + errorBody);
-                    }
-
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
-                        viewReservations();
-                        viewBoardedPassengers();
-                    });
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error validating boarding by name", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_boarding_failed, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> setProgressVisible(false));
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_boarding_failed, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
             }
         });
     }
 
     private void updatePassengerStatusManual(ReservationResponse reservation, String targetStatus, boolean refreshBoardedList) {
         setProgressVisible(true);
-        networkExecutor.execute(() -> {
-            try {
-                JSONObject body = new JSONObject();
-                body.put("status", targetStatus);
-
-                Request request = new Request.Builder()
-                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations/" + reservation.id + "/manual-status")
-                        .patch(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
-                        .build();
-
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        String errorBody = response.body() != null ? response.body().string() : "";
-                        throw new IOException("Error updating status: " + response.code() + " " + errorBody);
-                    }
-
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, R.string.toast_manual_status_updated, Toast.LENGTH_SHORT).show();
-                        if (refreshBoardedList) {
-                            viewBoardedPassengers();
-                        } else {
-                            viewReservations();
-                        }
-                    });
+        mainViewModel.updateReservationStatus(activeTripId, reservation.id, targetStatus, new MainViewModel.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(MainActivity.this, R.string.toast_manual_status_updated, Toast.LENGTH_SHORT).show();
+                if (refreshBoardedList) {
+                    viewBoardedPassengers();
+                } else {
+                    viewReservations();
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Error updating passenger status manually", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_manual_status_failed, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> setProgressVisible(false));
+                setProgressVisible(false);
+            }
+
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_manual_status_failed, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
             }
         });
     }
@@ -1100,35 +896,17 @@ public class MainActivity extends AppCompatActivity {
     private void viewBoardedPassengers() {
         if (activeTripId == null) return;
         setProgressVisible(true);
-        networkExecutor.execute(() -> {
-            try {
-                Request request = new Request.Builder()
-                        .url(apiBaseUrl + "/api/Trips/" + activeTripId + "/Reservations/boarded")
-                        .get()
-                        .build();
+        mainViewModel.getBoardedPassengers(activeTripId, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(List<ReservationResponse> boarded) {
+                showBoardedPassengersDialog(boarded);
+                setProgressVisible(false);
+            }
 
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) throw new IOException("Error fetching boarded passengers");
-                    String json = response.body().string();
-                    JSONArray array = new JSONArray(json);
-                    List<ReservationResponse> boarded = new ArrayList<>();
-
-                    for (int i = 0; i < array.length(); i++) {
-                        JSONObject obj = array.getJSONObject(i);
-                        boarded.add(new ReservationResponse(
-                                obj.getString("id"),
-                                obj.getString("passengerName"),
-                                obj.getString("status")
-                        ));
-                    }
-
-                    runOnUiThread(() -> showBoardedPassengersDialog(boarded));
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error viewing boarded passengers", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> setProgressVisible(false));
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
             }
         });
     }
@@ -1161,123 +939,22 @@ public class MainActivity extends AppCompatActivity {
 
     private void executeCancelReservation(String reservationId) {
         setProgressVisible(true);
-        networkExecutor.execute(() -> {
-            try {
-                Request request = new Request.Builder()
-                        .url(apiBaseUrl + "/api/Reservations/" + reservationId)
-                        .delete()
-                        .build();
+        mainViewModel.cancelReservation(reservationId, new MainViewModel.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(MainActivity.this, R.string.toast_reservation_cancelled, Toast.LENGTH_SHORT).show();
+                activeTripAvailableSeats++;
+                syncTripStateToViewModel();
+                updateStatusText();
+                setProgressVisible(false);
+            }
 
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) throw new IOException("Error cancelling reservation");
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, R.string.toast_reservation_cancelled, Toast.LENGTH_SHORT).show();
-                        activeTripAvailableSeats++;
-                        updateStatusText();
-                    });
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error cancelling reservation", e);
-                runOnUiThread(() -> Toast.makeText(this, R.string.toast_reservation_failed, Toast.LENGTH_SHORT).show());
-            } finally {
-                runOnUiThread(() -> setProgressVisible(false));
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MainActivity.this, R.string.toast_reservation_failed, Toast.LENGTH_SHORT).show();
+                setProgressVisible(false);
             }
         });
     }
 
-    private static class ReservationResponse {
-        final String id;
-        final String passengerName;
-        final String status;
-
-        ReservationResponse(String id, String passengerName, String status) {
-            this.id = id;
-            this.passengerName = passengerName;
-            this.status = status;
-        }
-
-        @Override
-        public String toString() {
-            return passengerName + " (" + status + ")";
-        }
-    }
-
-    private static class TripResponse {
-        final String id;
-        final double originLatitude;
-        final double originLongitude;
-        final Double destinationLatitude;
-        final Double destinationLongitude;
-        final String status;
-        final int availableSeats;
-
-        TripResponse(String id,
-                     double originLatitude,
-                     double originLongitude,
-                     Double destinationLatitude,
-                     Double destinationLongitude,
-                     String status,
-                     int availableSeats) {
-            this.id = id;
-            this.originLatitude = originLatitude;
-            this.originLongitude = originLongitude;
-            this.destinationLatitude = destinationLatitude;
-            this.destinationLongitude = destinationLongitude;
-            this.status = status;
-            this.availableSeats = availableSeats;
-        }
-
-        static TripResponse fromJson(String json) throws JSONException {
-            JSONObject object = new JSONObject(json);
-            Double destinationLat = object.isNull("destinationLatitude") ? null : object.getDouble("destinationLatitude");
-            Double destinationLng = object.isNull("destinationLongitude") ? null : object.getDouble("destinationLongitude");
-
-            Object statusValue = object.has("status") ? object.get("status") : null;
-            String statusLabel = mapTripStatusToLabel(statusValue);
-
-            return new TripResponse(
-                    object.getString("id"),
-                    object.getDouble("originLatitude"),
-                    object.getDouble("originLongitude"),
-                    destinationLat,
-                    destinationLng,
-                    statusLabel,
-                    object.optInt("availableSeats", 0)
-            );
-        }
-
-        private static String mapTripStatusToLabel(Object statusValue) {
-            if (statusValue == null || statusValue == JSONObject.NULL) return "";
-
-            if (statusValue instanceof Number) {
-                int s = ((Number) statusValue).intValue();
-                if (s == 0) return "activo";
-                if (s == 1) return "listo";
-                if (s == 2) return "cancelado";
-                if (s == 3) return "en curso";
-                if (s == 4) return "finalizado";
-                return String.valueOf(s);
-            }
-
-            String normalized = String.valueOf(statusValue).trim().toLowerCase();
-            if (normalized.equals("0") || normalized.equals("awaitingdestination") || normalized.equals("activo")) return "activo";
-            if (normalized.equals("1") || normalized.equals("ready") || normalized.equals("listo")) return "listo";
-            if (normalized.equals("2") || normalized.equals("cancelled") || normalized.equals("cancelado")) return "cancelado";
-            if (normalized.equals("3") || normalized.equals("inprogress") || normalized.equals("in_progress") || normalized.equals("en_curso") || normalized.equals("en curso")) return "en curso";
-            if (normalized.equals("4") || normalized.equals("finished") || normalized.equals("completed") || normalized.equals("finalizado")) return "finalizado";
-
-            // Fallback: usa lo que venga desde el servidor.
-            return String.valueOf(statusValue);
-        }
-    }
-
-    private static class RouteData {
-        final List<Point> points;
-        final double distanceMeters;
-
-        RouteData(List<Point> points, double distanceMeters) {
-            this.points = points;
-            this.distanceMeters = distanceMeters;
-        }
-    }
 }

@@ -8,6 +8,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
 {
     public DbSet<Trip> Trips => Set<Trip>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<User> Users => Set<User>();
 
     private static string StatusToString(TripStatus status)
     {
@@ -103,6 +104,33 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .IsRequired();
 
             entity.Property(r => r.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("Users");
+            entity.HasKey(u => u.Id);
+
+            entity.HasIndex(u => u.Email)
+                .IsUnique();
+
+            entity.Property(u => u.FullName)
+                .IsRequired()
+                .HasMaxLength(120);
+
+            entity.Property(u => u.Email)
+                .IsRequired()
+                .HasMaxLength(120);
+
+            entity.Property(u => u.PasswordHash)
+                .IsRequired()
+                .HasMaxLength(256);
+
+            entity.Property(u => u.PhoneNumber)
+                .HasMaxLength(25);
+
+            entity.Property(u => u.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
         });
     }
