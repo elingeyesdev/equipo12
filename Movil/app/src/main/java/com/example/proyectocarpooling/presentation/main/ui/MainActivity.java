@@ -59,6 +59,7 @@ import com.mapbox.maps.plugin.locationcomponent.LocationComponentPlugin;
 import com.mapbox.maps.plugin.locationcomponent.LocationComponentUtils;
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener;
 import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -116,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
     private SessionManager sessionManager;
     private UserAccessUseCase userAccessUseCase;
     private MainViewModel mainViewModel;
+    private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
 
     private final ActivityResultLauncher<String[]> locationPermissionRequest =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
@@ -232,9 +234,10 @@ public class MainActivity extends AppCompatActivity {
             drawerUserSubtitle = header.findViewById(R.id.drawerUserSubtitle);
         }
 
+        setupBottomSheetBehavior();
         setupDrawer();
 
-        menuToggleButton.setOnClickListener(v -> toggleControlPanel());
+        menuToggleButton.setOnClickListener(v -> toggleBottomSheet());
         selectOriginButton.setOnClickListener(v -> setSelectionMode(SelectionMode.ORIGIN));
         selectDestinationButton.setOnClickListener(v -> setSelectionMode(SelectionMode.DESTINATION));
         reserveTripButton.setOnClickListener(v -> reserveTrip());
@@ -322,9 +325,39 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    private void toggleControlPanel() {
-        if (drawerLayout != null) {
-            drawerLayout.openDrawer(GravityCompat.START);
+    private void setupBottomSheetBehavior() {
+        if (controlPanel != null) {
+            bottomSheetBehavior = BottomSheetBehavior.from(controlPanel);
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            bottomSheetBehavior.setDraggable(true);
+            bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+                @Override
+                public void onStateChanged(View bottomSheet, int newState) {
+                    switch (newState) {
+                        case BottomSheetBehavior.STATE_COLLAPSED:
+                            break;
+                        case BottomSheetBehavior.STATE_EXPANDED:
+                            break;
+                        case BottomSheetBehavior.STATE_HIDDEN:
+                            break;
+                    }
+                }
+
+                @Override
+                public void onSlide(View bottomSheet, float slideOffset) {
+                    // El slide offset va de 0 (colapsado) a 1 (expandido)
+                }
+            });
+        }
+    }
+
+    private void toggleBottomSheet() {
+        if (bottomSheetBehavior != null) {
+            if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            } else {
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            }
         }
     }
 
