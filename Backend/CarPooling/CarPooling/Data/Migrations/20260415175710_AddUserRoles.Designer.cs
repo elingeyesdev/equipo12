@@ -4,6 +4,7 @@ using CarPooling.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarPooling.Data.Migrations
 {
     [DbContext(typeof(CarPoolingContext))]
-    partial class CarPoolingContextModelSnapshot : ModelSnapshot
+    [Migration("20260415175710_AddUserRoles")]
+    partial class AddUserRoles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,49 +24,6 @@ namespace CarPooling.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("CarPooling.Models.DriverProfile", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AvailableSeats")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("LicensePlate")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("VehicleBrand")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
-                    b.Property<string>("VehicleColor")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("DriverProfiles", (string)null);
-                });
 
             modelBuilder.Entity("CarPooling.Models.Reservation", b =>
                 {
@@ -183,17 +143,6 @@ namespace CarPooling.Data.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
-            modelBuilder.Entity("CarPooling.Models.DriverProfile", b =>
-                {
-                    b.HasOne("CarPooling.Models.User", "User")
-                        .WithOne("DriverProfile")
-                        .HasForeignKey("CarPooling.Models.DriverProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("CarPooling.Models.Reservation", b =>
                 {
                     b.HasOne("CarPooling.Models.Trip", "Trip")
@@ -203,11 +152,6 @@ namespace CarPooling.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Trip");
-                });
-
-            modelBuilder.Entity("CarPooling.Models.User", b =>
-                {
-                    b.Navigation("DriverProfile");
                 });
 #pragma warning restore 612, 618
         }

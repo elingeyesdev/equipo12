@@ -78,6 +78,7 @@
     <string name="register_action">Registrarme</string>
     <string name="register_back_login">Volver a iniciar sesión</string>
     <string name="register_success">Cuenta creada correctamente.</string>
+    <string name="register_has_vehicle">¿Tienes vehículo y te gustaría iniciar viajes?</string>
 
     <string name="profile_title">Editar información</string>
     <string name="profile_save_action">Guardar cambios</string>
@@ -92,6 +93,10 @@
     <string name="hint_phone">Teléfono (opcional)</string>
     <string name="hint_confirm_password">Confirmar contraseña</string>
     <string name="hint_new_password_optional">Nueva contraseña (opcional)</string>
+    <string name="hint_vehicle_seats">Número de pasajeros que puedes llevar</string>
+    <string name="hint_vehicle_plate">Placa del vehículo</string>
+    <string name="hint_vehicle_brand">Marca del vehículo</string>
+    <string name="hint_vehicle_color">Color del vehículo</string>
 
     <string name="validation_required">Este campo es obligatorio.</string>
     <string name="validation_invalid_email">Correo electrónico inválido.</string>
@@ -100,4 +105,9 @@
     <string name="validation_password_match">Las contraseñas no coinciden.</string>
     <string name="validation_name_min">El nombre debe tener al menos 3 caracteres.</string>
     <string name="validation_phone_min">El teléfono debe tener al menos 7 dígitos.</string>
+    <string name="validation_seats_number">Ingresa un número válido de asientos.</string>
+    <string name="validation_seats_range">Los asientos deben estar entre 1 y 12.</string>
+    <string name="validation_plate_min">La placa debe tener al menos 5 caracteres.</string>
+    <string name="validation_brand_min">La marca debe tener al menos 2 caracteres.</string>
+    <string name="validation_color_min">El color debe tener al menos 2 caracteres.</string>
 </resources>

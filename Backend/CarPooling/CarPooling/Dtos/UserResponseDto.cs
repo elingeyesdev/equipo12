@@ -8,6 +8,8 @@ public class UserResponseDto
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+    public string Role { get; set; } = string.Empty;
+    public DriverProfileDto? DriverProfile { get; set; }
     public DateTime CreatedAt { get; set; }
 
     public static UserResponseDto FromEntity(User user)
@@ -18,6 +20,8 @@ public class UserResponseDto
             FullName = user.FullName,
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
+            Role = user.Role == UserRole.Driver ? "driver" : "student",
+            DriverProfile = user.DriverProfile is null ? null : DriverProfileDto.FromEntity(user.DriverProfile),
             CreatedAt = user.CreatedAt
         };
     }

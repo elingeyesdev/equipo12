@@ -19,4 +19,9 @@ public class UpdateUserDto
     [MinLength(6)]
     [MaxLength(120)]
     public string? NewPassword { get; set; }
+
+    [MaxLength(20)]
+    public string? Role { get; set; }
+
+    public DriverProfileDto? DriverProfile { get; set; }
 }

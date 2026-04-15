@@ -20,4 +20,10 @@ public class RegisterUserDto
 
     [MaxLength(25)]
     public string? PhoneNumber { get; set; }
+
+    [Required]
+    [MaxLength(20)]
+    public string Role { get; set; } = "student";
+
+    public DriverProfileDto? DriverProfile { get; set; }
 }

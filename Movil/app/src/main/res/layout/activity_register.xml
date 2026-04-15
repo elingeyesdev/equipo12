@@ -65,6 +65,72 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/registerEmailInput" />
 
+        <CheckBox
+            android:id="@+id/registerHasVehicleCheckbox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/register_has_vehicle"
+            android:textColor="@color/carpool_text_primary"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/registerPhoneInput" />
+
+        <LinearLayout
+            android:id="@+id/registerVehicleFieldsContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/registerHasVehicleCheckbox">
+
+            <EditText
+                android:id="@+id/registerSeatsInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_info_field"
+                android:hint="@string/hint_vehicle_seats"
+                android:inputType="number"
+                android:minHeight="52dp"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/registerPlateInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_info_field"
+                android:hint="@string/hint_vehicle_plate"
+                android:inputType="textCapCharacters"
+                android:minHeight="52dp"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/registerBrandInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_info_field"
+                android:hint="@string/hint_vehicle_brand"
+                android:inputType="textCapWords"
+                android:minHeight="52dp"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/registerColorInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_info_field"
+                android:hint="@string/hint_vehicle_color"
+                android:inputType="textCapWords"
+                android:minHeight="52dp"
+                android:padding="14dp" />
+        </LinearLayout>
+
         <EditText
             android:id="@+id/registerPasswordInput"
             android:layout_width="0dp"
@@ -77,7 +143,7 @@
             android:padding="14dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerPhoneInput" />
+            app:layout_constraintTop_toBottomOf="@id/registerVehicleFieldsContainer" />
 
         <EditText
             android:id="@+id/registerConfirmPasswordInput"

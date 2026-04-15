@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -14,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.local.UserAccessProvider;
+import com.example.proyectocarpooling.data.model.user.DriverProfileRequest;
 import com.example.proyectocarpooling.data.model.user.RegisterUserRequest;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
@@ -26,6 +28,12 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText nameInput;
     private EditText emailInput;
     private EditText phoneInput;
+    private CheckBox hasVehicleCheckbox;
+    private View vehicleFieldsContainer;
+    private EditText seatsInput;
+    private EditText plateInput;
+    private EditText brandInput;
+    private EditText colorInput;
     private EditText passwordInput;
     private EditText confirmPasswordInput;
     private Button registerButton;
@@ -46,11 +54,20 @@ public class RegisterActivity extends AppCompatActivity {
         nameInput = findViewById(R.id.registerNameInput);
         emailInput = findViewById(R.id.registerEmailInput);
         phoneInput = findViewById(R.id.registerPhoneInput);
+        hasVehicleCheckbox = findViewById(R.id.registerHasVehicleCheckbox);
+        vehicleFieldsContainer = findViewById(R.id.registerVehicleFieldsContainer);
+        seatsInput = findViewById(R.id.registerSeatsInput);
+        plateInput = findViewById(R.id.registerPlateInput);
+        brandInput = findViewById(R.id.registerBrandInput);
+        colorInput = findViewById(R.id.registerColorInput);
         passwordInput = findViewById(R.id.registerPasswordInput);
         confirmPasswordInput = findViewById(R.id.registerConfirmPasswordInput);
         registerButton = findViewById(R.id.registerButton);
         loading = findViewById(R.id.registerLoading);
         TextView backToLogin = findViewById(R.id.backToLoginText);
+
+        hasVehicleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+            vehicleFieldsContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE));
 
         registerButton.setOnClickListener(v -> performRegister());
         backToLogin.setOnClickListener(v -> finish());
@@ -60,17 +77,28 @@ public class RegisterActivity extends AppCompatActivity {
         String fullName = nameInput.getText().toString().trim();
         String email = emailInput.getText().toString().trim().toLowerCase();
         String phone = phoneInput.getText().toString().trim();
+        boolean hasVehicle = hasVehicleCheckbox.isChecked();
+        String seatsRaw = seatsInput.getText().toString().trim();
+        String plate = plateInput.getText().toString().trim();
+        String brand = brandInput.getText().toString().trim();
+        String color = colorInput.getText().toString().trim();
         String password = passwordInput.getText().toString();
         String confirmPassword = confirmPasswordInput.getText().toString();
 
-        if (!validate(fullName, email, phone, password, confirmPassword)) {
+        if (!validate(fullName, email, phone, password, confirmPassword, hasVehicle, seatsRaw, plate, brand, color)) {
             return;
         }
+
+        int seats = hasVehicle ? Integer.parseInt(seatsRaw) : 0;
+        String role = hasVehicle ? "driver" : "student";
+        DriverProfileRequest driverProfile = hasVehicle
+                ? new DriverProfileRequest(seats, plate.toUpperCase(), brand, color)
+                : null;
 
         setLoading(true);
         executor.execute(() -> {
             try {
-                var user = userAccessUseCase.register(new RegisterUserRequest(fullName, email, password, phone));
+                var user = userAccessUseCase.register(new RegisterUserRequest(fullName, email, password, phone, role, driverProfile));
                 runOnUiThread(() -> {
                     sessionManager.saveUser(user);
                     Toast.makeText(this, R.string.register_success, Toast.LENGTH_SHORT).show();
@@ -85,7 +113,17 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
-    private boolean validate(String fullName, String email, String phone, String password, String confirmPassword) {
+    private boolean validate(
+            String fullName,
+            String email,
+            String phone,
+            String password,
+            String confirmPassword,
+            boolean hasVehicle,
+            String seatsRaw,
+            String plate,
+            String brand,
+            String color) {
         if (fullName.length() < 3) {
             nameInput.setError(getString(R.string.validation_name_min));
             return false;
@@ -119,6 +157,41 @@ public class RegisterActivity extends AppCompatActivity {
         if (!password.equals(confirmPassword)) {
             confirmPasswordInput.setError(getString(R.string.validation_password_match));
             return false;
+        }
+
+        if (hasVehicle) {
+            if (seatsRaw.isEmpty()) {
+                seatsInput.setError(getString(R.string.validation_required));
+                return false;
+            }
+
+            int seats;
+            try {
+                seats = Integer.parseInt(seatsRaw);
+            } catch (NumberFormatException e) {
+                seatsInput.setError(getString(R.string.validation_seats_number));
+                return false;
+            }
+
+            if (seats < 1 || seats > 12) {
+                seatsInput.setError(getString(R.string.validation_seats_range));
+                return false;
+            }
+
+            if (plate.length() < 5) {
+                plateInput.setError(getString(R.string.validation_plate_min));
+                return false;
+            }
+
+            if (brand.length() < 2) {
+                brandInput.setError(getString(R.string.validation_brand_min));
+                return false;
+            }
+
+            if (color.length() < 2) {
+                colorInput.setError(getString(R.string.validation_color_min));
+                return false;
+            }
         }
 
         return true;

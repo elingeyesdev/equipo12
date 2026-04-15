@@ -22,5 +22,9 @@ public class User
     [MaxLength(25)]
     public string? PhoneNumber { get; set; }
 
+    public UserRole Role { get; set; } = UserRole.Student;
+
+    public DriverProfile? DriverProfile { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

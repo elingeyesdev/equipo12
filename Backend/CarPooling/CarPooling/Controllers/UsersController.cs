@@ -20,6 +20,11 @@ public class UsersController(CarPoolingContext context) : ControllerBase
     {
         var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
 
+        if (!TryParseUserRole(dto.Role, out var parsedRole))
+        {
+            return BadRequest("Rol inválido. Usa: student/estudiante o driver/chofer.");
+        }
+
         if (!IsUniversityEmail(normalizedEmail))
         {
             return BadRequest("Solo se permiten correos institucionales @univalle.edu");
@@ -33,14 +38,33 @@ public class UsersController(CarPoolingContext context) : ControllerBase
 
         var user = new User
         {
+            Id = Guid.NewGuid(),
             FullName = dto.FullName.Trim(),
             Email = normalizedEmail,
             PasswordHash = HashPassword(dto.Password),
-            PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim()
+            PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim(),
+            Role = parsedRole
         };
 
+        DriverProfile? driverProfile = null;
+        if (parsedRole == UserRole.Driver)
+        {
+            if (dto.DriverProfile is null)
+            {
+                return BadRequest("Para registrar un chofer debes enviar los datos del vehiculo.");
+            }
+
+            driverProfile = BuildDriverProfile(dto.DriverProfile, user.Id);
+        }
+
         _context.Users.Add(user);
+        if (driverProfile is not null)
+        {
+            _context.DriverProfiles.Add(driverProfile);
+        }
         await _context.SaveChangesAsync();
+
+        user.DriverProfile = driverProfile;
 
         return CreatedAtRoute("GetUserById", new { id = user.Id }, UserResponseDto.FromEntity(user));
     }
@@ -58,6 +82,7 @@ public class UsersController(CarPoolingContext context) : ControllerBase
         var incomingHash = HashPassword(dto.Password);
 
         var user = await _context.Users
+            .Include(u => u.DriverProfile)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == normalizedEmail && u.PasswordHash == incomingHash);
 
@@ -72,7 +97,9 @@ public class UsersController(CarPoolingContext context) : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<UserResponseDto>> UpdateAsync(Guid id, [FromBody] UpdateUserDto dto)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+        var user = await _context.Users
+            .Include(u => u.DriverProfile)
+            .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null)
         {
             return NotFound("Usuario no encontrado.");
@@ -94,6 +121,44 @@ public class UsersController(CarPoolingContext context) : ControllerBase
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
 
+        if (!string.IsNullOrWhiteSpace(dto.Role))
+        {
+            if (!TryParseUserRole(dto.Role, out var parsedRole))
+            {
+                return BadRequest("Rol inválido. Usa: student/estudiante o driver/chofer.");
+            }
+
+            user.Role = parsedRole;
+        }
+
+        if (user.Role == UserRole.Driver)
+        {
+            if (dto.DriverProfile is not null)
+            {
+                if (user.DriverProfile is null)
+                {
+                    user.DriverProfile = BuildDriverProfile(dto.DriverProfile, user.Id);
+                }
+                else
+                {
+                    user.DriverProfile.AvailableSeats = dto.DriverProfile.AvailableSeats;
+                    user.DriverProfile.LicensePlate = dto.DriverProfile.LicensePlate.Trim().ToUpperInvariant();
+                    user.DriverProfile.VehicleBrand = dto.DriverProfile.VehicleBrand.Trim();
+                    user.DriverProfile.VehicleColor = dto.DriverProfile.VehicleColor.Trim();
+                    user.DriverProfile.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+            else if (user.DriverProfile is null)
+            {
+                return BadRequest("Para rol chofer debes enviar los datos del vehiculo.");
+            }
+        }
+        else if (user.DriverProfile is not null)
+        {
+            _context.DriverProfiles.Remove(user.DriverProfile);
+            user.DriverProfile = null;
+        }
+
         if (!string.IsNullOrWhiteSpace(dto.NewPassword))
         {
             user.PasswordHash = HashPassword(dto.NewPassword);
@@ -113,7 +178,10 @@ public class UsersController(CarPoolingContext context) : ControllerBase
     [HttpGet("{id:guid}", Name = "GetUserById")]
     public async Task<ActionResult<UserResponseDto>> GetByIdAsync(Guid id)
     {
-        var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+        var user = await _context.Users
+            .Include(u => u.DriverProfile)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null)
         {
             return NotFound();
@@ -127,7 +195,10 @@ public class UsersController(CarPoolingContext context) : ControllerBase
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();
 
-        var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+        var user = await _context.Users
+            .Include(u => u.DriverProfile)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
         if (user is null)
         {
             return NotFound();
@@ -145,5 +216,37 @@ public class UsersController(CarPoolingContext context) : ControllerBase
     private static bool IsUniversityEmail(string email)
     {
         return email.EndsWith(AllowedDomain, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static DriverProfile BuildDriverProfile(DriverProfileDto dto, Guid userId)
+    {
+        return new DriverProfile
+        {
+            UserId = userId,
+            AvailableSeats = dto.AvailableSeats,
+            LicensePlate = dto.LicensePlate.Trim().ToUpperInvariant(),
+            VehicleBrand = dto.VehicleBrand.Trim(),
+            VehicleColor = dto.VehicleColor.Trim()
+        };
+    }
+
+    private static bool TryParseUserRole(string? roleValue, out UserRole role)
+    {
+        var normalizedRole = roleValue?.Trim().ToLowerInvariant();
+
+        if (normalizedRole is "driver" or "chofer")
+        {
+            role = UserRole.Driver;
+            return true;
+        }
+
+        if (normalizedRole is "student" or "estudiante")
+        {
+            role = UserRole.Student;
+            return true;
+        }
+
+        role = UserRole.Student;
+        return false;
     }
 }

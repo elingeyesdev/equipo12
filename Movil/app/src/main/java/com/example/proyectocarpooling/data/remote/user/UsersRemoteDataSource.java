@@ -53,8 +53,17 @@ public class UsersRemoteDataSource {
             body.put("fullName", request.fullName);
             body.put("email", request.email);
             body.put("password", request.password);
+            body.put("role", request.role);
             if (request.phoneNumber != null && !request.phoneNumber.trim().isEmpty()) {
                 body.put("phoneNumber", request.phoneNumber);
+            }
+            if (request.driverProfile != null) {
+                JSONObject driverProfile = new JSONObject();
+                driverProfile.put("availableSeats", request.driverProfile.availableSeats);
+                driverProfile.put("licensePlate", request.driverProfile.licensePlate);
+                driverProfile.put("vehicleBrand", request.driverProfile.vehicleBrand);
+                driverProfile.put("vehicleColor", request.driverProfile.vehicleColor);
+                body.put("driverProfile", driverProfile);
             }
         } catch (JSONException e) {
             throw new IOException("No se pudo construir registro de usuario", e);
