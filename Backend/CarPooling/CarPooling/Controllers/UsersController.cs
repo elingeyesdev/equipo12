@@ -121,6 +121,8 @@ public class UsersController(CarPoolingContext context) : ControllerBase
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
 
+        var requestedRole = user.Role;
+        var roleWasProvided = !string.IsNullOrWhiteSpace(dto.Role);
         if (!string.IsNullOrWhiteSpace(dto.Role))
         {
             if (!TryParseUserRole(dto.Role, out var parsedRole))
@@ -128,7 +130,20 @@ public class UsersController(CarPoolingContext context) : ControllerBase
                 return BadRequest("Rol inválido. Usa: student/estudiante o driver/chofer.");
             }
 
-            user.Role = parsedRole;
+            requestedRole = parsedRole;
+        }
+
+        var roleIsChanging = roleWasProvided && requestedRole != user.Role;
+        var adminOverride = IsAdminOverrideRequested();
+
+        if (roleIsChanging && !dto.RoleChangeRequested && !adminOverride)
+        {
+            return BadRequest("El rol solo puede cambiarse cuando el usuario lo solicita explícitamente o por override de admin.");
+        }
+
+        if (roleIsChanging)
+        {
+            user.Role = requestedRole;
         }
 
         if (user.Role == UserRole.Driver)
@@ -228,6 +243,17 @@ public class UsersController(CarPoolingContext context) : ControllerBase
             VehicleBrand = dto.VehicleBrand.Trim(),
             VehicleColor = dto.VehicleColor.Trim()
         };
+    }
+
+    private bool IsAdminOverrideRequested()
+    {
+        if (!Request.Headers.TryGetValue("X-Admin-Override", out var headerValue))
+        {
+            return false;
+        }
+
+        var normalized = headerValue.ToString().Trim().ToLowerInvariant();
+        return normalized is "true" or "1" or "yes";
     }
 
     private static bool TryParseUserRole(string? roleValue, out UserRole role)

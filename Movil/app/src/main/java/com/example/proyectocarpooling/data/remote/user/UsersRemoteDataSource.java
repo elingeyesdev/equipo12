@@ -119,6 +119,7 @@ public class UsersRemoteDataSource {
             body.put("fullName", request.fullName);
             body.put("email", request.email);
             body.put("role", request.role);
+            body.put("roleChangeRequested", request.roleChangeRequested);
             if (request.phoneNumber != null && !request.phoneNumber.trim().isEmpty()) {
                 body.put("phoneNumber", request.phoneNumber);
             }

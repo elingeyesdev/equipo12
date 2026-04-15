@@ -23,5 +23,7 @@ public class UpdateUserDto
     [MaxLength(20)]
     public string? Role { get; set; }
 
+    public bool RoleChangeRequested { get; set; } = false;
+
     public DriverProfileDto? DriverProfile { get; set; }
 }

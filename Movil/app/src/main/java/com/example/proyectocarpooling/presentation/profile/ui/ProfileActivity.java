@@ -38,6 +38,7 @@ public class ProfileActivity extends AppCompatActivity {
 
     private SessionManager sessionManager;
     private UserAccessUseCase userAccessUseCase;
+    private String originalRole = "student";
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
@@ -65,6 +66,7 @@ public class ProfileActivity extends AppCompatActivity {
         emailInput.setText(sessionManager.getEmail());
         phoneInput.setText(sessionManager.getPhone());
         hasVehicleCheckbox.setChecked(sessionManager.isDriver());
+        originalRole = sessionManager.getRole();
         vehicleFieldsContainer.setVisibility(hasVehicleCheckbox.isChecked() ? View.VISIBLE : View.GONE);
 
         hasVehicleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
@@ -86,6 +88,7 @@ public class ProfileActivity extends AppCompatActivity {
                 var user = userAccessUseCase.getById(userId);
                 runOnUiThread(() -> {
                     hasVehicleCheckbox.setChecked("driver".equalsIgnoreCase(user.role));
+                    originalRole = user.role;
 
                     if (user.driverProfile != null) {
                         seatsInput.setText(String.valueOf(user.driverProfile.availableSeats));
@@ -115,6 +118,7 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         String role = hasVehicle ? "driver" : "student";
+        boolean roleChangeRequested = !role.equalsIgnoreCase(originalRole);
         DriverProfileRequest driverProfile = null;
         if (hasVehicle) {
             driverProfile = new DriverProfileRequest(
@@ -133,7 +137,7 @@ public class ProfileActivity extends AppCompatActivity {
         setLoading(true);
         executor.execute(() -> {
             try {
-                var user = userAccessUseCase.update(userId, new UpdateUserRequest(fullName, email, phone, newPassword, role, driverProfile));
+                var user = userAccessUseCase.update(userId, new UpdateUserRequest(fullName, email, phone, newPassword, role, roleChangeRequested, driverProfile));
                 runOnUiThread(() -> {
                     sessionManager.saveUser(user);
                     Toast.makeText(this, R.string.profile_updated, Toast.LENGTH_SHORT).show();
