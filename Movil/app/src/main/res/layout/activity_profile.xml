@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true"
     android:background="@color/carpool_surface">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -65,6 +66,72 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/profileEmailInput" />
 
+        <CheckBox
+            android:id="@+id/profileHasVehicleCheckbox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/profile_has_vehicle"
+            android:textColor="@color/carpool_text_primary"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/profilePhoneInput" />
+
+        <LinearLayout
+            android:id="@+id/profileVehicleFieldsContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/profileHasVehicleCheckbox">
+
+            <EditText
+                android:id="@+id/profileSeatsInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_info_field"
+                android:hint="@string/hint_vehicle_seats"
+                android:inputType="number"
+                android:minHeight="52dp"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/profilePlateInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_info_field"
+                android:hint="@string/hint_vehicle_plate"
+                android:inputType="textCapCharacters"
+                android:minHeight="52dp"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/profileBrandInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_info_field"
+                android:hint="@string/hint_vehicle_brand"
+                android:inputType="textCapWords"
+                android:minHeight="52dp"
+                android:padding="14dp" />
+
+            <EditText
+                android:id="@+id/profileColorInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_info_field"
+                android:hint="@string/hint_vehicle_color"
+                android:inputType="textCapWords"
+                android:minHeight="52dp"
+                android:padding="14dp" />
+        </LinearLayout>
+
         <EditText
             android:id="@+id/profileNewPasswordInput"
             android:layout_width="0dp"
@@ -77,7 +144,7 @@
             android:padding="14dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/profilePhoneInput" />
+            app:layout_constraintTop_toBottomOf="@id/profileVehicleFieldsContainer" />
 
         <Button
             android:id="@+id/profileSaveButton"

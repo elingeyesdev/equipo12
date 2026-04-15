@@ -84,6 +84,7 @@
     <string name="profile_save_action">Guardar cambios</string>
     <string name="profile_updated">Perfil actualizado.</string>
     <string name="profile_missing_session">No hay sesión activa.</string>
+    <string name="profile_has_vehicle">Tengo vehículo y quiero habilitar modo conductor</string>
 
     <string name="logout_done">Sesión cerrada.</string>
 

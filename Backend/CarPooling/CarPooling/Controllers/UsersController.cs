@@ -234,6 +234,12 @@ public class UsersController(CarPoolingContext context) : ControllerBase
     {
         var normalizedRole = roleValue?.Trim().ToLowerInvariant();
 
+        if (string.IsNullOrWhiteSpace(normalizedRole))
+        {
+            role = UserRole.Student;
+            return true;
+        }
+
         if (normalizedRole is "driver" or "chofer")
         {
             role = UserRole.Driver;
