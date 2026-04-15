@@ -118,6 +118,7 @@ public class MainActivity extends AppCompatActivity {
     private UserAccessUseCase userAccessUseCase;
     private MainViewModel mainViewModel;
     private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
+    private boolean isDriverUser;
 
     private final ActivityResultLauncher<String[]> locationPermissionRequest =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
@@ -157,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
             navigateToLogin();
             return;
         }
+        isDriverUser = sessionManager.isDriver();
 
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         restoreStateFromViewModel();
@@ -271,9 +273,22 @@ public class MainActivity extends AppCompatActivity {
         });
 
         updateCoordinateLabels();
+        applyRoleAccess();
         refreshButtons();
         updateStatusText();
         updateRouteTimeText();
+    }
+
+    private void applyRoleAccess() {
+        int driverVisibility = isDriverUser ? View.VISIBLE : View.GONE;
+        createTripButton.setVisibility(driverVisibility);
+        cancelTripButton.setVisibility(driverVisibility);
+        markBoardedButton.setVisibility(driverVisibility);
+        startTripButton.setVisibility(driverVisibility);
+        finishTripButton.setVisibility(driverVisibility);
+
+        viewReservationsButton.setVisibility(driverVisibility);
+        viewBoardedPassengersButton.setVisibility(driverVisibility);
     }
 
     private void setupDrawer() {
@@ -637,16 +652,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void refreshButtons() {
-        boolean canCreate = selectedOrigin != null && selectedDestination != null && activeTripId == null;
+        boolean canCreate = isDriverUser && selectedOrigin != null && selectedDestination != null && activeTripId == null;
         createTripButton.setEnabled(canCreate);
-        cancelTripButton.setEnabled(activeTripId != null);
+        cancelTripButton.setEnabled(isDriverUser && activeTripId != null);
         reserveTripButton.setEnabled(activeTripId != null);
         cancelPassengerReservationButton.setEnabled(activeTripId != null);
-        viewReservationsButton.setEnabled(activeTripId != null);
-        viewBoardedPassengersButton.setEnabled(activeTripId != null);
-        markBoardedButton.setEnabled(activeTripId != null);
-        startTripButton.setEnabled(activeTripId != null && isTripReadyToStart());
-        finishTripButton.setEnabled(activeTripId != null && isTripInProgress());
+        viewReservationsButton.setEnabled(isDriverUser && activeTripId != null);
+        viewBoardedPassengersButton.setEnabled(isDriverUser && activeTripId != null);
+        markBoardedButton.setEnabled(isDriverUser && activeTripId != null);
+        startTripButton.setEnabled(isDriverUser && activeTripId != null && isTripReadyToStart());
+        finishTripButton.setEnabled(isDriverUser && activeTripId != null && isTripInProgress());
     }
 
     private boolean isTripReadyToStart() {
@@ -797,7 +812,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        isDriverUser = sessionManager.isDriver();
         refreshDrawerUserInfo();
+        applyRoleAccess();
+        refreshButtons();
     }
 
     private void reserveTrip() {

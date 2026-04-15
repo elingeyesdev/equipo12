@@ -13,6 +13,7 @@ public class SessionManager {
     private static final String KEY_FULL_NAME = "full_name";
     private static final String KEY_EMAIL = "email";
     private static final String KEY_PHONE = "phone";
+    private static final String KEY_ROLE = "role";
     private static final String KEY_EXPIRES_AT = "expires_at";
     private static final long THIRTY_DAYS_MILLIS = 30L * 24L * 60L * 60L * 1000L;
 
@@ -31,6 +32,7 @@ public class SessionManager {
                 .putString(KEY_FULL_NAME, user.fullName)
                 .putString(KEY_EMAIL, user.email)
                 .putString(KEY_PHONE, user.phoneNumber)
+                .putString(KEY_ROLE, user.role)
                 .putLong(KEY_EXPIRES_AT, expiresAt)
                 .commit();
     }
@@ -70,6 +72,15 @@ public class SessionManager {
 
     public String getPhone() {
         return preferences.getString(KEY_PHONE, "");
+    }
+
+    public String getRole() {
+        return preferences.getString(KEY_ROLE, "student");
+    }
+
+    public boolean isDriver() {
+        String role = getRole();
+        return role != null && role.trim().equalsIgnoreCase("driver");
     }
 
     public void clearSession() {

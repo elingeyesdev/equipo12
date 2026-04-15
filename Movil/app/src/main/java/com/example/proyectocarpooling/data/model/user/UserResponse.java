@@ -9,13 +9,15 @@ public class UserResponse {
     public final String fullName;
     public final String email;
     public final String phoneNumber;
+    public final String role;
     public final String createdAt;
 
-    public UserResponse(String id, String fullName, String email, String phoneNumber, String createdAt) {
+    public UserResponse(String id, String fullName, String email, String phoneNumber, String role, String createdAt) {
         this.id = id;
         this.fullName = fullName;
         this.email = email;
         this.phoneNumber = phoneNumber;
+        this.role = role;
         this.createdAt = createdAt;
     }
 
@@ -26,6 +28,7 @@ public class UserResponse {
                 obj.getString("fullName"),
                 obj.getString("email"),
                 obj.optString("phoneNumber", null),
+                obj.optString("role", "student"),
                 obj.optString("createdAt", "")
         );
     }
