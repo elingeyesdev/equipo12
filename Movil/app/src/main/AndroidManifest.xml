@@ -36,6 +36,11 @@
             android:exported="false" />
 
         <activity
+            android:name=".presentation.match.ui.DriverMatchActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
             android:name=".presentation.auth.ui.LoginActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />

@@ -40,6 +40,7 @@ import com.example.proyectocarpooling.data.model.TripResponse;
 import com.example.proyectocarpooling.domain.model.CreateTripResult;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
+import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
 import com.example.proyectocarpooling.presentation.main.viewmodel.MainViewModel;
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
 
@@ -81,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
     private Button createTripButton;
     private Button cancelTripButton;
     private Button reserveTripButton;
+    private Button findDriverButton;
     private Button cancelPassengerReservationButton;
     private Button viewReservationsButton;
     private Button viewBoardedPassengersButton;
@@ -220,6 +222,7 @@ public class MainActivity extends AppCompatActivity {
         createTripButton = findViewById(R.id.createTripButton);
         cancelTripButton = findViewById(R.id.cancelTripButton);
         reserveTripButton = findViewById(R.id.reserveTripButton);
+        findDriverButton = findViewById(R.id.findDriverButton);
         cancelPassengerReservationButton = findViewById(R.id.cancelPassengerReservationButton);
         viewReservationsButton = findViewById(R.id.viewReservationsButton);
         viewBoardedPassengersButton = findViewById(R.id.viewBoardedPassengersButton);
@@ -243,6 +246,7 @@ public class MainActivity extends AppCompatActivity {
         selectOriginButton.setOnClickListener(v -> setSelectionMode(SelectionMode.ORIGIN));
         selectDestinationButton.setOnClickListener(v -> setSelectionMode(SelectionMode.DESTINATION));
         reserveTripButton.setOnClickListener(v -> reserveTrip());
+        findDriverButton.setOnClickListener(v -> openDriverMatchScreen());
         cancelPassengerReservationButton.setOnClickListener(v -> cancelPassengerReservation());
         viewReservationsButton.setOnClickListener(v -> viewReservations());
         viewBoardedPassengersButton.setOnClickListener(v -> viewBoardedPassengers());
@@ -656,6 +660,7 @@ public class MainActivity extends AppCompatActivity {
         createTripButton.setEnabled(canCreate);
         cancelTripButton.setEnabled(isDriverUser && activeTripId != null);
         reserveTripButton.setEnabled(activeTripId != null);
+        findDriverButton.setEnabled(!isDriverUser && selectedDestination != null);
         cancelPassengerReservationButton.setEnabled(activeTripId != null);
         viewReservationsButton.setEnabled(isDriverUser && activeTripId != null);
         viewBoardedPassengersButton.setEnabled(isDriverUser && activeTripId != null);
@@ -1090,6 +1095,17 @@ public class MainActivity extends AppCompatActivity {
                 setProgressVisible(false);
             }
         });
+    }
+
+    private void openDriverMatchScreen() {
+        if (selectedDestination == null) {
+            Toast.makeText(this, R.string.toast_destination_required, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(this, DriverMatchActivity.class);
+        intent.putExtra(DriverMatchActivity.EXTRA_DESTINATION_LABEL, formatCoordinate(selectedDestination));
+        startActivity(intent);
     }
 
 }

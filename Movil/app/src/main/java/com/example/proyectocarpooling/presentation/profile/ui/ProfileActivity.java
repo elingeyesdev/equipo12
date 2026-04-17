@@ -119,14 +119,13 @@ public class ProfileActivity extends AppCompatActivity {
 
         String role = hasVehicle ? "driver" : "student";
         boolean roleChangeRequested = !role.equalsIgnoreCase(originalRole);
-        DriverProfileRequest driverProfile = null;
-        if (hasVehicle) {
-            driverProfile = new DriverProfileRequest(
-                    Integer.parseInt(seatsRaw),
-                    plate.toUpperCase(),
-                    brand,
-                    color);
-        }
+        DriverProfileRequest driverProfile = hasVehicle
+                ? new DriverProfileRequest(
+                        Integer.parseInt(seatsRaw),
+                        plate.toUpperCase(),
+                        brand,
+                        color)
+                : null;
 
         String userId = sessionManager.getUserId();
         if (userId.isEmpty()) {

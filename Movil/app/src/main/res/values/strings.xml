@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">ProyectoCarpooling</string>
     <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
-    <string name="api_base_url">http://10.0.2.2:5005</string>
+    <string name="api_base_url_emulator">http://10.0.2.2:5005</string>
+    <string name="api_base_url_device">http://127.0.0.1:5005</string>
     <string name="origin_placeholder">Recogida: sin seleccionar</string>
     <string name="destination_placeholder">Destino: a donde quieres ir</string>
     <string name="button_select_origin">Seleccionar origen</string>
@@ -27,6 +28,7 @@
     
     <!-- Reservation Strings -->
     <string name="button_reserve_trip">Reservar</string>
+    <string name="button_find_driver">Buscar conductor</string>
     <string name="button_cancel_passenger_reservation">Cancelar Reserva</string>
     <string name="button_view_reservations">Lista Reservas</string>
     <string name="button_view_boarded_passengers">Lista Abordados</string>
@@ -59,6 +61,28 @@
     <string name="button_finish_trip">Finalizar viaje</string>
     <string name="toast_trip_finished">Viaje finalizado.</string>
     <string name="toast_trip_finish_failed">No se pudo finalizar el viaje.</string>
+    <string name="driver_match_title">Conductores disponibles</string>
+    <string name="driver_match_destination_loading">Buscando conductores disponibles...</string>
+    <string name="driver_match_counter_loading">Cargando perfiles...</string>
+    <string name="driver_match_name_loading">Conductor disponible</string>
+    <string name="driver_match_route_loading">Ruta en análisis</string>
+    <string name="driver_match_seats_loading">Cupos en análisis</string>
+    <string name="driver_match_distance_loading">Distancia en análisis</string>
+    <string name="driver_match_time_loading">Tiempo en análisis</string>
+    <string name="driver_match_default_destination">la Universidad</string>
+    <string name="driver_match_destination_summary">Buscando conductores que van hacia %1$s</string>
+    <string name="driver_match_counter_format">Perfil %1$d de %2$d</string>
+    <string name="driver_match_route_format">Ruta: %1$s</string>
+    <string name="driver_match_seats_format">Cupos disponibles: %1$d</string>
+    <string name="driver_match_distance_format">Distancia estimada a tu ruta: %1$s km</string>
+    <string name="driver_match_time_format">Tiempo estimado de llegada: %1$d min</string>
+    <string name="driver_match_reject_action">Izquierda (Rechazar)</string>
+    <string name="driver_match_accept_action">Derecha (Aceptar)</string>
+    <string name="driver_match_rejected">Rechazaste a %1$s</string>
+    <string name="driver_match_accepted">Aceptaste viajar con %1$s</string>
+    <string name="driver_match_no_results_title">No hay más conductores por ahora</string>
+    <string name="driver_match_no_results_subtitle">Prueba de nuevo en unos minutos o cambia destino.</string>
+    <string name="driver_match_no_results_counter">Sin coincidencias</string>
     <string name="button_collapse_panel">Abrir menú lateral</string>
     <string name="button_expand_panel">Cerrar menú lateral</string>
     <string name="bottom_sheet_title">¿A dónde vamos?</string>

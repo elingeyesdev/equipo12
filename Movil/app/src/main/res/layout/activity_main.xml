@@ -203,6 +203,16 @@
                         android:textColor="@color/white" />
 
                     <Button
+                        android:id="@+id/findDriverButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_primary_action"
+                        android:backgroundTint="@null"
+                        android:text="@string/button_find_driver"
+                        android:textColor="@color/white" />
+
+                    <Button
                         android:id="@+id/cancelPassengerReservationButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 
 import com.example.proyectocarpooling.R;
+import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
 import com.example.proyectocarpooling.data.model.TripResponse;
 import com.example.proyectocarpooling.data.remote.TripsRemoteDataSource;
@@ -53,7 +54,7 @@ public class MainViewModel extends AndroidViewModel {
 
     public MainViewModel(@NonNull Application application) {
         super(application);
-        String apiBaseUrl = application.getString(R.string.api_base_url);
+        String apiBaseUrl = ApiBaseUrlProvider.get(application);
         String mapboxToken = application.getString(R.string.mapbox_access_token);
 
         TripsRemoteDataSource remoteDataSource = new TripsRemoteDataSource(apiBaseUrl, mapboxToken);
