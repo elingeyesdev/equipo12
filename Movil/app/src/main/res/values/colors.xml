@@ -9,4 +9,10 @@
     <color name="carpool_surface">#F5F7F8</color>
     <color name="carpool_text_primary">#1F2A30</color>
     <color name="carpool_text_secondary">#5E6E76</color>
+    <color name="match_status_active">#1565C0</color>
+    <color name="match_status_ready">#2E7D32</color>
+    <color name="match_status_in_progress">#EF6C00</color>
+    <color name="match_status_cancelled">#C62828</color>
+    <color name="match_status_finished">#546E7A</color>
+    <color name="match_card_stroke">#8A9BA8</color>
 </resources>
