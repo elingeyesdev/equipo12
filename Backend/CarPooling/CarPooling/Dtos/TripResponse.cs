@@ -11,6 +11,7 @@ public class TripResponse
     public double? DestinationLongitude { get; init; }
     public TripStatus Status { get; init; }
     public int AvailableSeats { get; init; }
+    public string DriverName { get; init; } = "";
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public DateTime? CancelledAt { get; init; }
@@ -24,6 +25,7 @@ public class TripResponse
         DestinationLongitude = trip.DestinationLongitude,
         Status = trip.Status,
         AvailableSeats = trip.AvailableSeats,
+        DriverName = trip.DriverName,
         CreatedAt = trip.CreatedAt,
         UpdatedAt = trip.UpdatedAt,
         CancelledAt = trip.CancelledAt

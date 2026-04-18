@@ -22,6 +22,12 @@ public class Trip
 
     public int AvailableSeats { get; set; } = 4;
 
+    /// <summary>Nombre del conductor que publicó el viaje (persistido al crear el origen).</summary>
+    public string DriverName { get; set; } = "";
+
+    /// <summary>Usuario conductor dueño del viaje (para recuperar viaje activo al volver a iniciar sesión).</summary>
+    public Guid? DriverUserId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }

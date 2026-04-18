@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.data.remote;
 
+import com.example.proyectocarpooling.data.model.DriverTripMatch;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
 import com.example.proyectocarpooling.data.model.RouteData;
 import com.example.proyectocarpooling.data.model.TripResponse;
@@ -12,8 +13,10 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -49,12 +52,94 @@ public class TripsRemoteDataSource {
         this.mapboxAccessToken = mapboxAccessToken;
     }
 
-    public TripResponse createTrip(Point origin, Point destination) throws IOException {
-        TripResponse createdTrip = sendCoordinateRequest(apiBaseUrl + "/api/Trips/origin", origin);
+    public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull) throws IOException {
+        TripResponse createdTrip = sendOriginRequest(apiBaseUrl + "/api/Trips/origin", origin, driverNameOrNull, driverUserIdOrNull);
         if (destination != null) {
             createdTrip = sendCoordinateRequest(apiBaseUrl + "/api/Trips/" + createdTrip.id + "/destination", destination);
         }
         return createdTrip;
+    }
+
+    public List<DriverTripMatch> searchTripMatchCandidates(double referenceLatitude, double referenceLongitude) throws IOException {
+        String url = String.format(Locale.US, "%s/api/Trips/match-candidates?referenceLatitude=%.7f&referenceLongitude=%.7f",
+                apiBaseUrl, referenceLatitude, referenceLongitude);
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Unexpected response: " + response.code() + " " + errorBody);
+            }
+            if (response.body() == null) {
+                throw new IOException("Respuesta vacia del servidor");
+            }
+            JSONArray array = new JSONArray(response.body().string());
+            List<DriverTripMatch> list = new ArrayList<>();
+            for (int i = 0; i < array.length(); i++) {
+                list.add(DriverTripMatch.fromJson(array.getJSONObject(i)));
+            }
+            return list;
+        } catch (JSONException e) {
+            throw new IOException("Respuesta invalida del servidor", e);
+        }
+    }
+
+    public TripResponse getTripByIdIfPresent(String tripId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Trips/" + tripId)
+                .get()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (response.code() == 404) {
+                return null;
+            }
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Unexpected response: " + response.code() + " " + errorBody);
+            }
+            if (response.body() == null) {
+                throw new IOException("Respuesta vacia del servidor");
+            }
+            return TripResponse.fromJson(response.body().string());
+        } catch (JSONException e) {
+            throw new IOException("Respuesta invalida del servidor", e);
+        }
+    }
+
+    public TripResponse findActiveTripForDriver(String driverUserId, String driverDisplayNameForFallback) throws IOException {
+        HttpUrl parsed = HttpUrl.parse(apiBaseUrl + "/api/Trips/for-driver/" + driverUserId.trim());
+        if (parsed == null) {
+            throw new IOException("URL invalida para buscar viaje del conductor");
+        }
+        HttpUrl.Builder urlBuilder = parsed.newBuilder();
+        if (driverDisplayNameForFallback != null && !driverDisplayNameForFallback.trim().isEmpty()) {
+            urlBuilder.addQueryParameter("displayName", driverDisplayNameForFallback.trim());
+        }
+
+        Request request = new Request.Builder()
+                .url(urlBuilder.build())
+                .get()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (response.code() == 404) {
+                return null;
+            }
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Unexpected response: " + response.code() + " " + errorBody);
+            }
+            if (response.body() == null) {
+                throw new IOException("Respuesta vacia del servidor");
+            }
+            return TripResponse.fromJson(response.body().string());
+        } catch (JSONException e) {
+            throw new IOException("Respuesta invalida del servidor", e);
+        }
     }
 
     public TripResponse cancelTrip(String tripId) throws IOException {
@@ -215,6 +300,29 @@ public class TripsRemoteDataSource {
         executeWithoutBody(request, "Error cancelando reserva");
     }
 
+    private TripResponse sendOriginRequest(String url, Point point, String driverNameOrNull, String driverUserIdOrNull) throws IOException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("latitude", point.latitude());
+            body.put("longitude", point.longitude());
+            if (driverNameOrNull != null && !driverNameOrNull.trim().isEmpty()) {
+                body.put("driverName", driverNameOrNull.trim());
+            }
+            if (driverUserIdOrNull != null && !driverUserIdOrNull.trim().isEmpty()) {
+                body.put("driverUserId", driverUserIdOrNull.trim());
+            }
+        } catch (JSONException e) {
+            throw new IOException("No se pudo construir coordenadas", e);
+        }
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                .build();
+
+        return executeTripRequest(request);
+    }
+
     private TripResponse sendCoordinateRequest(String url, Point point) throws IOException {
         JSONObject body = new JSONObject();
         try {
@@ -265,7 +373,8 @@ public class TripsRemoteDataSource {
                 reservations.add(new ReservationResponse(
                         obj.getString("id"),
                         obj.getString("passengerName"),
-                        obj.getString("status")
+                        obj.getString("status"),
+                        obj.optString("createdAt", "")
                 ));
             }
             return reservations;

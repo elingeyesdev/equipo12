@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.data.repository;
 
+import com.example.proyectocarpooling.data.model.DriverTripMatch;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
 import com.example.proyectocarpooling.data.model.RouteData;
 import com.example.proyectocarpooling.data.model.TripResponse;
@@ -19,8 +20,23 @@ public class TripRepositoryImpl implements TripRepository {
     }
 
     @Override
-    public TripResponse createTrip(Point origin, Point destination) throws IOException {
-        return remoteDataSource.createTrip(origin, destination);
+    public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull) throws IOException {
+        return remoteDataSource.createTrip(origin, destination, driverNameOrNull, driverUserIdOrNull);
+    }
+
+    @Override
+    public List<DriverTripMatch> searchTripMatchCandidates(double referenceLatitude, double referenceLongitude) throws IOException {
+        return remoteDataSource.searchTripMatchCandidates(referenceLatitude, referenceLongitude);
+    }
+
+    @Override
+    public TripResponse getTripByIdIfPresent(String tripId) throws IOException {
+        return remoteDataSource.getTripByIdIfPresent(tripId);
+    }
+
+    @Override
+    public TripResponse findActiveTripForDriver(String driverUserId, String driverDisplayNameForFallback) throws IOException {
+        return remoteDataSource.findActiveTripForDriver(driverUserId, driverDisplayNameForFallback);
     }
 
     @Override

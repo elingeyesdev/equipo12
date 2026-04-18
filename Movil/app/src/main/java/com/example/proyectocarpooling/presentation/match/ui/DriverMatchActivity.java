@@ -1,7 +1,9 @@
 package com.example.proyectocarpooling.presentation.match.ui;
 
+import android.content.Intent;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
@@ -12,24 +14,39 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
 import com.example.proyectocarpooling.R;
-import com.google.android.material.card.MaterialCardView;
+import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
+import com.example.proyectocarpooling.data.local.SessionManager;
+import com.example.proyectocarpooling.data.model.DriverTripMatch;
+import com.example.proyectocarpooling.data.remote.TripsRemoteDataSource;
+import com.example.proyectocarpooling.data.repository.TripRepositoryImpl;
+import com.example.proyectocarpooling.domain.repository.TripRepository;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class DriverMatchActivity extends AppCompatActivity {
 
     public static final String EXTRA_DESTINATION_LABEL = "extra_destination_label";
+    public static final String EXTRA_REF_LATITUDE = "extra_ref_latitude";
+    public static final String EXTRA_REF_LONGITUDE = "extra_ref_longitude";
+    /** Devuelto en {@link #setResult(int, Intent)} cuando la reserva se creó correctamente. */
+    public static final String EXTRA_RESULT_TRIP_ID = "extra_result_trip_id";
+
+    private static final String TAG = "DriverMatch";
 
     private static final float ROTATION_FACTOR = 0.055f;
     private static final float DEFAULT_CARD_ELEVATION_DP = 10f;
 
     private TextView destinationSummaryText;
-    private MaterialCardView matchCard;
+    private CardView matchCard;
     private TextView tripStatusChip;
     private TextView distanceHeroValue;
     private TextView distanceHeroHint;
@@ -43,6 +60,8 @@ public class DriverMatchActivity extends AppCompatActivity {
     private Button acceptButton;
 
     private final List<DriverCandidate> candidates = new ArrayList<>();
+    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+    private boolean candidatesLoading;
     private int currentIndex = 0;
 
     private int touchSlop;
@@ -94,12 +113,93 @@ public class DriverMatchActivity extends AppCompatActivity {
             }
         });
 
-        loadMockCandidates();
-        renderCurrentCard();
         setupCardSwipe(findViewById(R.id.cardInnerContent));
 
         rejectButton.setOnClickListener(v -> runRejectWithAnimation());
         acceptButton.setOnClickListener(v -> runAcceptWithAnimation());
+
+        fetchMatchCandidatesFromApi();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        ioExecutor.shutdownNow();
+    }
+
+    private void fetchMatchCandidatesFromApi() {
+        double refLat = getIntent().getDoubleExtra(EXTRA_REF_LATITUDE, Double.NaN);
+        double refLon = getIntent().getDoubleExtra(EXTRA_REF_LONGITUDE, Double.NaN);
+        if (Double.isNaN(refLat) || Double.isNaN(refLon)) {
+            Toast.makeText(this, R.string.driver_match_fetch_error, Toast.LENGTH_SHORT).show();
+            candidatesLoading = false;
+            candidates.clear();
+            renderCurrentCard();
+            return;
+        }
+
+        candidatesLoading = true;
+        candidates.clear();
+        currentIndex = 0;
+        renderCurrentCard();
+
+        String apiBase = ApiBaseUrlProvider.get(this);
+        String mapboxToken = getString(R.string.mapbox_access_token);
+        TripsRemoteDataSource dataSource = new TripsRemoteDataSource(apiBase, mapboxToken);
+
+        ioExecutor.execute(() -> {
+            try {
+                List<DriverTripMatch> remote = dataSource.searchTripMatchCandidates(refLat, refLon);
+                runOnUiThread(() -> {
+                    candidatesLoading = false;
+                    candidates.clear();
+                    for (DriverTripMatch m : remote) {
+                        candidates.add(mapRemoteToCandidate(m));
+                    }
+                    currentIndex = 0;
+                    renderCurrentCard();
+                });
+            } catch (IOException e) {
+                Log.e(TAG, "Error cargando candidatos", e);
+                runOnUiThread(() -> {
+                    candidatesLoading = false;
+                    candidates.clear();
+                    Toast.makeText(DriverMatchActivity.this, R.string.driver_match_fetch_error, Toast.LENGTH_SHORT).show();
+                    renderCurrentCard();
+                });
+            }
+        });
+    }
+
+    private static DriverCandidate mapRemoteToCandidate(DriverTripMatch m) {
+        String route = String.format(Locale.US, "%.4f,%.4f → %.4f,%.4f",
+                m.originLatitude, m.originLongitude,
+                m.destinationLatitude, m.destinationLongitude);
+        return new DriverCandidate(
+                m.tripId,
+                m.driverName,
+                route,
+                m.availableSeats,
+                m.distanceKm,
+                m.etaMinutes,
+                statusEnumToChipKey(m.status));
+    }
+
+    private static String statusEnumToChipKey(int status) {
+        switch (status) {
+            case 0:
+                return "activo";
+            case 1:
+                return "listo";
+            case 2:
+                return "cancelado";
+            case 3:
+                return "en curso";
+            case 4:
+                return "finalizado";
+            default:
+                return "desconocido";
+        }
     }
 
     /**
@@ -108,7 +208,7 @@ public class DriverMatchActivity extends AppCompatActivity {
      */
     private void setupCardSwipe(View touchLayer) {
         touchLayer.setOnTouchListener((v, event) -> {
-            if (swipeAnimating || currentIndex >= candidates.size()) {
+            if (candidatesLoading || swipeAnimating || currentIndex >= candidates.size()) {
                 return false;
             }
 
@@ -180,14 +280,14 @@ public class DriverMatchActivity extends AppCompatActivity {
     }
 
     private void runRejectWithAnimation() {
-        if (swipeAnimating || currentIndex >= candidates.size()) {
+        if (candidatesLoading || swipeAnimating || currentIndex >= candidates.size()) {
             return;
         }
         runSwipeLeftAnimation();
     }
 
     private void runAcceptWithAnimation() {
-        if (swipeAnimating || currentIndex >= candidates.size()) {
+        if (candidatesLoading || swipeAnimating || currentIndex >= candidates.size()) {
             return;
         }
         runSwipeRightAnimation();
@@ -249,12 +349,55 @@ public class DriverMatchActivity extends AppCompatActivity {
                 .setInterpolator(new DecelerateInterpolator())
                 .withEndAction(() -> {
                     DriverCandidate accepted = candidates.get(currentIndex);
-                    Toast.makeText(this, getString(R.string.driver_match_accepted, accepted.driverName), Toast.LENGTH_SHORT).show();
-                    resetCardTransformInstant();
-                    swipeAnimating = false;
-                    finish();
+                    submitReservationAfterAnimation(accepted);
                 })
                 .start();
+    }
+
+    private void submitReservationAfterAnimation(DriverCandidate accepted) {
+        SessionManager sessionManager = new SessionManager(this);
+        if (!sessionManager.hasActiveSession()) {
+            Toast.makeText(this, R.string.driver_match_login_required, Toast.LENGTH_LONG).show();
+            swipeAnimating = false;
+            resetCardTransformInstant();
+            setButtonsEnabled(true);
+            return;
+        }
+
+        final String passengerName = sessionManager.getFullName().trim();
+        if (passengerName.isEmpty()) {
+            Toast.makeText(this, R.string.driver_match_login_required, Toast.LENGTH_LONG).show();
+            swipeAnimating = false;
+            resetCardTransformInstant();
+            setButtonsEnabled(true);
+            return;
+        }
+
+        String apiBase = ApiBaseUrlProvider.get(this);
+        String mapboxToken = getString(R.string.mapbox_access_token);
+        TripRepository repository = new TripRepositoryImpl(new TripsRemoteDataSource(apiBase, mapboxToken));
+
+        ioExecutor.execute(() -> {
+            try {
+                repository.createReservation(accepted.tripId, passengerName);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, getString(R.string.driver_match_reservation_ok, accepted.driverName), Toast.LENGTH_LONG).show();
+                    Intent data = new Intent();
+                    data.putExtra(EXTRA_RESULT_TRIP_ID, accepted.tripId);
+                    setResult(RESULT_OK, data);
+                    swipeAnimating = false;
+                    finish();
+                });
+            } catch (IOException e) {
+                Log.e(TAG, "createReservation", e);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, R.string.driver_match_reservation_failed, Toast.LENGTH_LONG).show();
+                    swipeAnimating = false;
+                    resetCardTransformInstant();
+                    setButtonsEnabled(true);
+                });
+            }
+        });
     }
 
     private void resetCardTransformInstant() {
@@ -268,25 +411,27 @@ public class DriverMatchActivity extends AppCompatActivity {
     }
 
     private void setButtonsEnabled(boolean enabled) {
-        rejectButton.setEnabled(enabled && currentIndex < candidates.size());
-        acceptButton.setEnabled(enabled && currentIndex < candidates.size());
-    }
-
-    private void loadMockCandidates() {
-        candidates.clear();
-        candidates.add(new DriverCandidate(
-                "Carlos Rojas", "Villa Esperanza → Universidad", 3, 0.8, 5, "listo"));
-        candidates.add(new DriverCandidate(
-                "Andrea Ruiz", "Los Pinos → Universidad", 2, 1.4, 8, "en curso"));
-        candidates.add(new DriverCandidate(
-                "Miguel Soto", "Centro (definiendo destino)", 1, 2.1, 11, "activo"));
-        candidates.add(new DriverCandidate(
-                "Lucía Vargas", "Zona Sur → Universidad", 0, 3.0, 15, "cancelado"));
-        candidates.add(new DriverCandidate(
-                "Daniela Choque", "Plan 3000 → Universidad", 4, 2.9, 14, "finalizado"));
+        boolean canInteract = enabled && !candidatesLoading && currentIndex < candidates.size();
+        rejectButton.setEnabled(canInteract);
+        acceptButton.setEnabled(canInteract);
     }
 
     private void renderCurrentCard() {
+        if (candidatesLoading && candidates.isEmpty()) {
+            tripStatusChip.setVisibility(View.GONE);
+            swipeHintText.setVisibility(View.GONE);
+            distanceHeroValue.setText(R.string.driver_match_distance_value_loading);
+            distanceHeroHint.setText(R.string.driver_match_distance_hint);
+            driverNameText.setText(R.string.driver_match_name_loading);
+            driverRouteText.setText(R.string.driver_match_route_loading);
+            driverSeatsText.setText(R.string.driver_match_seats_loading);
+            driverTimeText.setText(R.string.driver_match_time_loading);
+            cardCounterText.setText(R.string.driver_match_counter_loading);
+            rejectButton.setEnabled(false);
+            acceptButton.setEnabled(false);
+            return;
+        }
+
         if (currentIndex >= candidates.size()) {
             tripStatusChip.setVisibility(View.GONE);
             swipeHintText.setVisibility(View.GONE);
@@ -313,8 +458,8 @@ public class DriverMatchActivity extends AppCompatActivity {
         driverSeatsText.setText(getString(R.string.driver_match_seats_format, current.availableSeats));
         driverTimeText.setText(getString(R.string.driver_match_time_format, current.etaMinutes));
         cardCounterText.setText(getString(R.string.driver_match_counter_format, currentIndex + 1, candidates.size()));
-        rejectButton.setEnabled(!swipeAnimating);
-        acceptButton.setEnabled(!swipeAnimating);
+        rejectButton.setEnabled(!swipeAnimating && !candidatesLoading);
+        acceptButton.setEnabled(!swipeAnimating && !candidatesLoading);
     }
 
     private void applyTripStatusChip(String rawStatus) {
@@ -354,6 +499,7 @@ public class DriverMatchActivity extends AppCompatActivity {
     }
 
     private static class DriverCandidate {
+        private final String tripId;
         private final String driverName;
         private final String routeDescription;
         private final int availableSeats;
@@ -362,12 +508,14 @@ public class DriverMatchActivity extends AppCompatActivity {
         private final String tripStatusKey;
 
         private DriverCandidate(
+                String tripId,
                 String driverName,
                 String routeDescription,
                 int availableSeats,
                 double distanceKm,
                 int etaMinutes,
                 String tripStatusKey) {
+            this.tripId = tripId;
             this.driverName = driverName;
             this.routeDescription = routeDescription;
             this.availableSeats = availableSeats;

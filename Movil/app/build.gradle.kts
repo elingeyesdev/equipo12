@@ -36,6 +36,8 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+    implementation(libs.cardview)
+    implementation(libs.recyclerview)
     implementation(libs.mapbox.maps)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)

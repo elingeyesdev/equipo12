@@ -89,6 +89,13 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(t => t.DestinationLatitude);
             entity.Property(t => t.DestinationLongitude);
 
+            entity.Property(t => t.DriverName)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(t => t.DriverUserId)
+                .HasColumnType("uniqueidentifier");
+
             entity.Property(t => t.Status)
                 .HasConversion(new ValueConverter<TripStatus, string>(
                     status => StatusToString(status),

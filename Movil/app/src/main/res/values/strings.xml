@@ -30,7 +30,7 @@
     <string name="button_reserve_trip">Reservar</string>
     <string name="button_find_driver">Buscar conductor</string>
     <string name="button_cancel_passenger_reservation">Cancelar Reserva</string>
-    <string name="button_view_reservations">Lista Reservas</string>
+    <string name="button_view_reservations">Solicitudes</string>
     <string name="button_view_boarded_passengers">Lista Abordados</string>
     <string name="toast_reservation_created">Reserva completada con éxito.</string>
     <string name="toast_reservation_cancelled">Reserva cancelada.</string>
@@ -77,7 +77,8 @@
     <string name="driver_match_distance_section">Qué tan lejos está</string>
     <string name="driver_match_distance_value_loading">—</string>
     <string name="driver_match_distance_unit_km">km</string>
-    <string name="driver_match_distance_hint">Distancia aproximada entre el destino de este viaje y el punto que elegiste en el mapa.</string>
+    <string name="driver_match_distance_hint">Distancia aproximada entre tu punto de búsqueda y el origen o el destino del viaje del conductor (la menor de las dos).</string>
+    <string name="driver_match_fetch_error">No se pudo cargar la lista de viajes. Revisa conexión y que el backend esté en marcha.</string>
     <string name="driver_match_driver_section">Conductor</string>
     <string name="driver_match_route_format">Ruta: %1$s</string>
     <string name="driver_match_seats_format">Cupos disponibles: %1$d</string>
@@ -93,6 +94,25 @@
     <string name="driver_match_accept_action">Derecha (Aceptar)</string>
     <string name="driver_match_rejected">Rechazaste a %1$s</string>
     <string name="driver_match_accepted">Aceptaste viajar con %1$s</string>
+    <string name="driver_match_login_required">Inicia sesión para reservar plaza con el conductor.</string>
+    <string name="driver_match_reservation_ok">Reserva registrada con %1$s. El conductor verá tu solicitud.</string>
+    <string name="driver_match_reservation_failed">No se pudo completar la reserva. Intenta de nuevo.</string>
+    <string name="toast_passenger_reserved_with_driver">Has reservado plaza. El conductor puede verlo en Solicitudes.</string>
+    <string name="driver_passenger_requests_title">Solicitudes de pasajeros</string>
+    <string name="driver_passenger_requests_subtitle">Viaje: %1$s</string>
+    <string name="driver_passenger_requests_count">%1$d solicitud(es) activa(s)</string>
+    <string name="driver_passenger_requests_empty">No hay solicitudes activas. Cuando un pasajero confirme contigo desde «Buscar conductor», aparecerá aquí.</string>
+    <string name="driver_passenger_requests_solicitado">Solicitado: %1$s</string>
+    <string name="driver_passenger_requests_btn_reject">Rechazar</string>
+    <string name="driver_passenger_requests_btn_accept">Aceptar</string>
+    <string name="driver_passenger_requests_confirm_reject_title">Rechazar solicitud</string>
+    <string name="driver_passenger_requests_confirm_reject_msg">¿Rechazar a %1$s? Se liberará un cupo en tu viaje.</string>
+    <string name="driver_passenger_requests_rejected_toast">Solicitud rechazada.</string>
+    <string name="driver_passenger_requests_accept_title">Aceptar pasajero</string>
+    <string name="driver_passenger_requests_accept_msg">%1$s ya tiene plaza reservada. Confirma que lo aceptas en tu viaje. Luego podrás marcar abordaje cuando suba al vehículo.</string>
+    <string name="driver_passenger_requests_accept_toast">Pasajero aceptado. Recuerda marcar abordaje al recogerlo.</string>
+    <string name="driver_passenger_requests_load_error">No se pudieron cargar las solicitudes.</string>
+    <string name="driver_passenger_requests_menu_refresh">Actualizar</string>
     <string name="driver_match_no_results_title">No hay más conductores por ahora</string>
     <string name="driver_match_no_results_subtitle">Prueba de nuevo en unos minutos o cambia destino.</string>
     <string name="driver_match_no_results_counter">Sin coincidencias</string>
@@ -103,6 +123,8 @@
     <string name="drawer_user_subtitle">Perfil por configurar</string>
     <string name="drawer_coming_soon">Más opciones pronto</string>
     <string name="drawer_edit_profile">Editar perfil</string>
+    <string name="drawer_driver_passenger_requests">Solicitudes de pasajeros</string>
+    <string name="drawer_driver_requests_need_trip">Crea un viaje activo para ver solicitudes de pasajeros.</string>
     <string name="drawer_logout">Cerrar sesión</string>
 
     <string name="login_title">Bienvenido a Univalle Ride</string>

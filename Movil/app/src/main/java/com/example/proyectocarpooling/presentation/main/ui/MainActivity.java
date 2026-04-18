@@ -1,6 +1,7 @@
 package com.example.proyectocarpooling.presentation.main.ui;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -13,6 +14,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.view.MenuItem;
 import android.widget.Toast;
 import android.app.AlertDialog;
 import android.widget.EditText;
@@ -33,13 +35,18 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectocarpooling.R;
+import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.local.UserAccessProvider;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
 import com.example.proyectocarpooling.data.model.TripResponse;
+import com.example.proyectocarpooling.data.remote.TripsRemoteDataSource;
+import com.example.proyectocarpooling.data.repository.TripRepositoryImpl;
+import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.example.proyectocarpooling.domain.model.CreateTripResult;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
+import com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity;
 import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
 import com.example.proyectocarpooling.presentation.main.viewmodel.MainViewModel;
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
@@ -62,8 +69,12 @@ import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListen
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -84,7 +95,6 @@ public class MainActivity extends AppCompatActivity {
     private Button reserveTripButton;
     private Button findDriverButton;
     private Button cancelPassengerReservationButton;
-    private Button viewReservationsButton;
     private Button viewBoardedPassengersButton;
     private Button markBoardedButton;
     private Button startTripButton;
@@ -121,6 +131,18 @@ public class MainActivity extends AppCompatActivity {
     private MainViewModel mainViewModel;
     private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
     private boolean isDriverUser;
+
+    private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
+
+    private final ActivityResultLauncher<Intent> driverMatchLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    String tripId = result.getData().getStringExtra(DriverMatchActivity.EXTRA_RESULT_TRIP_ID);
+                    if (tripId != null && !tripId.isEmpty()) {
+                        Toast.makeText(MainActivity.this, R.string.toast_passenger_reserved_with_driver, Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
 
     private final ActivityResultLauncher<String[]> locationPermissionRequest =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
@@ -224,7 +246,6 @@ public class MainActivity extends AppCompatActivity {
         reserveTripButton = findViewById(R.id.reserveTripButton);
         findDriverButton = findViewById(R.id.findDriverButton);
         cancelPassengerReservationButton = findViewById(R.id.cancelPassengerReservationButton);
-        viewReservationsButton = findViewById(R.id.viewReservationsButton);
         viewBoardedPassengersButton = findViewById(R.id.viewBoardedPassengersButton);
         markBoardedButton = findViewById(R.id.markBoardedButton);
         startTripButton = findViewById(R.id.startTripButton);
@@ -248,7 +269,6 @@ public class MainActivity extends AppCompatActivity {
         reserveTripButton.setOnClickListener(v -> reserveTrip());
         findDriverButton.setOnClickListener(v -> openDriverMatchScreen());
         cancelPassengerReservationButton.setOnClickListener(v -> cancelPassengerReservation());
-        viewReservationsButton.setOnClickListener(v -> viewReservations());
         viewBoardedPassengersButton.setOnClickListener(v -> viewBoardedPassengers());
         markBoardedButton.setOnClickListener(v -> markPassengerBoardedByName());
         startTripButton.setOnClickListener(v -> startTrip());
@@ -281,6 +301,75 @@ public class MainActivity extends AppCompatActivity {
         refreshButtons();
         updateStatusText();
         updateRouteTimeText();
+
+        maybeRestoreDriverActiveTripAsync();
+    }
+
+    private void maybeRestoreDriverActiveTripAsync() {
+        if (!isDriverUser || (activeTripId != null && !activeTripId.isEmpty())) {
+            return;
+        }
+
+        final String apiBase = ApiBaseUrlProvider.get(this);
+        final String mapboxToken = getString(R.string.mapbox_access_token);
+        final String userId = sessionManager.getUserId();
+        final String fullName = sessionManager.getFullName();
+
+        backgroundExecutor.execute(() -> {
+            try {
+                TripRepository repository = new TripRepositoryImpl(new TripsRemoteDataSource(apiBase, mapboxToken));
+                TripResponse restored = null;
+
+                if (userId != null && !userId.isBlank()) {
+                    restored = repository.findActiveTripForDriver(userId, fullName);
+                }
+
+                if (restored == null) {
+                    String saved = sessionManager.getDriverActiveTripId();
+                    if (!saved.isEmpty()) {
+                        TripResponse t = repository.getTripByIdIfPresent(saved);
+                        if (t != null && isTripUsableStatus(t.status)) {
+                            restored = t;
+                        } else {
+                            sessionManager.clearDriverActiveTripId();
+                        }
+                    }
+                }
+
+                if (restored != null) {
+                    TripResponse trip = restored;
+                    runOnUiThread(() -> applyRestoredDriverTrip(trip));
+                }
+            } catch (IOException ignored) {
+                // Sin red o sin viaje: se deja estado actual
+            }
+        });
+    }
+
+    private static boolean isTripUsableStatus(String status) {
+        if (status == null) {
+            return false;
+        }
+        String s = status.trim().toLowerCase(Locale.US);
+        if (s.equals("cancelado") || s.equals("cancelled") || s.equals("2")) {
+            return false;
+        }
+        if (s.equals("finalizado") || s.equals("finished") || s.equals("4")) {
+            return false;
+        }
+        return true;
+    }
+
+    private void applyRestoredDriverTrip(TripResponse trip) {
+        activeTripId = trip.id;
+        lastTripStatusLabel = trip.status;
+        activeTripAvailableSeats = trip.availableSeats;
+        sessionManager.saveDriverActiveTripId(trip.id);
+        syncTripStateToViewModel();
+        updateStatusText();
+        updateRouteTimeText();
+        refreshButtons();
+        updateDrawerDriverMenuVisibility();
     }
 
     private void applyRoleAccess() {
@@ -291,8 +380,18 @@ public class MainActivity extends AppCompatActivity {
         startTripButton.setVisibility(driverVisibility);
         finishTripButton.setVisibility(driverVisibility);
 
-        viewReservationsButton.setVisibility(driverVisibility);
         viewBoardedPassengersButton.setVisibility(driverVisibility);
+        updateDrawerDriverMenuVisibility();
+    }
+
+    private void updateDrawerDriverMenuVisibility() {
+        if (navigationView == null) {
+            return;
+        }
+        MenuItem requestsItem = navigationView.getMenu().findItem(R.id.nav_driver_passenger_requests);
+        if (requestsItem != null) {
+            requestsItem.setVisible(isDriverUser);
+        }
     }
 
     private void setupDrawer() {
@@ -303,6 +402,8 @@ public class MainActivity extends AppCompatActivity {
                 int id = item.getItemId();
                 if (id == R.id.nav_edit_profile) {
                     startActivity(new Intent(this, ProfileActivity.class));
+                } else if (id == R.id.nav_driver_passenger_requests) {
+                    openPassengerRequestsScreen(true);
                 } else if (id == R.id.nav_logout) {
                     logout();
                 }
@@ -533,6 +634,7 @@ public class MainActivity extends AppCompatActivity {
                 lastTripStatusLabel = response.status;
                 activeTripAvailableSeats = response.availableSeats;
                 lastRouteTimeLabel = buildEstimatedTimeLabel(result.route.distanceMeters);
+                sessionManager.saveDriverActiveTripId(response.id);
                 syncTripStateToViewModel();
 
                 if (result.route.points != null && !result.route.points.isEmpty()) {
@@ -566,6 +668,7 @@ public class MainActivity extends AppCompatActivity {
                 lastTripStatusLabel = response.status;
                 activeTripAvailableSeats = 0;
                 lastRouteTimeLabel = null;
+                sessionManager.clearDriverActiveTripId();
                 syncTripStateToViewModel();
                 Toast.makeText(MainActivity.this, R.string.toast_trip_cancelled, Toast.LENGTH_SHORT).show();
                 selectedOrigin = null;
@@ -662,11 +765,11 @@ public class MainActivity extends AppCompatActivity {
         reserveTripButton.setEnabled(activeTripId != null);
         findDriverButton.setEnabled(!isDriverUser && selectedDestination != null);
         cancelPassengerReservationButton.setEnabled(activeTripId != null);
-        viewReservationsButton.setEnabled(isDriverUser && activeTripId != null);
         viewBoardedPassengersButton.setEnabled(isDriverUser && activeTripId != null);
         markBoardedButton.setEnabled(isDriverUser && activeTripId != null);
         startTripButton.setEnabled(isDriverUser && activeTripId != null && isTripReadyToStart());
         finishTripButton.setEnabled(isDriverUser && activeTripId != null && isTripInProgress());
+        updateDrawerDriverMenuVisibility();
     }
 
     private boolean isTripReadyToStart() {
@@ -726,12 +829,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(TripResponse tripResponse) {
                 Toast.makeText(MainActivity.this, R.string.toast_trip_finished, Toast.LENGTH_SHORT).show();
+                activeTripId = null;
                 lastTripStatusLabel = tripResponse.status;
                 activeTripAvailableSeats = tripResponse.availableSeats;
+                lastRouteTimeLabel = null;
+                sessionManager.clearDriverActiveTripId();
                 syncTripStateToViewModel();
                 updateStatusText();
+                updateRouteTimeText();
                 setProgressVisible(false);
                 refreshButtons();
+                updateDrawerDriverMenuVisibility();
             }
 
             @Override
@@ -811,6 +919,7 @@ public class MainActivity extends AppCompatActivity {
         if (mapView != null) {
             mapView.onDestroy();
         }
+        backgroundExecutor.shutdownNow();
         super.onDestroy();
     }
 
@@ -821,6 +930,7 @@ public class MainActivity extends AppCompatActivity {
         refreshDrawerUserInfo();
         applyRoleAccess();
         refreshButtons();
+        maybeRestoreDriverActiveTripAsync();
     }
 
     private void reserveTrip() {
@@ -914,36 +1024,19 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void viewReservations() {
-        if (activeTripId == null) return;
-        setProgressVisible(true);
-        mainViewModel.getReservations(activeTripId, new MainViewModel.ResultCallback<>() {
-            @Override
-            public void onSuccess(List<ReservationResponse> reservations) {
-                showReservationsDialog(reservations);
-                setProgressVisible(false);
+    /**
+     * @param showToastIfNoTrip si es true (p. ej. desde el menú lateral) y no hay viaje activo, se muestra aviso.
+     */
+    private void openPassengerRequestsScreen(boolean showToastIfNoTrip) {
+        if (activeTripId == null) {
+            if (showToastIfNoTrip) {
+                Toast.makeText(this, R.string.drawer_driver_requests_need_trip, Toast.LENGTH_SHORT).show();
             }
-
-            @Override
-            public void onError(String message) {
-                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
-                setProgressVisible(false);
-            }
-        });
-    }
-
-    private void showReservationsDialog(List<ReservationResponse> reservations) {
-        if (reservations.isEmpty()) {
-            Toast.makeText(this, "No hay reservas para este viaje", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        ArrayAdapter<ReservationResponse> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, reservations);
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_title_reservations)
-                .setAdapter(adapter, null)
-                .setNegativeButton(R.string.dialog_button_close, null)
-                .show();
+        Intent intent = new Intent(this, DriverPassengerRequestsActivity.class);
+        intent.putExtra(DriverPassengerRequestsActivity.EXTRA_TRIP_ID, activeTripId);
+        startActivity(intent);
     }
 
     private void showManualStatusOptions(ReservationResponse reservation, boolean refreshBoardedList) {
@@ -998,7 +1091,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess() {
                 Toast.makeText(MainActivity.this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
-                viewReservations();
+                openPassengerRequestsScreen(false);
                 viewBoardedPassengers();
                 setProgressVisible(false);
             }
@@ -1020,7 +1113,7 @@ public class MainActivity extends AppCompatActivity {
                 if (refreshBoardedList) {
                     viewBoardedPassengers();
                 } else {
-                    viewReservations();
+                    openPassengerRequestsScreen(false);
                 }
                 setProgressVisible(false);
             }
@@ -1105,7 +1198,9 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, DriverMatchActivity.class);
         intent.putExtra(DriverMatchActivity.EXTRA_DESTINATION_LABEL, formatCoordinate(selectedDestination));
-        startActivity(intent);
+        intent.putExtra(DriverMatchActivity.EXTRA_REF_LATITUDE, selectedDestination.latitude());
+        intent.putExtra(DriverMatchActivity.EXTRA_REF_LONGITUDE, selectedDestination.longitude());
+        driverMatchLauncher.launch(intent);
     }
 
 }

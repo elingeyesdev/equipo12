@@ -15,6 +15,8 @@ public class SessionManager {
     private static final String KEY_PHONE = "phone";
     private static final String KEY_ROLE = "role";
     private static final String KEY_EXPIRES_AT = "expires_at";
+    /** Viaje activo del conductor en este dispositivo (clave por usuario). */
+    private static final String KEY_DRIVER_ACTIVE_TRIP_PREFIX = "driver_active_trip_";
     private static final long THIRTY_DAYS_MILLIS = 30L * 24L * 60L * 60L * 1000L;
 
     private final SharedPreferences preferences;
@@ -81,6 +83,29 @@ public class SessionManager {
     public boolean isDriver() {
         String role = getRole();
         return role != null && role.trim().equalsIgnoreCase("driver");
+    }
+
+    private String driverActiveTripKey() {
+        String uid = getUserId();
+        if (uid == null || uid.isBlank()) {
+            return KEY_DRIVER_ACTIVE_TRIP_PREFIX + "unknown";
+        }
+        return KEY_DRIVER_ACTIVE_TRIP_PREFIX + uid.trim();
+    }
+
+    public void saveDriverActiveTripId(String tripId) {
+        if (tripId == null || tripId.isBlank()) {
+            return;
+        }
+        preferences.edit().putString(driverActiveTripKey(), tripId.trim()).apply();
+    }
+
+    public String getDriverActiveTripId() {
+        return preferences.getString(driverActiveTripKey(), "");
+    }
+
+    public void clearDriverActiveTripId() {
+        preferences.edit().remove(driverActiveTripKey()).apply();
     }
 
     public void clearSession() {

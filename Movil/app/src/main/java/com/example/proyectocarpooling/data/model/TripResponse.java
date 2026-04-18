@@ -12,6 +12,7 @@ public class TripResponse {
     public final Double destinationLongitude;
     public final String status;
     public final int availableSeats;
+    public final String driverName;
 
     public TripResponse(String id,
                         double originLatitude,
@@ -19,7 +20,8 @@ public class TripResponse {
                         Double destinationLatitude,
                         Double destinationLongitude,
                         String status,
-                        int availableSeats) {
+                        int availableSeats,
+                        String driverName) {
         this.id = id;
         this.originLatitude = originLatitude;
         this.originLongitude = originLongitude;
@@ -27,6 +29,7 @@ public class TripResponse {
         this.destinationLongitude = destinationLongitude;
         this.status = status;
         this.availableSeats = availableSeats;
+        this.driverName = driverName == null ? "" : driverName;
     }
 
     public static TripResponse fromJson(String json) throws JSONException {
@@ -44,7 +47,8 @@ public class TripResponse {
                 destinationLat,
                 destinationLng,
                 statusLabel,
-                object.optInt("availableSeats", 0)
+                object.optInt("availableSeats", 0),
+                object.optString("driverName", "")
         );
     }
 

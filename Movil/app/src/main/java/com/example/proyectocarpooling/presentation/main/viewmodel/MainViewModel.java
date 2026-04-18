@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel;
 
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
+import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
 import com.example.proyectocarpooling.data.model.TripResponse;
 import com.example.proyectocarpooling.data.remote.TripsRemoteDataSource;
@@ -114,7 +115,10 @@ public class MainViewModel extends AndroidViewModel {
     }
 
     public void createTrip(Point origin, Point destination, ResultCallback<CreateTripResult> callback) {
-        executeWithResult(() -> createTripUseCase.execute(origin, destination), callback);
+        SessionManager sessionManager = new SessionManager(getApplication());
+        String driverName = sessionManager.isDriver() ? sessionManager.getFullName() : null;
+        String driverUserId = sessionManager.isDriver() ? sessionManager.getUserId() : null;
+        executeWithResult(() -> createTripUseCase.execute(origin, destination, driverName, driverUserId), callback);
     }
 
     public void cancelTrip(String tripId, ResultCallback<TripResponse> callback) {
