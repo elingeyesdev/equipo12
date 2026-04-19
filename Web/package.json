@@ -1,0 +1,12 @@
+{
+  "name": "carpooling-admin-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Panel administrativo web para CarPooling",
+  "scripts": {
+    "start": "http-server . -p 5173 -c-1 -o /index.html"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

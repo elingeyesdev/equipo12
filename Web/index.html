@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CarPooling Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <main class="auth-shell" id="authShell">
+    <section class="auth-card">
+      <p class="eyebrow">Administracion</p>
+      <h1>Panel de Control CarPooling</h1>
+      <p class="subtitle">Inicia sesion como administrador para gestionar usuarios, viajes y reportes operativos.</p>
+
+      <form id="loginForm" class="stack">
+        <label class="field">
+          <span>Correo institucional</span>
+          <input type="email" id="loginEmail" placeholder="admin@univalle.edu" required />
+        </label>
+
+        <label class="field">
+          <span>Contrasena</span>
+          <input type="password" id="loginPassword" placeholder="******" required />
+        </label>
+
+        <label class="field">
+          <span>API Base URL</span>
+          <input type="url" id="apiBaseUrl" placeholder="http://localhost:5005" required />
+        </label>
+
+        <button type="submit" class="btn primary">Entrar al panel</button>
+      </form>
+
+      <p id="loginMessage" class="message" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <section class="dashboard hidden" id="dashboard">
+    <aside class="sidebar">
+      <div class="brand">
+        <p>CP</p>
+        <div>
+          <h2>Admin Hub</h2>
+          <small>CarPooling</small>
+        </div>
+      </div>
+
+      <nav class="menu" id="menuNav">
+        <button class="menu-item active" data-section="overview">Resumen</button>
+        <button class="menu-item" data-section="users">Usuarios</button>
+        <button class="menu-item" data-section="trips">Viajes</button>
+        <button class="menu-item" data-section="reports">Reportes</button>
+      </nav>
+
+      <button id="logoutBtn" class="btn ghost">Cerrar sesion</button>
+    </aside>
+
+    <div class="main-area">
+      <header class="topbar">
+        <div>
+          <h1 id="sectionTitle">Resumen</h1>
+          <p id="loggedUserInfo">Sesion iniciada</p>
+        </div>
+        <div class="status-pill" id="apiStatus">API desconectada</div>
+      </header>
+
+      <section class="content-grid" id="section-overview">
+        <article class="card kpi">
+          <h3>Estado de sesion</h3>
+          <p id="kpiSession">Activa</p>
+        </article>
+        <article class="card kpi">
+          <h3>Seccion actual</h3>
+          <p id="kpiSection">Resumen</p>
+        </article>
+        <article class="card kpi">
+          <h3>API Base</h3>
+          <p id="kpiApiBase">-</p>
+        </article>
+
+        <article class="card span-3">
+          <h3>Checklist implementado</h3>
+          <ul class="checklist">
+            <li>Layout principal con sidebar, navbar y dashboard.</li>
+            <li>Navegacion funcional entre usuarios, viajes y reportes.</li>
+            <li>Autenticacion de administrador con login.</li>
+            <li>Conexion a endpoints basicos del backend.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-users">
+        <article class="card span-2">
+          <h3>Registrar usuario</h3>
+          <form id="registerUserForm" class="stack compact">
+            <label class="field"><span>Nombre completo</span><input type="text" id="regFullName" required /></label>
+            <label class="field"><span>Email</span><input type="email" id="regEmail" required /></label>
+            <label class="field"><span>Contrasena</span><input type="password" id="regPassword" minlength="6" required /></label>
+            <label class="field"><span>Telefono (opcional)</span><input type="text" id="regPhone" /></label>
+            <label class="field"><span>Rol</span>
+              <select id="regRole">
+                <option value="student">Estudiante</option>
+                <option value="driver">Chofer</option>
+              </select>
+            </label>
+            <button type="submit" class="btn primary">Crear usuario</button>
+          </form>
+          <p id="registerMessage" class="message" aria-live="polite"></p>
+        </article>
+
+        <article class="card">
+          <h3>Buscar usuario por correo</h3>
+          <form id="searchUserForm" class="stack compact">
+            <label class="field"><span>Email</span><input type="email" id="searchEmail" required /></label>
+            <button type="submit" class="btn secondary">Buscar</button>
+          </form>
+          <pre id="userResult" class="result-box">Sin resultados</pre>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-trips">
+        <article class="card span-2">
+          <h3>Crear viaje (origen)</h3>
+          <form id="createTripForm" class="stack compact">
+            <label class="field"><span>Nombre del conductor</span><input type="text" id="tripDriverName" required /></label>
+            <label class="field"><span>Driver User ID (opcional)</span><input type="text" id="tripDriverUserId" placeholder="GUID" /></label>
+            <label class="field"><span>Latitud origen</span><input type="number" step="any" id="tripOriginLat" required /></label>
+            <label class="field"><span>Longitud origen</span><input type="number" step="any" id="tripOriginLng" required /></label>
+            <button type="submit" class="btn primary">Crear viaje</button>
+          </form>
+          <p id="tripCreateMessage" class="message" aria-live="polite"></p>
+        </article>
+
+        <article class="card">
+          <h3>Consultar y gestionar viaje</h3>
+          <form id="tripActionForm" class="stack compact">
+            <label class="field"><span>Trip ID</span><input type="text" id="tripId" required /></label>
+            <label class="field"><span>Accion</span>
+              <select id="tripAction">
+                <option value="get">Consultar</option>
+                <option value="start">Iniciar</option>
+                <option value="finish">Finalizar</option>
+                <option value="cancel">Cancelar</option>
+              </select>
+            </label>
+            <button type="submit" class="btn secondary">Ejecutar</button>
+          </form>
+
+          <form id="tripDestinationForm" class="stack compact top-gap">
+            <h4>Asignar destino</h4>
+            <label class="field"><span>Trip ID</span><input type="text" id="destTripId" required /></label>
+            <label class="field"><span>Latitud destino</span><input type="number" step="any" id="destLat" required /></label>
+            <label class="field"><span>Longitud destino</span><input type="number" step="any" id="destLng" required /></label>
+            <button type="submit" class="btn secondary">Guardar destino</button>
+          </form>
+
+          <pre id="tripResult" class="result-box">Sin resultados</pre>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-reports">
+        <article class="card">
+          <h3>Reporte por viaje</h3>
+          <form id="reportForm" class="stack compact">
+            <label class="field"><span>Trip ID</span><input type="text" id="reportTripId" required /></label>
+            <button type="submit" class="btn primary">Cargar reporte</button>
+          </form>
+          <p id="reportSummary" class="message">Aun no hay reporte cargado.</p>
+        </article>
+
+        <article class="card">
+          <h3>Reservas activas</h3>
+          <pre id="activeReservations" class="result-box">[]</pre>
+        </article>
+
+        <article class="card">
+          <h3>Pasajeros abordados</h3>
+          <pre id="boardedReservations" class="result-box">[]</pre>
+        </article>
+      </section>
+    </div>
+  </section>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

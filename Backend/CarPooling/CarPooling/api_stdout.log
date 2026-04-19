@@ -1,0 +1,33 @@
+Usando la configuración de inicio de D:\Tarea_5toS\proyecto de sistema\equipo12-main\Backend\CarPooling\CarPooling\Properties\launchSettings.json...
+Compilando...
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5005
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: D:\Tarea_5toS\proyecto de sistema\equipo12-main\Backend\CarPooling\CarPooling
+warn: Microsoft.EntityFrameworkCore.Model.Validation[20601]
+      The 'UserRole' property 'Role' on entity type 'User' is configured with a database-generated default, but has no configured sentinel value. The database-generated default will always be used for inserts when the property has the value '0', since this is the CLR default for the 'UserRole' type. Consider using a nullable type, using a nullable backing field, or setting the sentinel value for the property to ensure the database default is used when, and only when, appropriate. See https://aka.ms/efcore-docs-default-values for more information.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (53ms) [Parameters=[@__normalizedEmail_0='?' (Size = 120)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Users] AS [u]
+              WHERE [u].[Email] = @__normalizedEmail_0) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = DateTime2), @p2='?' (Size = 120), @p3='?' (Size = 120), @p4='?' (Size = 256), @p5='?' (Size = 25), @p6='?' (Size = 20)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [Users] ([Id], [CreatedAt], [Email], [FullName], [PasswordHash], [PhoneNumber], [Role])
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (10ms) [Parameters=[@__normalizedEmail_0='?' (Size = 120), @__incomingHash_1='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[Email], [u].[FullName], [u].[PasswordHash], [u].[PhoneNumber], [u].[Role], [d].[Id], [d].[AvailableSeats], [d].[CreatedAt], [d].[LicensePlate], [d].[UpdatedAt], [d].[UserId], [d].[VehicleBrand], [d].[VehicleColor]
+      FROM [Users] AS [u]
+      LEFT JOIN [DriverProfiles] AS [d] ON [u].[Id] = [d].[UserId]
+      WHERE [u].[Email] = @__normalizedEmail_0 AND [u].[PasswordHash] = @__incomingHash_1

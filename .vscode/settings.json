@@ -1,0 +1,9 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "dotnet build": true,
+        "Get-NetTCPConnection": true,
+        "ForEach-Object": true,
+        "Get-Process": true,
+        "Get-CimInstance": true
+    }
+}
