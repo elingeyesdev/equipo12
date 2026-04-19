@@ -5,6 +5,10 @@
         android:title="@string/drawer_edit_profile" />
 
     <item
+        android:id="@+id/nav_favorites"
+        android:title="@string/drawer_favorites" />
+
+    <item
         android:id="@+id/nav_driver_passenger_requests"
         android:title="@string/drawer_driver_passenger_requests"
         android:visible="false" />

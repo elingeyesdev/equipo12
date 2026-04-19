@@ -148,6 +148,17 @@
                     android:textColor="@color/white" />
             </LinearLayout>
 
+            <Button
+                android:id="@+id/saveFavoriteButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
+                android:enabled="false"
+                android:text="@string/button_save_favorite"
+                android:textColor="@color/white" />
+
             <LinearLayout
                 android:id="@+id/tripButtonsRow"
                 android:layout_width="match_parent"

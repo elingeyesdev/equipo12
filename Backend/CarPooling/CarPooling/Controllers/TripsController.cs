@@ -24,7 +24,8 @@ public class TripsController(CarPoolingContext context) : ControllerBase
 
         var trips = await _context.Trips.AsNoTracking()
             .Where(t =>
-                (t.Status == TripStatus.Ready || t.Status == TripStatus.InProgress)
+                t.Kind == TripKind.Regular
+                && (t.Status == TripStatus.Ready || t.Status == TripStatus.InProgress)
                 && t.DestinationLatitude != null
                 && t.DestinationLongitude != null
                 && t.AvailableSeats > 0)
@@ -77,6 +78,7 @@ public class TripsController(CarPoolingContext context) : ControllerBase
 
         var trip = new Trip
         {
+            Kind = TripKind.Regular,
             OriginLatitude = request.Latitude,
             OriginLongitude = request.Longitude,
             Status = TripStatus.AwaitingDestination,
@@ -100,7 +102,8 @@ public class TripsController(CarPoolingContext context) : ControllerBase
     {
         var trip = await _context.Trips.AsNoTracking()
             .Where(t =>
-                t.DriverUserId == driverUserId
+                t.Kind == TripKind.Regular
+                && t.DriverUserId == driverUserId
                 && t.Status != TripStatus.Cancelled
                 && t.Status != TripStatus.Finished)
             .OrderByDescending(t => t.CreatedAt)
@@ -111,7 +114,8 @@ public class TripsController(CarPoolingContext context) : ControllerBase
             var normalized = displayName.Trim();
             trip = await _context.Trips.AsNoTracking()
                 .Where(t =>
-                    t.DriverUserId == null
+                    t.Kind == TripKind.Regular
+                    && t.DriverUserId == null
                     && t.DriverName != null
                     && t.DriverName.Trim() == normalized
                     && t.Status != TripStatus.Cancelled
@@ -135,6 +139,11 @@ public class TripsController(CarPoolingContext context) : ControllerBase
         if (trip is null)
         {
             return NotFound();
+        }
+
+        if (trip.Kind != TripKind.Regular)
+        {
+            return BadRequest("Este registro no es un viaje operativo.");
         }
 
         if (trip.Status == TripStatus.Cancelled)
@@ -167,6 +176,11 @@ public class TripsController(CarPoolingContext context) : ControllerBase
             return NotFound();
         }
 
+        if (trip.Kind != TripKind.Regular)
+        {
+            return BadRequest("Este registro no es un viaje operativo.");
+        }
+
         if (trip.Status == TripStatus.Cancelled)
         {
             return Ok(TripResponse.FromEntity(trip));
@@ -188,6 +202,11 @@ public class TripsController(CarPoolingContext context) : ControllerBase
         if (trip is null)
         {
             return NotFound();
+        }
+
+        if (trip.Kind != TripKind.Regular)
+        {
+            return BadRequest("Este registro no es un viaje operativo.");
         }
 
         if (trip.Status == TripStatus.Cancelled)
@@ -223,6 +242,11 @@ public class TripsController(CarPoolingContext context) : ControllerBase
         if (trip is null)
         {
             return NotFound();
+        }
+
+        if (trip.Kind != TripKind.Regular)
+        {
+            return BadRequest("Este registro no es un viaje operativo.");
         }
 
         if (trip.Status == TripStatus.Cancelled)

@@ -5,6 +5,7 @@ namespace CarPooling.Dtos;
 public class TripResponse
 {
     public Guid Id { get; init; }
+    public TripKind Kind { get; init; } = TripKind.Regular;
     public double OriginLatitude { get; init; }
     public double OriginLongitude { get; init; }
     public double? DestinationLatitude { get; init; }
@@ -19,6 +20,7 @@ public class TripResponse
     public static TripResponse FromEntity(Trip trip) => new()
     {
         Id = trip.Id,
+        Kind = trip.Kind,
         OriginLatitude = trip.OriginLatitude,
         OriginLongitude = trip.OriginLongitude,
         DestinationLatitude = trip.DestinationLatitude,

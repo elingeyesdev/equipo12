@@ -123,6 +123,7 @@
     <string name="drawer_user_subtitle">Perfil por configurar</string>
     <string name="drawer_coming_soon">Más opciones pronto</string>
     <string name="drawer_edit_profile">Editar perfil</string>
+    <string name="drawer_favorites">Tus lugares y viajes favoritos</string>
     <string name="drawer_driver_passenger_requests">Solicitudes de pasajeros</string>
     <string name="drawer_driver_requests_need_trip">Crea un viaje activo para ver solicitudes de pasajeros.</string>
     <string name="drawer_logout">Cerrar sesión</string>
@@ -170,4 +171,34 @@
     <string name="validation_plate_min">La placa debe tener al menos 5 caracteres.</string>
     <string name="validation_brand_min">La marca debe tener al menos 2 caracteres.</string>
     <string name="validation_color_min">El color debe tener al menos 2 caracteres.</string>
+
+    <string name="button_save_favorite">Guardar favorito</string>
+    <string name="favorites_title_manage">Tus lugares y viajes favoritos</string>
+    <string name="favorites_title_pick">Elegir favorito</string>
+    <string name="favorites_empty">Aún no tienes favoritos. Marca origen y/o destino en el mapa y pulsa «Guardar favorito».</string>
+    <string name="favorites_load_error">No se pudieron cargar los favoritos.</string>
+    <string name="favorites_error_session">Sesión no válida.</string>
+    <string name="favorite_type_route">Viaje (origen y destino)</string>
+    <string name="favorite_type_place">Lugar</string>
+    <string name="favorite_uses_prefix">Veces usado:</string>
+    <string name="favorite_delete">Eliminar favorito</string>
+    <string name="favorite_apply_route">Aplicar ruta al mapa</string>
+    <string name="favorite_apply_as_destination">Aplicar como destino</string>
+    <string name="favorite_apply_as_origin">Aplicar como origen</string>
+    <string name="favorite_delete_confirm_title">Eliminar favorito</string>
+    <string name="favorite_delete_confirm_message">¿Eliminar «%1$s»?</string>
+    <string name="favorite_delete_confirm_action">Eliminar</string>
+    <string name="favorite_deleted_toast">Favorito eliminado.</string>
+    <string name="favorite_applied_toast">Favorito aplicado al mapa.</string>
+    <string name="favorite_save_confirm">Guardar</string>
+    <string name="favorite_save_pick_kind">¿Qué quieres guardar como favorito?</string>
+    <string name="favorite_save_dialog_title">Nombre del favorito</string>
+    <string name="favorite_save_hint">Ej.: Casa, Univalle, trabajo…</string>
+    <string name="favorite_save_as_route">Guardar viaje (origen y destino)</string>
+    <string name="favorite_save_place_destination">Solo destino (lugar)</string>
+    <string name="favorite_save_place_origin">Solo origen (lugar)</string>
+    <string name="favorite_save_validation_title">Escribe un nombre.</string>
+    <string name="favorite_save_need_point">Selecciona al menos un punto en el mapa.</string>
+    <string name="favorite_save_success">Favorito guardado.</string>
+    <string name="favorite_save_error">No se pudo guardar el favorito.</string>
 </resources>

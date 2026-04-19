@@ -20,6 +20,11 @@ public class ReservationsController(CarPoolingContext context) : ControllerBase
             return NotFound("Viaje no encontrado.");
         }
 
+        if (trip.Kind != TripKind.Regular)
+        {
+            return BadRequest("Este viaje no admite reservas.");
+        }
+
         if (trip.Status == TripStatus.Cancelled)
         {
             return BadRequest("El viaje no está disponible para reserva.");

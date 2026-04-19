@@ -96,6 +96,16 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(t => t.DriverUserId)
                 .HasColumnType("uniqueidentifier");
 
+            entity.Property(t => t.Kind)
+                .HasConversion<int>()
+                .HasDefaultValue(TripKind.Regular)
+                .IsRequired();
+
+            entity.Property(t => t.BookmarkUseCount)
+                .HasDefaultValue(0);
+
+            entity.Property(t => t.BookmarkLastUsedAt);
+
             entity.Property(t => t.Status)
                 .HasConversion(new ValueConverter<TripStatus, string>(
                     status => StatusToString(status),

@@ -6,6 +6,8 @@ public class Trip
 {
     public Guid Id { get; set; }
 
+    public TripKind Kind { get; set; } = TripKind.Regular;
+
     [Range(-90, 90)]
     public double OriginLatitude { get; set; }
 
@@ -33,4 +35,10 @@ public class Trip
     public DateTime? UpdatedAt { get; set; }
 
     public DateTime? CancelledAt { get; set; }
+
+    /// <summary>Solo para <see cref="TripKind.UserBookmark"/>: veces aplicado al mapa.</summary>
+    public int BookmarkUseCount { get; set; }
+
+    /// <summary>Solo para <see cref="TripKind.UserBookmark"/>.</summary>
+    public DateTime? BookmarkLastUsedAt { get; set; }
 }

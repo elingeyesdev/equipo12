@@ -41,12 +41,14 @@ import com.example.proyectocarpooling.data.local.UserAccessProvider;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
 import com.example.proyectocarpooling.data.model.TripResponse;
 import com.example.proyectocarpooling.data.remote.TripsRemoteDataSource;
+import com.example.proyectocarpooling.data.remote.user.FavoritesRemoteDataSource;
 import com.example.proyectocarpooling.data.repository.TripRepositoryImpl;
 import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.example.proyectocarpooling.domain.model.CreateTripResult;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 import com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity;
+import com.example.proyectocarpooling.presentation.favorites.ui.FavoritePlacesActivity;
 import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
 import com.example.proyectocarpooling.presentation.main.viewmodel.MainViewModel;
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
@@ -78,6 +80,14 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static final String EXTRA_APPLY_FAVORITE_ID = "apply_favorite_id";
+    public static final String EXTRA_APPLY_FAVORITE_KIND = "apply_favorite_kind";
+    public static final String EXTRA_APPLY_ORIGIN_LAT = "apply_origin_lat";
+    public static final String EXTRA_APPLY_ORIGIN_LNG = "apply_origin_lng";
+    public static final String EXTRA_APPLY_DEST_LAT = "apply_dest_lat";
+    public static final String EXTRA_APPLY_DEST_LNG = "apply_dest_lng";
+    public static final String EXTRA_APPLY_PLACE_AS_ORIGIN = "apply_place_as_origin";
+
     private enum SelectionMode { NONE, ORIGIN, DESTINATION }
 
     private MapView mapView;
@@ -103,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout selectionButtonsRow;
     private LinearLayout tripButtonsRow;
     private LinearLayout passengerButtonsRow;
+    private Button saveFavoriteButton;
 
     private boolean isInitialPositionSet = false;
     private Point selectedOrigin;
@@ -253,6 +264,7 @@ public class MainActivity extends AppCompatActivity {
         selectionButtonsRow = findViewById(R.id.selectionButtonsRow);
         tripButtonsRow = findViewById(R.id.tripButtonsRow);
         passengerButtonsRow = findViewById(R.id.passengerButtonsRow);
+        saveFavoriteButton = findViewById(R.id.saveFavoriteButton);
 
         if (navigationView != null) {
             var header = navigationView.getHeaderView(0);
@@ -295,6 +307,12 @@ public class MainActivity extends AppCompatActivity {
             }
             cancelTrip();
         });
+
+        if (saveFavoriteButton != null) {
+            saveFavoriteButton.setOnClickListener(v -> openSaveFavoriteDialog());
+        }
+
+        consumeApplyFavoriteIntent(getIntent());
 
         updateCoordinateLabels();
         applyRoleAccess();
@@ -402,6 +420,10 @@ public class MainActivity extends AppCompatActivity {
                 int id = item.getItemId();
                 if (id == R.id.nav_edit_profile) {
                     startActivity(new Intent(this, ProfileActivity.class));
+                } else if (id == R.id.nav_favorites) {
+                    Intent fi = new Intent(this, FavoritePlacesActivity.class);
+                    fi.putExtra(FavoritePlacesActivity.EXTRA_PICK_MODE, false);
+                    startActivity(fi);
                 } else if (id == R.id.nav_driver_passenger_requests) {
                     openPassengerRequestsScreen(true);
                 } else if (id == R.id.nav_logout) {
@@ -769,7 +791,184 @@ public class MainActivity extends AppCompatActivity {
         markBoardedButton.setEnabled(isDriverUser && activeTripId != null);
         startTripButton.setEnabled(isDriverUser && activeTripId != null && isTripReadyToStart());
         finishTripButton.setEnabled(isDriverUser && activeTripId != null && isTripInProgress());
+        if (saveFavoriteButton != null) {
+            boolean canSaveFavorite = selectedOrigin != null || selectedDestination != null;
+            saveFavoriteButton.setEnabled(canSaveFavorite);
+        }
         updateDrawerDriverMenuVisibility();
+    }
+
+    private void consumeApplyFavoriteIntent(Intent intent) {
+        if (intent == null || !intent.hasExtra(EXTRA_APPLY_FAVORITE_KIND)) {
+            return;
+        }
+
+        String kind = intent.getStringExtra(EXTRA_APPLY_FAVORITE_KIND);
+        String favId = intent.getStringExtra(EXTRA_APPLY_FAVORITE_ID);
+        double oLat = intent.getDoubleExtra(EXTRA_APPLY_ORIGIN_LAT, Double.NaN);
+        double oLng = intent.getDoubleExtra(EXTRA_APPLY_ORIGIN_LNG, Double.NaN);
+        if (Double.isNaN(oLat) || Double.isNaN(oLng)) {
+            clearFavoriteApplyExtras(intent);
+            return;
+        }
+
+        String normalizedKind = kind == null ? "" : kind.trim().toLowerCase(Locale.US);
+        if ("route".equals(normalizedKind)) {
+            double dLat = intent.getDoubleExtra(EXTRA_APPLY_DEST_LAT, Double.NaN);
+            double dLng = intent.getDoubleExtra(EXTRA_APPLY_DEST_LNG, Double.NaN);
+            if (!Double.isNaN(dLat) && !Double.isNaN(dLng)) {
+                selectedOrigin = Point.fromLngLat(oLng, oLat);
+                selectedDestination = Point.fromLngLat(dLng, dLat);
+            }
+        } else {
+            boolean asOrigin = intent.getBooleanExtra(EXTRA_APPLY_PLACE_AS_ORIGIN, false);
+            Point p = Point.fromLngLat(oLng, oLat);
+            if (asOrigin) {
+                selectedOrigin = p;
+            } else {
+                selectedDestination = p;
+            }
+        }
+
+        clearRoute();
+        syncSelectionStateToViewModel();
+        updateCoordinateLabels();
+        updateMapMarkers();
+        refreshButtons();
+        setSelectionMode(SelectionMode.NONE);
+        Toast.makeText(this, R.string.favorite_applied_toast, Toast.LENGTH_SHORT).show();
+
+        clearFavoriteApplyExtras(intent);
+
+        if (favId != null && !favId.isBlank() && sessionManager.hasActiveSession()) {
+            String uid = sessionManager.getUserId();
+            backgroundExecutor.execute(() -> {
+                try {
+                    new FavoritesRemoteDataSource(ApiBaseUrlProvider.get(MainActivity.this)).recordUse(uid, favId);
+                } catch (IOException ignored) {
+                }
+            });
+        }
+    }
+
+    private static void clearFavoriteApplyExtras(Intent intent) {
+        intent.removeExtra(EXTRA_APPLY_FAVORITE_KIND);
+        intent.removeExtra(EXTRA_APPLY_FAVORITE_ID);
+        intent.removeExtra(EXTRA_APPLY_ORIGIN_LAT);
+        intent.removeExtra(EXTRA_APPLY_ORIGIN_LNG);
+        intent.removeExtra(EXTRA_APPLY_DEST_LAT);
+        intent.removeExtra(EXTRA_APPLY_DEST_LNG);
+        intent.removeExtra(EXTRA_APPLY_PLACE_AS_ORIGIN);
+    }
+
+    private void openSaveFavoriteDialog() {
+        boolean hasO = selectedOrigin != null;
+        boolean hasD = selectedDestination != null;
+        if (!hasO && !hasD) {
+            Toast.makeText(this, R.string.favorite_save_need_point, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String userId = sessionManager.getUserId();
+        if (userId == null || userId.isBlank()) {
+            Toast.makeText(this, R.string.favorites_error_session, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (hasO && hasD) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.favorite_save_pick_kind)
+                    .setItems(new CharSequence[]{
+                            getString(R.string.favorite_save_as_route),
+                            getString(R.string.favorite_save_place_origin),
+                            getString(R.string.favorite_save_place_destination)
+                    }, (d, which) -> promptFavoriteTitleAndSubmit(which))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+        } else {
+            promptFavoriteTitleAndSubmit(hasO ? 1 : 2);
+        }
+    }
+
+    private void promptFavoriteTitleAndSubmit(int choiceWhenBothPresent) {
+        EditText input = new EditText(this);
+        input.setHint(R.string.favorite_save_hint);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.favorite_save_dialog_title)
+                .setView(input)
+                .setPositiveButton(R.string.favorite_save_confirm, (dialog, which) -> {
+                    String title = String.valueOf(input.getText()).trim();
+                    if (title.isEmpty()) {
+                        Toast.makeText(MainActivity.this, R.string.favorite_save_validation_title, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    String userId = sessionManager.getUserId();
+                    if (userId == null || userId.isBlank()) {
+                        return;
+                    }
+                    if (choiceWhenBothPresent == 0) {
+                        if (selectedOrigin != null && selectedDestination != null) {
+                            submitFavoriteRoute(userId, title, selectedOrigin, selectedDestination);
+                        }
+                    } else if (choiceWhenBothPresent == 1 && selectedOrigin != null) {
+                        submitFavoritePlace(userId, title, selectedOrigin);
+                    } else if (choiceWhenBothPresent == 2 && selectedDestination != null) {
+                        submitFavoritePlace(userId, title, selectedDestination);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void submitFavoriteRoute(String userId, String title, Point origin, Point dest) {
+        setProgressVisible(true);
+        backgroundExecutor.execute(() -> {
+            try {
+                new FavoritesRemoteDataSource(ApiBaseUrlProvider.get(MainActivity.this)).createFavorite(
+                        userId,
+                        "route",
+                        title,
+                        origin.latitude(),
+                        origin.longitude(),
+                        dest.latitude(),
+                        dest.longitude()
+                );
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, R.string.favorite_save_success, Toast.LENGTH_SHORT).show();
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, R.string.favorite_save_error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void submitFavoritePlace(String userId, String title, Point place) {
+        setProgressVisible(true);
+        backgroundExecutor.execute(() -> {
+            try {
+                new FavoritesRemoteDataSource(ApiBaseUrlProvider.get(MainActivity.this)).createFavorite(
+                        userId,
+                        "place",
+                        title,
+                        place.latitude(),
+                        place.longitude(),
+                        null,
+                        null
+                );
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, R.string.favorite_save_success, Toast.LENGTH_SHORT).show();
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, R.string.favorite_save_error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
     private boolean isTripReadyToStart() {
@@ -876,6 +1075,13 @@ public class MainActivity extends AppCompatActivity {
         if (loadingIndicator != null) {
             loadingIndicator.setVisibility(show ? View.VISIBLE : View.GONE);
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        consumeApplyFavoriteIntent(intent);
     }
 
     @Override

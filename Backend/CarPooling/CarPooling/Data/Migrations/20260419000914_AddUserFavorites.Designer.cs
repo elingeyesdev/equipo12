@@ -4,6 +4,7 @@ using CarPooling.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarPooling.Data.Migrations
 {
     [DbContext(typeof(CarPoolingContext))]
-    partial class CarPoolingContextModelSnapshot : ModelSnapshot
+    [Migration("20260419000914_AddUserFavorites")]
+    partial class AddUserFavorites
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,14 +106,6 @@ namespace CarPooling.Data.Migrations
                     b.Property<int>("AvailableSeats")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("BookmarkLastUsedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("BookmarkUseCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
                     b.Property<DateTime?>("CancelledAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -134,11 +129,6 @@ namespace CarPooling.Data.Migrations
 
                     b.Property<Guid?>("DriverUserId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Kind")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
 
                     b.Property<double>("OriginLatitude")
                         .HasColumnType("float");
@@ -204,6 +194,55 @@ namespace CarPooling.Data.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("CarPooling.Models.UserFavorite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<double?>("DestinationLatitude")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("DestinationLongitude")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("OriginLatitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("OriginLongitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("UseCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserFavorites", (string)null);
+                });
+
             modelBuilder.Entity("CarPooling.Models.DriverProfile", b =>
                 {
                     b.HasOne("CarPooling.Models.User", "User")
@@ -224,6 +263,17 @@ namespace CarPooling.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Trip");
+                });
+
+            modelBuilder.Entity("CarPooling.Models.UserFavorite", b =>
+                {
+                    b.HasOne("CarPooling.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("CarPooling.Models.User", b =>
