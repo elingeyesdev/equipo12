@@ -1,4 +1,5 @@
 using CarPooling.Data;
+using CarPooling.Security;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +9,14 @@ const string AdminPanelCorsPolicy = "AdminPanelCorsPolicy";
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services
+    .AddAuthentication(HeaderUserAuthenticationHandler.SchemeName)
+    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, HeaderUserAuthenticationHandler>(
+        HeaderUserAuthenticationHandler.SchemeName,
+        _ => { });
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddDbContext<CarPoolingContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -37,6 +46,7 @@ else
 
 app.UseRouting();
 app.UseCors(AdminPanelCorsPolicy);
+app.UseAuthentication();
 
 app.Use(async (context, next) =>
 {

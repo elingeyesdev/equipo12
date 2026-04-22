@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+    using System.Security.Cryptography;
 using System.Text;
 using CarPooling.Data;
 using CarPooling.Dtos;
@@ -22,7 +22,7 @@ public class UsersController(CarPoolingContext context) : ControllerBase
 
         if (!TryParseUserRole(dto.Role, out var parsedRole))
         {
-            return BadRequest("Rol inválido. Usa: student/estudiante o driver/chofer.");
+            return BadRequest("Rol invalido. Usa: student/estudiante (1), driver/chofer (2) o admin/administrador (3).");
         }
 
         if (!IsUniversityEmail(normalizedEmail))
@@ -127,7 +127,7 @@ public class UsersController(CarPoolingContext context) : ControllerBase
         {
             if (!TryParseUserRole(dto.Role, out var parsedRole))
             {
-                return BadRequest("Rol inválido. Usa: student/estudiante o driver/chofer.");
+                return BadRequest("Rol invalido. Usa: student/estudiante (1), driver/chofer (2) o admin/administrador (3).");
             }
 
             requestedRole = parsedRole;
@@ -266,13 +266,19 @@ public class UsersController(CarPoolingContext context) : ControllerBase
             return true;
         }
 
-        if (normalizedRole is "driver" or "chofer")
+        if (normalizedRole is "driver" or "chofer" or "2")
         {
             role = UserRole.Driver;
             return true;
         }
 
-        if (normalizedRole is "student" or "estudiante")
+        if (normalizedRole is "admin" or "administrador" or "3")
+        {
+            role = UserRole.Admin;
+            return true;
+        }
+
+        if (normalizedRole is "student" or "estudiante" or "1")
         {
             role = UserRole.Student;
             return true;

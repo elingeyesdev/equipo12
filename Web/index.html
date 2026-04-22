@@ -121,7 +121,7 @@
             <label class="field"><span>Email</span><input type="email" id="searchEmail" required /></label>
             <button type="submit" class="btn secondary">Buscar</button>
           </form>
-          <pre id="userResult" class="result-box">Sin resultados</pre>
+          <div id="userResult" class="result-view"></div>
         </article>
       </section>
 
@@ -161,12 +161,73 @@
             <button type="submit" class="btn secondary">Guardar destino</button>
           </form>
 
-          <pre id="tripResult" class="result-box">Sin resultados</pre>
+          <div id="tripResult" class="result-view"></div>
         </article>
       </section>
 
       <section class="content-grid hidden" id="section-reports">
         <article class="card">
+          <h3>Consolidado administrador</h3>
+          <button id="loadAdminDataBtn" class="btn primary">Cargar todos los datos</button>
+          <p id="adminDataMessage" class="message">Aun no se han cargado datos administrativos.</p>
+        </article>
+
+        <article class="card">
+          <h3>Todos los usuarios</h3>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminUsersTable">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Telefono</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3>Todos los viajes</h3>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminTripsTable">
+              <thead>
+                <tr>
+                  <th>Conductor</th>
+                  <th>Origen</th>
+                  <th>Destino</th>
+                  <th>Estado</th>
+                  <th>Cupos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminTripsBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3>Todas las reservas</h3>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminReservationsTable">
+              <thead>
+                <tr>
+                  <th>Pasajero</th>
+                  <th>Trip ID</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminReservationsBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card span-2">
           <h3>Reporte por viaje</h3>
           <form id="reportForm" class="stack compact">
             <label class="field"><span>Trip ID</span><input type="text" id="reportTripId" required /></label>
@@ -177,12 +238,12 @@
 
         <article class="card">
           <h3>Reservas activas</h3>
-          <pre id="activeReservations" class="result-box">[]</pre>
+          <div id="activeReservations" class="reservation-list"></div>
         </article>
 
         <article class="card">
           <h3>Pasajeros abordados</h3>
-          <pre id="boardedReservations" class="result-box">[]</pre>
+          <div id="boardedReservations" class="reservation-list"></div>
         </article>
       </section>
     </div>

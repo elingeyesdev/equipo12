@@ -58,16 +58,26 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
 
     private static string RoleToString(UserRole role)
     {
-        return role == UserRole.Driver ? "driver" : "student";
+        return role switch
+        {
+            UserRole.Driver => "driver",
+            UserRole.Admin => "admin",
+            _ => "student"
+        };
     }
 
     private static UserRole RoleFromString(string value)
     {
-        var normalized = value.Trim().ToLower();
+        var normalized = value.Trim().ToLowerInvariant();
 
-        if (normalized is "driver" or "chofer")
+        if (normalized is "driver" or "chofer" or "2")
         {
             return UserRole.Driver;
+        }
+
+        if (normalized is "admin" or "administrador" or "3")
+        {
+            return UserRole.Admin;
         }
 
         return UserRole.Student;

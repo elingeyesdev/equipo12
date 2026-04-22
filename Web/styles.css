@@ -347,10 +347,190 @@ select:focus {
   word-break: break-word;
 }
 
+.result-view {
+  display: grid;
+  gap: 10px;
+  min-height: 88px;
+}
+
+.detail-card {
+  border: 1px solid rgba(31, 29, 26, 0.1);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fffefc, #fff7ef);
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.detail-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.detail-card__header h4,
+.detail-card__section h5 {
+  font-family: "Sora", sans-serif;
+  margin: 0;
+}
+
+.detail-card__header p,
+.detail-card__section {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.detail-card__section {
+  display: grid;
+  gap: 8px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+
+.detail-grid strong {
+  color: var(--text);
+}
+
+.empty-state--error {
+  border-color: rgba(173, 38, 52, 0.32);
+  background: #fff4f4;
+}
+
+.reservation-list {
+  display: grid;
+  gap: 10px;
+  min-height: 88px;
+}
+
+.reservation-card {
+  border: 1px solid rgba(31, 29, 26, 0.1);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fffefc, #fff7ef);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.reservation-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.reservation-card__header h4 {
+  font-size: 1rem;
+  font-family: "Sora", sans-serif;
+  margin-bottom: 2px;
+}
+
+.reservation-card__header p,
+.reservation-card__meta {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.reservation-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.status-badge {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-badge--active {
+  background: #e6fff2;
+  color: var(--ok);
+}
+
+.status-badge--boarded {
+  background: #e8f0ff;
+  color: #2455b0;
+}
+
+.status-badge--cancelled {
+  background: #ffe8e8;
+  color: var(--danger);
+}
+
+.status-badge--unknown {
+  background: #f2efe8;
+  color: var(--muted);
+}
+
+.empty-state {
+  border: 1px dashed rgba(31, 29, 26, 0.18);
+  border-radius: 14px;
+  padding: 16px;
+  background: #fffefb;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+}
+
+.empty-state strong {
+  color: var(--text);
+}
+
 .top-gap {
   margin-top: 14px;
   border-top: 1px solid rgba(31, 29, 26, 0.1);
   padding-top: 12px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid rgba(31, 29, 26, 0.12);
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-table th {
+  font-family: "Sora", sans-serif;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.action-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn.tiny {
+  padding: 6px 10px;
+  font-size: 0.76rem;
+}
+
+.btn.danger {
+  background: linear-gradient(125deg, #b82738, #d94f54);
+  color: #fff;
 }
 
 @keyframes rise {
@@ -402,5 +582,9 @@ select:focus {
   .span-2,
   .span-3 {
     grid-column: span 1;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
   }
 }
