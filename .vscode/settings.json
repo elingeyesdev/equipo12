@@ -4,6 +4,10 @@
         "Get-NetTCPConnection": true,
         "ForEach-Object": true,
         "Get-Process": true,
-        "Get-CimInstance": true
+        "Get-CimInstance": true,
+        "/^Set-Location \"d:\\\\Tarea_5toS\\\\proyecto de sistema\\\\equipo12-main\\\\Web\"; npm install mapbox-gl@3\\.8\\.1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

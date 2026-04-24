@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "mapbox-gl": "^3.22.0"
   }
 }

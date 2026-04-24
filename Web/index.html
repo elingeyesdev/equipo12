@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="./node_modules/mapbox-gl/dist/mapbox-gl.css" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -66,7 +67,8 @@
       <header class="topbar">
         <div>
           <h1 id="sectionTitle">Resumen</h1>
-          <p id="loggedUserInfo">Sesion iniciada</p>
+          <p id="sectionDescription" class="section-description">Vista general del estado del panel.</p>
+          <p id="loggedUserInfo" class="logged-user">Sesion iniciada</p>
         </div>
         <div class="status-pill" id="apiStatus">API desconectada</div>
       </header>
@@ -86,6 +88,16 @@
         </article>
 
         <article class="card span-3">
+          <h3>Acciones rapidas</h3>
+          <p class="card-help">Navega a las tareas mas comunes sin buscar en el menu lateral.</p>
+          <div class="quick-actions" id="overviewQuickActions">
+            <button type="button" class="btn secondary quick-link" data-section="users">Crear usuario</button>
+            <button type="button" class="btn secondary quick-link" data-section="trips">Crear viaje</button>
+            <button type="button" class="btn secondary quick-link" data-section="reports">Ver reportes</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
           <h3>Checklist implementado</h3>
           <ul class="checklist">
             <li>Layout principal con sidebar, navbar y dashboard.</li>
@@ -99,17 +111,27 @@
       <section class="content-grid hidden" id="section-users">
         <article class="card span-2">
           <h3>Registrar usuario</h3>
+          <p class="card-help">Completa los datos base. Si eliges rol chofer se habilitan automaticamente datos del vehiculo.</p>
           <form id="registerUserForm" class="stack compact">
-            <label class="field"><span>Nombre completo</span><input type="text" id="regFullName" required /></label>
-            <label class="field"><span>Email</span><input type="email" id="regEmail" required /></label>
-            <label class="field"><span>Contrasena</span><input type="password" id="regPassword" minlength="6" required /></label>
-            <label class="field"><span>Telefono (opcional)</span><input type="text" id="regPhone" /></label>
+            <label class="field"><span>Nombre completo</span><input type="text" id="regFullName" autocomplete="name" placeholder="Ej: Ana Perez" required /></label>
+            <label class="field"><span>Email</span><input type="email" id="regEmail" autocomplete="email" placeholder="usuario@univalle.edu" required /></label>
+            <label class="field"><span>Contrasena</span><input type="password" id="regPassword" autocomplete="new-password" placeholder="Minimo 6 caracteres" minlength="6" required /></label>
+            <label class="field"><span>Telefono (opcional)</span><input type="text" id="regPhone" autocomplete="tel" placeholder="Ej: 7654321" /></label>
             <label class="field"><span>Rol</span>
               <select id="regRole">
                 <option value="student">Estudiante</option>
                 <option value="driver">Chofer</option>
               </select>
             </label>
+            <p class="hint-box">Tip: para un chofer debes registrar capacidad, placa, marca y color del vehiculo.</p>
+
+            <div id="regDriverFields" class="driver-fields hidden">
+              <label class="field"><span>Cantidad de personas (asientos)</span><input type="number" id="regSeats" min="1" max="12" placeholder="1 a 12" /></label>
+              <label class="field"><span>Placa del auto</span><input type="text" id="regPlate" minlength="5" placeholder="Ej: 1234-ABC" /></label>
+              <label class="field"><span>Marca del auto</span><input type="text" id="regBrand" minlength="2" placeholder="Ej: Toyota" /></label>
+              <label class="field"><span>Color del auto</span><input type="text" id="regColor" minlength="2" placeholder="Ej: Blanco" /></label>
+            </div>
+
             <button type="submit" class="btn primary">Crear usuario</button>
           </form>
           <p id="registerMessage" class="message" aria-live="polite"></p>
@@ -117,8 +139,9 @@
 
         <article class="card">
           <h3>Buscar usuario por correo</h3>
+          <p class="card-help">Consulta rapida para validar datos de perfil, rol y estado de conductor.</p>
           <form id="searchUserForm" class="stack compact">
-            <label class="field"><span>Email</span><input type="email" id="searchEmail" required /></label>
+            <label class="field"><span>Email</span><input type="email" id="searchEmail" placeholder="usuario@univalle.edu" required /></label>
             <button type="submit" class="btn secondary">Buscar</button>
           </form>
           <div id="userResult" class="result-view"></div>
@@ -127,12 +150,35 @@
 
       <section class="content-grid hidden" id="section-trips">
         <article class="card span-2">
-          <h3>Crear viaje (origen)</h3>
+          <h3>Crear viaje con mapa</h3>
+          <p class="card-help">Como en movil: selecciona origen y destino tocando el mapa, luego crea el viaje.</p>
           <form id="createTripForm" class="stack compact">
-            <label class="field"><span>Nombre del conductor</span><input type="text" id="tripDriverName" required /></label>
-            <label class="field"><span>Driver User ID (opcional)</span><input type="text" id="tripDriverUserId" placeholder="GUID" /></label>
-            <label class="field"><span>Latitud origen</span><input type="number" step="any" id="tripOriginLat" required /></label>
-            <label class="field"><span>Longitud origen</span><input type="number" step="any" id="tripOriginLng" required /></label>
+            <label class="field"><span>Conductor registrado</span>
+              <select id="tripDriverSelect" required>
+                <option value="" selected disabled>Cargando conductores...</option>
+              </select>
+            </label>
+            <label class="field"><span>Driver User ID</span><input type="text" id="tripDriverUserIdDisplay" placeholder="Se completa automaticamente" readonly /></label>
+
+            <div class="trip-map-actions">
+              <button type="button" class="btn secondary" id="selectOriginBtn">Seleccionar origen</button>
+              <button type="button" class="btn secondary" id="selectDestinationBtn">Seleccionar destino</button>
+            </div>
+
+            <div id="tripSelectionInstruction" class="hint-box">Presiona un boton y toca el mapa para establecer origen o destino.</div>
+            <div id="tripMap" class="trip-map" aria-label="Mapa para seleccionar origen y destino"></div>
+
+            <div class="trip-coordinates-grid">
+              <div class="trip-coord-box">
+                <strong>Origen</strong>
+                <p id="tripOriginSummary">Sin seleccionar</p>
+              </div>
+              <div class="trip-coord-box">
+                <strong>Destino</strong>
+                <p id="tripDestinationSummary">Sin seleccionar</p>
+              </div>
+            </div>
+
             <button type="submit" class="btn primary">Crear viaje</button>
           </form>
           <p id="tripCreateMessage" class="message" aria-live="polite"></p>
@@ -166,14 +212,32 @@
       </section>
 
       <section class="content-grid hidden" id="section-reports">
-        <article class="card">
-          <h3>Consolidado administrador</h3>
-          <button id="loadAdminDataBtn" class="btn primary">Cargar todos los datos</button>
-          <p id="adminDataMessage" class="message">Aun no se han cargado datos administrativos.</p>
+        <article class="card span-3">
+          <h3>Reportes</h3>
+          <p class="card-help">Elige la vista que necesitas y se mostrara solo ese bloque.</p>
+          <div class="report-switch" id="reportViewSwitch" role="tablist" aria-label="Vistas de reportes">
+            <button type="button" class="btn secondary report-view-btn active" data-view="overview">Resumen general</button>
+            <button type="button" class="btn secondary report-view-btn" data-view="users">Usuarios</button>
+            <button type="button" class="btn secondary report-view-btn" data-view="trips">Viajes</button>
+            <button type="button" class="btn secondary report-view-btn" data-view="reservations">Reservas</button>
+            <button type="button" class="btn secondary report-view-btn" data-view="trip">Reporte por viaje</button>
+          </div>
         </article>
 
-        <article class="card">
+        <article class="card" data-report-view="overview">
+          <h3>Consolidado administrador</h3>
+          <p class="card-help">Los registros se actualizan automaticamente cada 30 segundos.</p>
+          <p id="adminDataMessage" class="message">Esperando primera carga automatica de datos administrativos...</p>
+        </article>
+
+        <article class="card span-3 hidden" data-report-view="users">
           <h3>Todos los usuarios</h3>
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Filtrar usuarios</span>
+              <input type="text" id="usersFilterInput" placeholder="Nombre, correo o rol" />
+            </label>
+          </div>
           <div class="table-wrap">
             <table class="admin-table" id="adminUsersTable">
               <thead>
@@ -190,12 +254,19 @@
           </div>
         </article>
 
-        <article class="card">
+        <article class="card span-3 hidden" data-report-view="trips">
           <h3>Todos los viajes</h3>
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Filtrar viajes</span>
+              <input type="text" id="tripsFilterInput" placeholder="Conductor, estado, origen o destino" />
+            </label>
+          </div>
           <div class="table-wrap">
             <table class="admin-table" id="adminTripsTable">
               <thead>
                 <tr>
+                  <th>Trip ID</th>
                   <th>Conductor</th>
                   <th>Origen</th>
                   <th>Destino</th>
@@ -209,8 +280,14 @@
           </div>
         </article>
 
-        <article class="card">
+        <article class="card span-3 hidden" data-report-view="reservations">
           <h3>Todas las reservas</h3>
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Filtrar reservas</span>
+              <input type="text" id="reservationsFilterInput" placeholder="Pasajero, estado o Trip ID" />
+            </label>
+          </div>
           <div class="table-wrap">
             <table class="admin-table" id="adminReservationsTable">
               <thead>
@@ -227,7 +304,7 @@
           </div>
         </article>
 
-        <article class="card span-2">
+        <article class="card span-2 hidden" data-report-view="trip">
           <h3>Reporte por viaje</h3>
           <form id="reportForm" class="stack compact">
             <label class="field"><span>Trip ID</span><input type="text" id="reportTripId" required /></label>
@@ -236,12 +313,12 @@
           <p id="reportSummary" class="message">Aun no hay reporte cargado.</p>
         </article>
 
-        <article class="card">
+        <article class="card hidden" data-report-view="trip">
           <h3>Reservas activas</h3>
           <div id="activeReservations" class="reservation-list"></div>
         </article>
 
-        <article class="card">
+        <article class="card hidden" data-report-view="trip">
           <h3>Pasajeros abordados</h3>
           <div id="boardedReservations" class="reservation-list"></div>
         </article>
@@ -249,6 +326,18 @@
     </div>
   </section>
 
+  <div class="modal-overlay hidden" id="editModalOverlay" aria-hidden="true">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+      <div class="modal-header">
+        <h3 id="editModalTitle">Editar registro</h3>
+        <button type="button" class="btn tiny" id="editModalCloseBtn">Cerrar</button>
+      </div>
+      <form id="editModalForm" class="stack compact"></form>
+      <p id="editModalMessage" class="message" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <script src="./node_modules/mapbox-gl/dist/mapbox-gl.js" defer></script>
   <script src="./app.js" defer></script>
 </body>
 </html>
