@@ -207,6 +207,9 @@
     <string name="history_category_student">Estudiante</string>
     <string name="history_category_driver">Conductor</string>
     <string name="history_hint">Resumen del viaje: origen, destino y estado.</string>
+    <string name="history_summary_creative">Tu bitácora: %1$d viaje(s) como pasajero, %2$d como conductor. Total registrado: %3$d.</string>
+    <string name="history_summary_role_driver">Modo mixto activo: también moviste gente como conductor.</string>
+    <string name="history_summary_role_student">Tu foco va de pasajero: aún no registras viajes conduciendo.</string>
     <string name="history_empty">No hay viajes en esta categoría todavía.</string>
     <string name="history_view_detail">Ver detalle</string>
     <string name="history_load_error">No se pudo cargar el historial.</string>

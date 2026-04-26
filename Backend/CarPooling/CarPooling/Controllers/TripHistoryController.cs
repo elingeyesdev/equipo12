@@ -71,6 +71,12 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
 
         return Ok(new TripHistoryListResponseDto
         {
+            Summary = new TripHistoryStatsDto
+            {
+                PassengerTripsCount = studentHistory.Count,
+                DriverTripsCount = driverHistory.Count,
+                TotalTripsCount = studentHistory.Count + driverHistory.Count
+            },
             DriverHistory = driverHistory,
             StudentHistory = studentHistory
         });

@@ -27,6 +27,7 @@ import org.json.JSONException;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -37,6 +38,7 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
     private MaterialToolbar toolbar;
     private ProgressBar progress;
     private TextView emptyText;
+    private TextView summaryText;
     private Button studentButton;
     private Button driverButton;
     private RecyclerView recycler;
@@ -55,6 +57,7 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
         toolbar = findViewById(R.id.historyToolbar);
         progress = findViewById(R.id.historyProgress);
         emptyText = findViewById(R.id.historyEmptyText);
+        summaryText = findViewById(R.id.historySummaryText);
         studentButton = findViewById(R.id.historyStudentButton);
         driverButton = findViewById(R.id.historyDriverButton);
         recycler = findViewById(R.id.historyRecycler);
@@ -110,6 +113,17 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
     private void renderCategory() {
         if (loaded == null) {
             return;
+        }
+        if (summaryText != null && loaded.summary != null) {
+            String creative = getString(
+                    R.string.history_summary_creative,
+                    loaded.summary.passengerTripsCount,
+                    loaded.summary.driverTripsCount,
+                    loaded.summary.totalTripsCount);
+            String roleHighlight = loaded.summary.driverTripsCount > 0
+                    ? getString(R.string.history_summary_role_driver)
+                    : getString(R.string.history_summary_role_student);
+            summaryText.setText(String.format(Locale.getDefault(), "%s\n%s", creative, roleHighlight));
         }
         List<TripHistorySummaryItem> list = selectedCategory == Category.STUDENT
                 ? loaded.studentHistory

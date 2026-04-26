@@ -2,6 +2,7 @@ package com.example.proyectocarpooling.data.remote.user;
 
 import com.example.proyectocarpooling.data.model.history.TripHistoryDetailItem;
 import com.example.proyectocarpooling.data.model.history.TripHistoryListResult;
+import com.example.proyectocarpooling.data.model.history.TripHistoryStats;
 import com.example.proyectocarpooling.data.model.history.TripHistorySummaryItem;
 
 import org.json.JSONArray;
@@ -63,9 +64,15 @@ public class TripHistoryRemoteDataSource {
             }
 
             JSONObject o = new JSONObject(response.body().string());
+            JSONObject summaryObj = o.optJSONObject("summary");
+            TripHistoryStats stats = new TripHistoryStats(
+                    summaryObj == null ? 0 : summaryObj.optInt("passengerTripsCount", 0),
+                    summaryObj == null ? 0 : summaryObj.optInt("driverTripsCount", 0),
+                    summaryObj == null ? 0 : summaryObj.optInt("totalTripsCount", 0)
+            );
             List<TripHistorySummaryItem> driver = parseSummaryList(o.optJSONArray("driverHistory"));
             List<TripHistorySummaryItem> student = parseSummaryList(o.optJSONArray("studentHistory"));
-            return new TripHistoryListResult(driver, student);
+            return new TripHistoryListResult(stats, driver, student);
         }
     }
 

@@ -38,8 +38,16 @@ public class TripHistoryDetailDto
 
 public class TripHistoryListResponseDto
 {
+    public TripHistoryStatsDto Summary { get; set; } = new();
     public List<TripHistorySummaryDto> DriverHistory { get; set; } = [];
     public List<TripHistorySummaryDto> StudentHistory { get; set; } = [];
+}
+
+public class TripHistoryStatsDto
+{
+    public int PassengerTripsCount { get; set; }
+    public int DriverTripsCount { get; set; }
+    public int TotalTripsCount { get; set; }
 }
 
 internal static class TripHistoryLabelMapper
