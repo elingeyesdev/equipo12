@@ -10,6 +10,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<User> Users => Set<User>();
     public DbSet<DriverProfile> DriverProfiles => Set<DriverProfile>();
+    public DbSet<UserHistoryHiddenTrip> UserHistoryHiddenTrips => Set<UserHistoryHiddenTrip>();
 
     private static string StatusToString(TripStatus status)
     {
@@ -219,6 +220,21 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .HasDefaultValueSql("GETUTCDATE()");
 
             entity.Property(p => p.UpdatedAt);
+        });
+
+        modelBuilder.Entity<UserHistoryHiddenTrip>(entity =>
+        {
+            entity.ToTable("UserHistoryHiddenTrips");
+            entity.HasKey(h => h.Id);
+
+            entity.Property(h => h.HiddenAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(h => new { h.UserId, h.TripId })
+                .IsUnique();
+
+            entity.HasIndex(h => h.UserId);
+            entity.HasIndex(h => h.TripId);
         });
     }
 }

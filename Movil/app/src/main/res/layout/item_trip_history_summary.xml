@@ -23,13 +23,31 @@
         android:textColor="@color/carpool_text_secondary"
         android:textSize="13sp" />
 
-    <Button
-        android:id="@+id/historyItemDetailButton"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:background="@drawable/bg_primary_action"
-        android:backgroundTint="@null"
-        android:text="@string/history_view_detail"
-        android:textColor="@color/white" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/historyItemDetailButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_primary_action"
+            android:backgroundTint="@null"
+            android:text="@string/history_view_detail"
+            android:textColor="@color/white" />
+
+        <Button
+            android:id="@+id/historyItemDeleteButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_primary_action"
+            android:backgroundTint="@null"
+            android:text="@string/history_delete"
+            android:textColor="@color/white" />
+    </LinearLayout>
 </LinearLayout>

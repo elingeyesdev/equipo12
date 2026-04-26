@@ -210,4 +210,13 @@
     <string name="history_empty">No hay viajes en esta categoría todavía.</string>
     <string name="history_view_detail">Ver detalle</string>
     <string name="history_load_error">No se pudo cargar el historial.</string>
+    <string name="history_delete">Eliminar</string>
+    <string name="history_delete_confirm_title">Eliminar del historial</string>
+    <string name="history_delete_confirm_message">¿Ocultar este viaje de tu historial?\n\n%1$s → %2$s</string>
+    <string name="history_delete_confirm_action">Sí, eliminar</string>
+    <string name="history_deleted_toast">Viaje eliminado del historial.</string>
+    <string name="history_delete_error">No se pudo eliminar del historial.</string>
+    <string name="history_undo">Deshacer</string>
+    <string name="history_restored_toast">Viaje restaurado en el historial.</string>
+    <string name="history_restore_error">No se pudo restaurar el viaje.</string>
 </resources>

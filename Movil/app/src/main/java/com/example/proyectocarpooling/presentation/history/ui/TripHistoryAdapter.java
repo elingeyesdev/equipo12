@@ -20,6 +20,7 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<TripHistoryAdapter.
 
     public interface Listener {
         void onViewDetail(TripHistorySummaryItem item);
+        void onDelete(TripHistorySummaryItem item);
     }
 
     private final List<TripHistorySummaryItem> items = new ArrayList<>();
@@ -50,6 +51,7 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<TripHistoryAdapter.
         holder.route.setText(String.format(Locale.getDefault(), "%s → %s", item.originLabel, item.destinationLabel));
         holder.status.setText(String.format(Locale.getDefault(), "%s · %s", item.statusLabel, item.createdAt));
         holder.detailButton.setOnClickListener(v -> listener.onViewDetail(item));
+        holder.deleteButton.setOnClickListener(v -> listener.onDelete(item));
     }
 
     @Override
@@ -61,12 +63,14 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<TripHistoryAdapter.
         final TextView route;
         final TextView status;
         final Button detailButton;
+        final Button deleteButton;
 
         Holder(@NonNull View itemView) {
             super(itemView);
             route = itemView.findViewById(R.id.historyItemRoute);
             status = itemView.findViewById(R.id.historyItemStatus);
             detailButton = itemView.findViewById(R.id.historyItemDetailButton);
+            deleteButton = itemView.findViewById(R.id.historyItemDeleteButton);
         }
     }
 }

@@ -21,9 +21,15 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
             return NotFound("Usuario no encontrado.");
         }
 
+        var hiddenTripIds = await _context.UserHistoryHiddenTrips
+            .AsNoTracking()
+            .Where(h => h.UserId == userId)
+            .Select(h => h.TripId)
+            .ToListAsync();
+
         var driverHistory = await _context.Trips
             .AsNoTracking()
-            .Where(t => t.Kind == TripKind.Regular && t.DriverUserId == userId)
+            .Where(t => t.Kind == TripKind.Regular && t.DriverUserId == userId && !hiddenTripIds.Contains(t.Id))
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => new TripHistorySummaryDto
             {
@@ -42,7 +48,7 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
         var reservations = await _context.Reservations
             .AsNoTracking()
             .Include(r => r.Trip)
-            .Where(r => r.PassengerName == studentName && r.Trip.Kind == TripKind.Regular)
+            .Where(r => r.PassengerName == studentName && r.Trip.Kind == TripKind.Regular && !hiddenTripIds.Contains(r.TripId))
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
@@ -83,6 +89,14 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
         if (trip is null)
         {
             return NotFound("Viaje no encontrado.");
+        }
+
+        var isHidden = await _context.UserHistoryHiddenTrips
+            .AsNoTracking()
+            .AnyAsync(h => h.UserId == userId && h.TripId == tripId);
+        if (isHidden)
+        {
+            return NotFound("Este viaje fue ocultado de tu historial.");
         }
 
         var reservationStats = await _context.Reservations
@@ -137,5 +151,83 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
         };
 
         return Ok(detail);
+    }
+
+    [HttpDelete("{tripId:guid}")]
+    public async Task<IActionResult> HideFromHistoryAsync(Guid userId, Guid tripId)
+    {
+        var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null)
+        {
+            return NotFound("Usuario no encontrado.");
+        }
+
+        var trip = await _context.Trips.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tripId && t.Kind == TripKind.Regular);
+        if (trip is null)
+        {
+            return NotFound("Viaje no encontrado.");
+        }
+
+        var resolvedPassengerName = user.FullName.Trim();
+        var isRelated = trip.DriverUserId == userId
+            || await _context.Reservations.AsNoTracking().AnyAsync(r => r.TripId == tripId && r.PassengerName == resolvedPassengerName);
+        if (!isRelated)
+        {
+            return Forbid();
+        }
+
+        var alreadyHidden = await _context.UserHistoryHiddenTrips
+            .AsNoTracking()
+            .AnyAsync(h => h.UserId == userId && h.TripId == tripId);
+        if (alreadyHidden)
+        {
+            return NoContent();
+        }
+
+        _context.UserHistoryHiddenTrips.Add(new UserHistoryHiddenTrip
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            TripId = tripId,
+            HiddenAt = DateTime.UtcNow
+        });
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpPost("{tripId:guid}/restore")]
+    public async Task<IActionResult> RestoreToHistoryAsync(Guid userId, Guid tripId)
+    {
+        var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null)
+        {
+            return NotFound("Usuario no encontrado.");
+        }
+
+        var trip = await _context.Trips.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tripId && t.Kind == TripKind.Regular);
+        if (trip is null)
+        {
+            return NotFound("Viaje no encontrado.");
+        }
+
+        var resolvedPassengerName = user.FullName.Trim();
+        var isRelated = trip.DriverUserId == userId
+            || await _context.Reservations.AsNoTracking().AnyAsync(r => r.TripId == tripId && r.PassengerName == resolvedPassengerName);
+        if (!isRelated)
+        {
+            return Forbid();
+        }
+
+        var hidden = await _context.UserHistoryHiddenTrips
+            .FirstOrDefaultAsync(h => h.UserId == userId && h.TripId == tripId);
+        if (hidden is null)
+        {
+            return NoContent();
+        }
+
+        _context.UserHistoryHiddenTrips.Remove(hidden);
+        await _context.SaveChangesAsync();
+        return NoContent();
     }
 }

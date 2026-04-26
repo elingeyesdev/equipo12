@@ -16,13 +16,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
 
 public class TripHistoryRemoteDataSource {
     private static final String TAG = "TripHistoryApi";
+    private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
 
     private final OkHttpClient httpClient;
     private final String apiBaseUrl;
@@ -78,6 +81,31 @@ public class TripHistoryRemoteDataSource {
                 throw new IOException("Respuesta vacia");
             }
             return TripHistoryDetailItem.fromJson(new JSONObject(response.body().string()));
+        }
+    }
+
+    public void hideHistoryTrip(String userId, String tripId) throws IOException {
+        String url = basePath(userId) + "/" + tripId.trim();
+        Request request = new Request.Builder().url(url).delete().build();
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String err = response.body() != null ? response.body().string() : "";
+                throw new IOException("HTTP " + response.code() + " " + err);
+            }
+        }
+    }
+
+    public void restoreHistoryTrip(String userId, String tripId) throws IOException {
+        String url = basePath(userId) + "/" + tripId.trim() + "/restore";
+        Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
+                .build();
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String err = response.body() != null ? response.body().string() : "";
+                throw new IOException("HTTP " + response.code() + " " + err);
+            }
         }
     }
 
