@@ -9,6 +9,10 @@
         android:title="@string/drawer_favorites" />
 
     <item
+        android:id="@+id/nav_history"
+        android:title="@string/drawer_history" />
+
+    <item
         android:id="@+id/nav_driver_passenger_requests"
         android:title="@string/drawer_driver_passenger_requests"
         android:visible="false" />

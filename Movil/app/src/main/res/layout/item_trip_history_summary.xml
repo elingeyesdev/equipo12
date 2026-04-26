@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_info_field"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/historyItemRoute"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/carpool_text_primary"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/historyItemStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/carpool_text_secondary"
+        android:textSize="13sp" />
+
+    <Button
+        android:id="@+id/historyItemDetailButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_primary_action"
+        android:backgroundTint="@null"
+        android:text="@string/history_view_detail"
+        android:textColor="@color/white" />
+</LinearLayout>

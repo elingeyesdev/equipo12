@@ -66,6 +66,16 @@
             android:exported="false"
             android:theme="@style/Theme.ProyectoCarpooling" />
 
+        <activity
+            android:name=".presentation.history.ui.TripHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.history.ui.TripHistoryDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
     </application>
 
 </manifest>

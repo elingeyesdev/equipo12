@@ -49,6 +49,7 @@ import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 import com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity;
 import com.example.proyectocarpooling.presentation.favorites.ui.FavoritePlacesActivity;
+import com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity;
 import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
 import com.example.proyectocarpooling.presentation.main.viewmodel.MainViewModel;
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
@@ -424,6 +425,8 @@ public class MainActivity extends AppCompatActivity {
                     Intent fi = new Intent(this, FavoritePlacesActivity.class);
                     fi.putExtra(FavoritePlacesActivity.EXTRA_PICK_MODE, false);
                     startActivity(fi);
+                } else if (id == R.id.nav_history) {
+                    startActivity(new Intent(this, TripHistoryActivity.class));
                 } else if (id == R.id.nav_driver_passenger_requests) {
                     openPassengerRequestsScreen(true);
                 } else if (id == R.id.nav_logout) {

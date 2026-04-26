@@ -124,6 +124,7 @@
     <string name="drawer_coming_soon">Más opciones pronto</string>
     <string name="drawer_edit_profile">Editar perfil</string>
     <string name="drawer_favorites">Tus lugares y viajes favoritos</string>
+    <string name="drawer_history">Historial</string>
     <string name="drawer_driver_passenger_requests">Solicitudes de pasajeros</string>
     <string name="drawer_driver_requests_need_trip">Crea un viaje activo para ver solicitudes de pasajeros.</string>
     <string name="drawer_logout">Cerrar sesión</string>
@@ -201,4 +202,12 @@
     <string name="favorite_save_need_point">Selecciona al menos un punto en el mapa.</string>
     <string name="favorite_save_success">Favorito guardado.</string>
     <string name="favorite_save_error">No se pudo guardar el favorito.</string>
+    <string name="history_title">Historial de viajes</string>
+    <string name="history_detail_title">Detalle del viaje</string>
+    <string name="history_category_student">Estudiante</string>
+    <string name="history_category_driver">Conductor</string>
+    <string name="history_hint">Resumen del viaje: origen, destino y estado.</string>
+    <string name="history_empty">No hay viajes en esta categoría todavía.</string>
+    <string name="history_view_detail">Ver detalle</string>
+    <string name="history_load_error">No se pudo cargar el historial.</string>
 </resources>
