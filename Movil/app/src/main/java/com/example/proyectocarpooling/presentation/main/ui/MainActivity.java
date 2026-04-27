@@ -341,7 +341,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void maybeRestoreDriverActiveTripAsync() {
-        if (!isDriverUser || (activeTripId != null && !activeTripId.isEmpty())) {
+        if (!isDriverUser) {
+            return;
+        }
+        if (activeTripId != null && !activeTripId.isEmpty() && selectedOrigin != null && selectedDestination != null) {
+            // Misma sesión: el viaje ya está en memoria, solo asegurar ruta al mapa si hace falta
+            requestDriverRoutePreviewIfOnMap();
+            return;
+        }
+        if (activeTripId != null && !activeTripId.isEmpty()) {
+            // ID sin puntos: rehidratar coordenadas desde el servidor
+            rehydrateDriverTripFromIdAsync(activeTripId);
             return;
         }
 
@@ -381,6 +391,44 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /** Si hay {@link #activeTripId} en memoria pero aún no hay origen/destino, los pide al API. */
+    private void rehydrateDriverTripFromIdAsync(String tripId) {
+        if (tripId == null || tripId.isEmpty()) {
+            return;
+        }
+        final String apiBase = ApiBaseUrlProvider.get(this);
+        final String mapboxToken = getString(R.string.mapbox_access_token);
+        backgroundExecutor.execute(() -> {
+            try {
+                TripRepository repository = new TripRepositoryImpl(new TripsRemoteDataSource(apiBase, mapboxToken));
+                TripResponse t = repository.getTripByIdIfPresent(tripId);
+                runOnUiThread(() -> {
+                    if (t != null && isTripUsableStatus(t.status)) {
+                        applyRestoredDriverTrip(t);
+                    } else {
+                        sessionManager.clearDriverActiveTripId();
+                        activeTripId = null;
+                        lastTripStatusLabel = null;
+                        activeTripAvailableSeats = 0;
+                        lastRouteTimeLabel = null;
+                        syncTripStateToViewModel();
+                        selectedOrigin = null;
+                        selectedDestination = null;
+                        syncSelectionStateToViewModel();
+                        clearRoute();
+                        setSelectionMode(SelectionMode.NONE);
+                        updateCoordinateLabels();
+                        updateMapMarkers();
+                        updateStatusText();
+                        updateRouteTimeText();
+                        refreshButtons();
+                    }
+                });
+            } catch (IOException ignored) {
+            }
+        });
+    }
+
     private static boolean isTripUsableStatus(String status) {
         if (status == null) {
             return false;
@@ -401,10 +449,37 @@ public class MainActivity extends AppCompatActivity {
         activeTripAvailableSeats = trip.availableSeats;
         sessionManager.saveDriverActiveTripId(trip.id);
         syncTripStateToViewModel();
+
+        selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
+        if (trip.destinationLatitude != null && trip.destinationLongitude != null) {
+            selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+        } else {
+            selectedDestination = null;
+        }
+        syncSelectionStateToViewModel();
+
+        setSelectionMode(SelectionMode.NONE);
+        updateCoordinateLabels();
+        updateMapMarkers();
+        requestDriverRoutePreviewIfOnMap();
+
         updateStatusText();
         updateRouteTimeText();
         refreshButtons();
         updateDrawerDriverMenuVisibility();
+    }
+
+    /**
+     * Trazar origen→destino del viaje activo del conductor (p. ej. al volver de otra sesión) cuando el mapa ya tiene capas.
+     */
+    private void requestDriverRoutePreviewIfOnMap() {
+        if (!isDriverUser || activeTripId == null || activeTripId.isEmpty()) {
+            return;
+        }
+        if (polylineAnnotationManager == null || selectedOrigin == null || selectedDestination == null) {
+            return;
+        }
+        fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
     }
 
     private void applyRoleAccess() {
@@ -561,6 +636,8 @@ public class MainActivity extends AppCompatActivity {
         originMarkerBitmap = createMarkerBitmap(Color.parseColor("#1E88E5"));
         destinationMarkerBitmap = createMarkerBitmap(Color.parseColor("#E53935"));
         updateMapMarkers();
+        // El viaje del conductor puede restaurarse vía API antes de que el mapa esté listo; al cargar el estilo, trazamos la ruta.
+        requestDriverRoutePreviewIfOnMap();
     }
 
     private Bitmap createMarkerBitmap(int fillColor) {
@@ -1083,6 +1160,13 @@ public class MainActivity extends AppCompatActivity {
                 lastRouteTimeLabel = null;
                 sessionManager.clearDriverActiveTripId();
                 syncTripStateToViewModel();
+                selectedOrigin = null;
+                selectedDestination = null;
+                syncSelectionStateToViewModel();
+                clearRoute();
+                setSelectionMode(SelectionMode.NONE);
+                updateCoordinateLabels();
+                updateMapMarkers();
                 updateStatusText();
                 updateRouteTimeText();
                 setProgressVisible(false);
