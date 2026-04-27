@@ -39,6 +39,11 @@ public class DriverMatchActivity extends AppCompatActivity {
     public static final String EXTRA_REF_LONGITUDE = "extra_ref_longitude";
     /** Devuelto en {@link #setResult(int, Intent)} cuando la reserva se creó correctamente. */
     public static final String EXTRA_RESULT_TRIP_ID = "extra_result_trip_id";
+    /** Origen/destino del viaje del conductor (para dibujar la ruta en el mapa del pasajero). */
+    public static final String EXTRA_RESULT_ORIGIN_LAT = "extra_result_origin_lat";
+    public static final String EXTRA_RESULT_ORIGIN_LNG = "extra_result_origin_lng";
+    public static final String EXTRA_RESULT_DEST_LAT = "extra_result_dest_lat";
+    public static final String EXTRA_RESULT_DEST_LNG = "extra_result_dest_lng";
 
     private static final String TAG = "DriverMatch";
 
@@ -182,7 +187,11 @@ public class DriverMatchActivity extends AppCompatActivity {
                 m.availableSeats,
                 m.distanceKm,
                 m.etaMinutes,
-                statusEnumToChipKey(m.status));
+                statusEnumToChipKey(m.status),
+                m.originLatitude,
+                m.originLongitude,
+                m.destinationLatitude,
+                m.destinationLongitude);
     }
 
     private static String statusEnumToChipKey(int status) {
@@ -384,6 +393,10 @@ public class DriverMatchActivity extends AppCompatActivity {
                     Toast.makeText(this, getString(R.string.driver_match_reservation_ok, accepted.driverName), Toast.LENGTH_LONG).show();
                     Intent data = new Intent();
                     data.putExtra(EXTRA_RESULT_TRIP_ID, accepted.tripId);
+                    data.putExtra(EXTRA_RESULT_ORIGIN_LAT, accepted.originLatitude);
+                    data.putExtra(EXTRA_RESULT_ORIGIN_LNG, accepted.originLongitude);
+                    data.putExtra(EXTRA_RESULT_DEST_LAT, accepted.destinationLatitude);
+                    data.putExtra(EXTRA_RESULT_DEST_LNG, accepted.destinationLongitude);
                     setResult(RESULT_OK, data);
                     swipeAnimating = false;
                     finish();
@@ -506,6 +519,10 @@ public class DriverMatchActivity extends AppCompatActivity {
         private final double distanceKm;
         private final int etaMinutes;
         private final String tripStatusKey;
+        private final double originLatitude;
+        private final double originLongitude;
+        private final double destinationLatitude;
+        private final double destinationLongitude;
 
         private DriverCandidate(
                 String tripId,
@@ -514,7 +531,11 @@ public class DriverMatchActivity extends AppCompatActivity {
                 int availableSeats,
                 double distanceKm,
                 int etaMinutes,
-                String tripStatusKey) {
+                String tripStatusKey,
+                double originLatitude,
+                double originLongitude,
+                double destinationLatitude,
+                double destinationLongitude) {
             this.tripId = tripId;
             this.driverName = driverName;
             this.routeDescription = routeDescription;
@@ -522,6 +543,10 @@ public class DriverMatchActivity extends AppCompatActivity {
             this.distanceKm = distanceKm;
             this.etaMinutes = etaMinutes;
             this.tripStatusKey = tripStatusKey;
+            this.originLatitude = originLatitude;
+            this.originLongitude = originLongitude;
+            this.destinationLatitude = destinationLatitude;
+            this.destinationLongitude = destinationLongitude;
         }
     }
 }

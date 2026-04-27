@@ -229,6 +229,7 @@ public class TripsController(CarPoolingContext context) : ControllerBase
         }
 
         trip.Status = TripStatus.InProgress;
+        trip.StartedAt ??= DateTime.UtcNow;
         trip.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
@@ -265,6 +266,7 @@ public class TripsController(CarPoolingContext context) : ControllerBase
         }
 
         trip.Status = TripStatus.Finished;
+        trip.FinishedAt ??= DateTime.UtcNow;
         trip.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 

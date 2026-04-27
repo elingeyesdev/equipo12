@@ -57,6 +57,16 @@
                 android:backgroundTint="@null"
                 android:text="@string/driver_passenger_requests_btn_accept"
                 android:textColor="@color/white" />
+
+            <Button
+                android:id="@+id/boardRequestButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_primary_action"
+                android:backgroundTint="@null"
+                android:text="@string/driver_passenger_requests_btn_board"
+                android:textColor="@color/white"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

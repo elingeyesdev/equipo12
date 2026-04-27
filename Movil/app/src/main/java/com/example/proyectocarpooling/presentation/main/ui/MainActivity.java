@@ -88,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_APPLY_DEST_LAT = "apply_dest_lat";
     public static final String EXTRA_APPLY_DEST_LNG = "apply_dest_lng";
     public static final String EXTRA_APPLY_PLACE_AS_ORIGIN = "apply_place_as_origin";
+    public static final String EXTRA_HISTORY_ROUTE_PREVIEW = "history_route_preview";
 
     private enum SelectionMode { NONE, ORIGIN, DESTINATION }
 
@@ -149,9 +150,24 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<Intent> driverMatchLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                    String tripId = result.getData().getStringExtra(DriverMatchActivity.EXTRA_RESULT_TRIP_ID);
+                    Intent matchData = result.getData();
+                    String tripId = matchData.getStringExtra(DriverMatchActivity.EXTRA_RESULT_TRIP_ID);
                     if (tripId != null && !tripId.isEmpty()) {
                         Toast.makeText(MainActivity.this, R.string.toast_passenger_reserved_with_driver, Toast.LENGTH_LONG).show();
+                    }
+                    double oLat = matchData.getDoubleExtra(DriverMatchActivity.EXTRA_RESULT_ORIGIN_LAT, Double.NaN);
+                    double oLng = matchData.getDoubleExtra(DriverMatchActivity.EXTRA_RESULT_ORIGIN_LNG, Double.NaN);
+                    double destLat = matchData.getDoubleExtra(DriverMatchActivity.EXTRA_RESULT_DEST_LAT, Double.NaN);
+                    double destLng = matchData.getDoubleExtra(DriverMatchActivity.EXTRA_RESULT_DEST_LNG, Double.NaN);
+                    if (!Double.isNaN(oLat) && !Double.isNaN(oLng) && !Double.isNaN(destLat) && !Double.isNaN(destLng)) {
+                        Intent route = new Intent();
+                        route.putExtra(EXTRA_APPLY_FAVORITE_KIND, "route");
+                        route.putExtra(EXTRA_APPLY_ORIGIN_LAT, oLat);
+                        route.putExtra(EXTRA_APPLY_ORIGIN_LNG, oLng);
+                        route.putExtra(EXTRA_APPLY_DEST_LAT, destLat);
+                        route.putExtra(EXTRA_APPLY_DEST_LNG, destLng);
+                        route.putExtra(EXTRA_HISTORY_ROUTE_PREVIEW, true);
+                        consumeApplyFavoriteIntent(route);
                     }
                 }
             });
@@ -816,12 +832,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String normalizedKind = kind == null ? "" : kind.trim().toLowerCase(Locale.US);
+        boolean shouldPreviewRoute = intent.getBooleanExtra(EXTRA_HISTORY_ROUTE_PREVIEW, false);
         if ("route".equals(normalizedKind)) {
             double dLat = intent.getDoubleExtra(EXTRA_APPLY_DEST_LAT, Double.NaN);
             double dLng = intent.getDoubleExtra(EXTRA_APPLY_DEST_LNG, Double.NaN);
             if (!Double.isNaN(dLat) && !Double.isNaN(dLng)) {
                 selectedOrigin = Point.fromLngLat(oLng, oLat);
                 selectedDestination = Point.fromLngLat(dLng, dLat);
+                shouldPreviewRoute = true;
             }
         } else {
             boolean asOrigin = intent.getBooleanExtra(EXTRA_APPLY_PLACE_AS_ORIGIN, false);
@@ -839,7 +857,12 @@ public class MainActivity extends AppCompatActivity {
         updateMapMarkers();
         refreshButtons();
         setSelectionMode(SelectionMode.NONE);
-        Toast.makeText(this, R.string.favorite_applied_toast, Toast.LENGTH_SHORT).show();
+        if (shouldPreviewRoute && selectedOrigin != null && selectedDestination != null) {
+            fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
+            Toast.makeText(this, R.string.history_detail_route_loaded, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, R.string.favorite_applied_toast, Toast.LENGTH_SHORT).show();
+        }
 
         clearFavoriteApplyExtras(intent);
 
@@ -862,6 +885,29 @@ public class MainActivity extends AppCompatActivity {
         intent.removeExtra(EXTRA_APPLY_DEST_LAT);
         intent.removeExtra(EXTRA_APPLY_DEST_LNG);
         intent.removeExtra(EXTRA_APPLY_PLACE_AS_ORIGIN);
+        intent.removeExtra(EXTRA_HISTORY_ROUTE_PREVIEW);
+    }
+
+    private void fetchAndDrawRoutePreviewAsync(Point origin, Point destination) {
+        setProgressVisible(true);
+        backgroundExecutor.execute(() -> {
+            try {
+                TripsRemoteDataSource api = new TripsRemoteDataSource(
+                        ApiBaseUrlProvider.get(MainActivity.this),
+                        getString(R.string.mapbox_access_token));
+                var route = api.fetchRoute(origin, destination);
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    if (route != null && route.points != null && !route.points.isEmpty()) {
+                        drawRoute(route.points);
+                        lastRouteTimeLabel = buildEstimatedTimeLabel(route.distanceMeters);
+                        updateRouteTimeText();
+                    }
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> setProgressVisible(false));
+            }
+        });
     }
 
     private void openSaveFavoriteDialog() {

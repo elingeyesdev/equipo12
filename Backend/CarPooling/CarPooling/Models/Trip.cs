@@ -35,6 +35,8 @@ public class Trip
     public DateTime? UpdatedAt { get; set; }
 
     public DateTime? CancelledAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? FinishedAt { get; set; }
 
     /// <summary>Solo para <see cref="TripKind.UserBookmark"/>: veces aplicado al mapa.</summary>
     public int BookmarkUseCount { get; set; }

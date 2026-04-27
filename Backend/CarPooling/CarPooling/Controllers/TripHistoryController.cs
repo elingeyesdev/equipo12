@@ -117,6 +117,18 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
             })
             .FirstOrDefaultAsync();
 
+        var participants = await _context.Reservations
+            .AsNoTracking()
+            .Where(r => r.TripId == tripId)
+            .OrderBy(r => r.CreatedAt)
+            .Select(r => new TripHistoryParticipantDto
+            {
+                Name = r.PassengerName,
+                StatusLabel = TripHistoryLabelMapper.ToReservationStatusLabel(r.Status),
+                ReservedAt = r.CreatedAt
+            })
+            .ToListAsync();
+
         var profile = trip.DriverUserId == null
             ? null
             : await _context.DriverProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == trip.DriverUserId);
@@ -136,6 +148,8 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
             Category = category,
             StatusLabel = TripHistoryLabelMapper.ToTripStatusLabel(trip.Status),
             CreatedAt = trip.CreatedAt,
+            StartedAt = trip.StartedAt,
+            FinishedAt = trip.FinishedAt,
             UpdatedAt = trip.UpdatedAt,
             OriginLabel = $"{trip.OriginLatitude:F6}, {trip.OriginLongitude:F6}",
             DestinationLabel = trip.DestinationLatitude == null || trip.DestinationLongitude == null
@@ -153,7 +167,8 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
             BoardedCount = reservationStats?.Boarded ?? 0,
             CancelledCount = reservationStats?.Cancelled ?? 0,
             PassengerReservationStatus = viewerReservation == null ? null : TripHistoryLabelMapper.ToReservationStatusLabel(viewerReservation.Status),
-            PassengerName = viewerReservation?.PassengerName
+            PassengerName = viewerReservation?.PassengerName,
+            Participants = participants
         };
 
         return Ok(detail);

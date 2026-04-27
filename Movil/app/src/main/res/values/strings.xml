@@ -105,6 +105,7 @@
     <string name="driver_passenger_requests_solicitado">Solicitado: %1$s</string>
     <string name="driver_passenger_requests_btn_reject">Rechazar</string>
     <string name="driver_passenger_requests_btn_accept">Aceptar</string>
+    <string name="driver_passenger_requests_btn_board">Abordar</string>
     <string name="driver_passenger_requests_confirm_reject_title">Rechazar solicitud</string>
     <string name="driver_passenger_requests_confirm_reject_msg">¿Rechazar a %1$s? Se liberará un cupo en tu viaje.</string>
     <string name="driver_passenger_requests_rejected_toast">Solicitud rechazada.</string>
@@ -204,6 +205,12 @@
     <string name="favorite_save_error">No se pudo guardar el favorito.</string>
     <string name="history_title">Historial de viajes</string>
     <string name="history_detail_title">Detalle del viaje</string>
+    <string name="history_detail_view_route">Ver ruta en mapa</string>
+    <string name="history_detail_view_participants">Ver participantes</string>
+    <string name="history_detail_participants_title">Participantes del viaje</string>
+    <string name="history_detail_no_participants">No hay participantes para mostrar.</string>
+    <string name="history_detail_no_route">Este viaje no tiene destino para trazar ruta.</string>
+    <string name="history_detail_route_loaded">Ruta cargada en el mapa.</string>
     <string name="history_category_student">Estudiante</string>
     <string name="history_category_driver">Conductor</string>
     <string name="history_hint">Resumen del viaje: origen, destino y estado.</string>

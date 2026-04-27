@@ -128,6 +128,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .HasDefaultValueSql("GETUTCDATE()");
 
             entity.Property(t => t.UpdatedAt);
+            entity.Property(t => t.StartedAt);
+            entity.Property(t => t.FinishedAt);
             entity.Property(t => t.CancelledAt)
                 .HasDefaultValueSql("NULL");
         });

@@ -25,7 +25,9 @@ import com.google.android.material.appbar.MaterialToolbar;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -44,6 +46,8 @@ public class DriverPassengerRequestsActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
 
     private final List<ReservationResponse> items = new ArrayList<>();
+    /** Reservas que el conductor ya «aceptó» en esta pantalla; mostramos Abordar sin ir al mapa. */
+    private final Set<String> acceptedPendingBoardingIds = new HashSet<>();
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
     private RequestsAdapter adapter;
     private String tripId;
@@ -126,6 +130,12 @@ public class DriverPassengerRequestsActivity extends AppCompatActivity {
     private void applyList(List<ReservationResponse> list) {
         items.clear();
         items.addAll(list);
+        // Quitar aceptados que ya no están en la lista (p. ej. abordó o canceló)
+        ArrayList<String> stillPresent = new ArrayList<>();
+        for (ReservationResponse r : list) {
+            stillPresent.add(r.id);
+        }
+        acceptedPendingBoardingIds.retainAll(stillPresent);
         adapter.notifyDataSetChanged();
 
         int n = items.size();
@@ -164,10 +174,30 @@ public class DriverPassengerRequestsActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.driver_passenger_requests_accept_title)
                 .setMessage(getString(R.string.driver_passenger_requests_accept_msg, reservation.passengerName))
-                .setPositiveButton(R.string.dialog_button_confirm, (d, w) ->
-                        Toast.makeText(this, R.string.driver_passenger_requests_accept_toast, Toast.LENGTH_LONG).show())
+                .setPositiveButton(R.string.dialog_button_confirm, (d, w) -> {
+                    acceptedPendingBoardingIds.add(reservation.id);
+                    adapter.notifyDataSetChanged();
+                    Toast.makeText(this, R.string.driver_passenger_requests_accept_toast, Toast.LENGTH_LONG).show();
+                })
                 .setNegativeButton(R.string.dialog_button_close, null)
                 .show();
+    }
+
+    private void executeBoard(ReservationResponse reservation) {
+        TripRepository repository = buildRepository();
+        ioExecutor.execute(() -> {
+            try {
+                repository.markBoardedByName(tripId, reservation.passengerName);
+                runOnUiThread(() -> {
+                    acceptedPendingBoardingIds.remove(reservation.id);
+                    Toast.makeText(this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
+                    loadReservations();
+                });
+            } catch (IOException e) {
+                runOnUiThread(() ->
+                        Toast.makeText(this, R.string.toast_boarding_failed, Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private static String formatRequestTime(String iso) {
@@ -195,8 +225,12 @@ public class DriverPassengerRequestsActivity extends AppCompatActivity {
             ReservationResponse r = items.get(position);
             h.name.setText(r.passengerName);
             h.meta.setText(getString(R.string.driver_passenger_requests_solicitado, formatRequestTime(r.createdAt)));
+            boolean showBoard = acceptedPendingBoardingIds.contains(r.id);
+            h.accept.setVisibility(showBoard ? View.GONE : View.VISIBLE);
+            h.board.setVisibility(showBoard ? View.VISIBLE : View.GONE);
             h.reject.setOnClickListener(v -> confirmReject(r));
             h.accept.setOnClickListener(v -> confirmAccept(r));
+            h.board.setOnClickListener(v -> executeBoard(r));
         }
 
         @Override
@@ -209,6 +243,7 @@ public class DriverPassengerRequestsActivity extends AppCompatActivity {
             final TextView meta;
             final Button reject;
             final Button accept;
+            final Button board;
 
             VH(View itemView) {
                 super(itemView);
@@ -216,6 +251,7 @@ public class DriverPassengerRequestsActivity extends AppCompatActivity {
                 meta = itemView.findViewById(R.id.passengerMetaText);
                 reject = itemView.findViewById(R.id.rejectRequestButton);
                 accept = itemView.findViewById(R.id.acceptRequestButton);
+                board = itemView.findViewById(R.id.boardRequestButton);
             }
         }
     }

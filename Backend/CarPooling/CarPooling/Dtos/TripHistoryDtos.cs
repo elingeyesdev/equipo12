@@ -18,6 +18,8 @@ public class TripHistoryDetailDto
     public string Category { get; set; } = string.Empty;
     public string StatusLabel { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? FinishedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public string OriginLabel { get; set; } = string.Empty;
     public string DestinationLabel { get; set; } = string.Empty;
@@ -34,6 +36,14 @@ public class TripHistoryDetailDto
     public int CancelledCount { get; set; }
     public string? PassengerReservationStatus { get; set; }
     public string? PassengerName { get; set; }
+    public List<TripHistoryParticipantDto> Participants { get; set; } = [];
+}
+
+public class TripHistoryParticipantDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string StatusLabel { get; set; } = string.Empty;
+    public DateTime ReservedAt { get; set; }
 }
 
 public class TripHistoryListResponseDto
