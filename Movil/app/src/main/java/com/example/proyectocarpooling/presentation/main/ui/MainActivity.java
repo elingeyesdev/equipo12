@@ -47,6 +47,7 @@ import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.example.proyectocarpooling.domain.model.CreateTripResult;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
+import com.example.proyectocarpooling.presentation.account.ui.AccountOverviewActivity;
 import com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity;
 import com.example.proyectocarpooling.presentation.favorites.ui.FavoritePlacesActivity;
 import com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity;
@@ -287,6 +288,13 @@ public class MainActivity extends AppCompatActivity {
             var header = navigationView.getHeaderView(0);
             drawerUserTitle = header.findViewById(R.id.drawerUserTitle);
             drawerUserSubtitle = header.findViewById(R.id.drawerUserSubtitle);
+
+            header.setOnClickListener(v -> {
+                startActivity(new Intent(this, AccountOverviewActivity.class));
+                if (drawerLayout != null) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                }
+            });
         }
 
         setupBottomSheetBehavior();
@@ -518,6 +526,12 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(fi);
                 } else if (id == R.id.nav_history) {
                     startActivity(new Intent(this, TripHistoryActivity.class));
+                } else if (id == R.id.nav_my_addresses
+                        || id == R.id.nav_notifications
+                        || id == R.id.nav_security
+                        || id == R.id.nav_help
+                        || id == R.id.nav_support) {
+                    Toast.makeText(this, R.string.drawer_option_coming_soon, Toast.LENGTH_SHORT).show();
                 } else if (id == R.id.nav_driver_passenger_requests) {
                     openPassengerRequestsScreen(true);
                 } else if (id == R.id.nav_logout) {

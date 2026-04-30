@@ -126,9 +126,22 @@
     <string name="drawer_edit_profile">Editar perfil</string>
     <string name="drawer_favorites">Tus lugares y viajes favoritos</string>
     <string name="drawer_history">Historial</string>
+    <string name="drawer_my_addresses">Mis direcciones</string>
+    <string name="drawer_notifications">Notificaciones</string>
+    <string name="drawer_security">Seguridad</string>
+    <string name="drawer_help">Ayuda</string>
+    <string name="drawer_support">Soporte</string>
     <string name="drawer_driver_passenger_requests">Solicitudes de pasajeros</string>
     <string name="drawer_driver_requests_need_trip">Crea un viaje activo para ver solicitudes de pasajeros.</string>
     <string name="drawer_logout">Cerrar sesión</string>
+    <string name="drawer_option_coming_soon">Próximamente.</string>
+
+    <string name="account_overview_title">Mi cuenta</string>
+    <string name="account_overview_name_label">Nombre</string>
+    <string name="account_overview_email_label">Cuenta</string>
+    <string name="account_overview_score_label">Puntuación de usuario</string>
+    <string name="account_overview_score_value">4.9 / 5</string>
+    <string name="account_overview_close">Cerrar</string>
 
     <string name="login_title">Bienvenido a Univalle Ride</string>
     <string name="login_subtitle">Ingresa con tu cuenta institucional</string>
