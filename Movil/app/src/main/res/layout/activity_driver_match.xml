@@ -192,6 +192,16 @@
                     android:layout_weight="1"
                     android:minHeight="8dp" />
 
+                <Button
+                    android:id="@+id/viewDriverRouteButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_primary_action"
+                    android:backgroundTint="@null"
+                    android:text="@string/driver_match_view_route"
+                    android:textColor="@color/white" />
+
             <TextView
                 android:id="@+id/swipeHintText"
                 android:layout_width="match_parent"

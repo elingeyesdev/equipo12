@@ -24,6 +24,7 @@ import com.example.proyectocarpooling.data.model.DriverTripMatch;
 import com.example.proyectocarpooling.data.remote.TripsRemoteDataSource;
 import com.example.proyectocarpooling.data.repository.TripRepositoryImpl;
 import com.example.proyectocarpooling.domain.repository.TripRepository;
+import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,6 +64,7 @@ public class DriverMatchActivity extends AppCompatActivity {
     private TextView swipeHintText;
     private Button rejectButton;
     private Button acceptButton;
+    private Button viewRouteButton;
 
     private final List<DriverCandidate> candidates = new ArrayList<>();
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
@@ -100,6 +102,7 @@ public class DriverMatchActivity extends AppCompatActivity {
         swipeHintText = findViewById(R.id.swipeHintText);
         rejectButton = findViewById(R.id.rejectDriverButton);
         acceptButton = findViewById(R.id.acceptDriverButton);
+        viewRouteButton = findViewById(R.id.viewDriverRouteButton);
 
         touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
 
@@ -122,6 +125,7 @@ public class DriverMatchActivity extends AppCompatActivity {
 
         rejectButton.setOnClickListener(v -> runRejectWithAnimation());
         acceptButton.setOnClickListener(v -> runAcceptWithAnimation());
+        viewRouteButton.setOnClickListener(v -> openMainWithCurrentCandidateRoute());
 
         fetchMatchCandidatesFromApi();
     }
@@ -427,6 +431,33 @@ public class DriverMatchActivity extends AppCompatActivity {
         boolean canInteract = enabled && !candidatesLoading && currentIndex < candidates.size();
         rejectButton.setEnabled(canInteract);
         acceptButton.setEnabled(canInteract);
+        if (viewRouteButton != null && viewRouteButton.getVisibility() == View.VISIBLE) {
+            viewRouteButton.setEnabled(canInteract);
+        }
+    }
+
+    /**
+     * Abre el mapa principal con la ruta origen→destino del conductor mostrado en la tarjeta actual.
+     * El estudiante puede volver atrás para seguir comparando conductores.
+     */
+    private void openMainWithCurrentCandidateRoute() {
+        if (candidatesLoading || currentIndex >= candidates.size()) {
+            return;
+        }
+        DriverCandidate current = candidates.get(currentIndex);
+        if (!current.hasRouteEndpoints()) {
+            Toast.makeText(this, R.string.driver_match_view_route_unavailable, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra(MainActivity.EXTRA_APPLY_FAVORITE_KIND, "route");
+        intent.putExtra(MainActivity.EXTRA_APPLY_ORIGIN_LAT, current.getOriginLatitude());
+        intent.putExtra(MainActivity.EXTRA_APPLY_ORIGIN_LNG, current.getOriginLongitude());
+        intent.putExtra(MainActivity.EXTRA_APPLY_DEST_LAT, current.getDestinationLatitude());
+        intent.putExtra(MainActivity.EXTRA_APPLY_DEST_LNG, current.getDestinationLongitude());
+        intent.putExtra(MainActivity.EXTRA_HISTORY_ROUTE_PREVIEW, true);
+        startActivity(intent);
     }
 
     private void renderCurrentCard() {
@@ -442,6 +473,9 @@ public class DriverMatchActivity extends AppCompatActivity {
             cardCounterText.setText(R.string.driver_match_counter_loading);
             rejectButton.setEnabled(false);
             acceptButton.setEnabled(false);
+            if (viewRouteButton != null) {
+                viewRouteButton.setVisibility(View.GONE);
+            }
             return;
         }
 
@@ -457,6 +491,9 @@ public class DriverMatchActivity extends AppCompatActivity {
             cardCounterText.setText(R.string.driver_match_no_results_counter);
             rejectButton.setEnabled(false);
             acceptButton.setEnabled(false);
+            if (viewRouteButton != null) {
+                viewRouteButton.setVisibility(View.GONE);
+            }
             return;
         }
 
@@ -473,6 +510,11 @@ public class DriverMatchActivity extends AppCompatActivity {
         cardCounterText.setText(getString(R.string.driver_match_counter_format, currentIndex + 1, candidates.size()));
         rejectButton.setEnabled(!swipeAnimating && !candidatesLoading);
         acceptButton.setEnabled(!swipeAnimating && !candidatesLoading);
+        if (viewRouteButton != null) {
+            boolean hasRoute = current.hasRouteEndpoints();
+            viewRouteButton.setVisibility(hasRoute ? View.VISIBLE : View.GONE);
+            viewRouteButton.setEnabled(hasRoute && !swipeAnimating && !candidatesLoading);
+        }
     }
 
     private void applyTripStatusChip(String rawStatus) {
@@ -547,6 +589,32 @@ public class DriverMatchActivity extends AppCompatActivity {
             this.originLongitude = originLongitude;
             this.destinationLatitude = destinationLatitude;
             this.destinationLongitude = destinationLongitude;
+        }
+
+        /** Ruta mostrable: origen y destino distintos del sentinel típico (0,0) cuando aún no hay destino. */
+        boolean hasRouteEndpoints() {
+            return coordsLikelySet(originLatitude, originLongitude)
+                    && coordsLikelySet(destinationLatitude, destinationLongitude);
+        }
+
+        private static boolean coordsLikelySet(double lat, double lng) {
+            return Math.abs(lat) > 1e-6 || Math.abs(lng) > 1e-6;
+        }
+
+        double getOriginLatitude() {
+            return originLatitude;
+        }
+
+        double getOriginLongitude() {
+            return originLongitude;
+        }
+
+        double getDestinationLatitude() {
+            return destinationLatitude;
+        }
+
+        double getDestinationLongitude() {
+            return destinationLongitude;
         }
     }
 }

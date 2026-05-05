@@ -2,7 +2,7 @@
     <string name="app_name">ProyectoCarpooling</string>
     <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
     <string name="api_base_url_emulator">http://10.0.2.2:5005</string>
-    <string name="api_base_url_device">http://127.0.0.1:5005</string>
+    <string name="api_base_url_device">https://a5c6-177-222-104-10.ngrok-free.app</string>
     <string name="origin_placeholder">Recogida: sin seleccionar</string>
     <string name="destination_placeholder">Destino: a donde quieres ir</string>
     <string name="button_select_origin">Seleccionar origen</string>
@@ -90,6 +90,8 @@
     <string name="driver_match_status_desconocido">Estado desconocido</string>
     <string name="driver_match_time_format">Tiempo estimado de llegada: %1$d min</string>
     <string name="driver_match_swipe_hint">Arrastra la tarjeta: izquierda rechaza, derecha acepta.</string>
+    <string name="driver_match_view_route">Ver trayecto en mapa</string>
+    <string name="driver_match_view_route_unavailable">Este viaje no tiene ruta completa para mostrar.</string>
     <string name="driver_match_reject_action">Izquierda (Rechazar)</string>
     <string name="driver_match_accept_action">Derecha (Aceptar)</string>
     <string name="driver_match_rejected">Rechazaste a %1$s</string>
