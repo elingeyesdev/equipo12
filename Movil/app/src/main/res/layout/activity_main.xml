@@ -304,6 +304,7 @@
         android:fitsSystemWindows="true"
         android:background="@color/white"
         app:headerLayout="@layout/drawer_header_main"
+        app:itemIconTint="@color/carpool_text_primary"
         app:itemTextColor="@color/carpool_text_primary"
         app:menu="@menu/menu_main_drawer" />
 

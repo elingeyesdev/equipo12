@@ -47,6 +47,7 @@ import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.example.proyectocarpooling.domain.model.CreateTripResult;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
+import com.example.proyectocarpooling.presentation.account.ui.AccountOverviewActivity;
 import com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity;
 import com.example.proyectocarpooling.presentation.favorites.ui.FavoritePlacesActivity;
 import com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity;
@@ -138,7 +139,10 @@ public class MainActivity extends AppCompatActivity {
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private TextView drawerUserTitle;
-    private TextView drawerUserSubtitle;
+    private TextView drawerUserEmail;
+    private TextView drawerUserInitials;
+    private TextView drawerUserRole;
+    private TextView drawerUserRating;
     private SessionManager sessionManager;
     private UserAccessUseCase userAccessUseCase;
     private MainViewModel mainViewModel;
@@ -286,7 +290,17 @@ public class MainActivity extends AppCompatActivity {
         if (navigationView != null) {
             var header = navigationView.getHeaderView(0);
             drawerUserTitle = header.findViewById(R.id.drawerUserTitle);
-            drawerUserSubtitle = header.findViewById(R.id.drawerUserSubtitle);
+            drawerUserEmail = header.findViewById(R.id.drawerUserEmail);
+            drawerUserInitials = header.findViewById(R.id.drawerUserInitials);
+            drawerUserRole = header.findViewById(R.id.drawerUserRole);
+            drawerUserRating = header.findViewById(R.id.drawerUserRating);
+
+            header.setOnClickListener(v -> {
+                startActivity(new Intent(this, AccountOverviewActivity.class));
+                if (drawerLayout != null) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                }
+            });
         }
 
         setupBottomSheetBehavior();
@@ -518,6 +532,12 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(fi);
                 } else if (id == R.id.nav_history) {
                     startActivity(new Intent(this, TripHistoryActivity.class));
+                } else if (id == R.id.nav_my_addresses
+                        || id == R.id.nav_notifications
+                        || id == R.id.nav_security
+                        || id == R.id.nav_help
+                        || id == R.id.nav_support) {
+                    Toast.makeText(this, R.string.drawer_option_coming_soon, Toast.LENGTH_SHORT).show();
                 } else if (id == R.id.nav_driver_passenger_requests) {
                     openPassengerRequestsScreen(true);
                 } else if (id == R.id.nav_logout) {
@@ -533,12 +553,50 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void refreshDrawerUserInfo() {
-        if (drawerUserTitle != null) {
-            drawerUserTitle.setText(sessionManager.getFullName());
+        // Cargar información del usuario desde SessionManager
+        String fullName = sessionManager.getFullName();
+        String email = sessionManager.getEmail();
+        
+        if (drawerUserTitle != null && fullName != null) {
+            drawerUserTitle.setText(fullName);
         }
-        if (drawerUserSubtitle != null) {
-            drawerUserSubtitle.setText(sessionManager.getEmail());
+        
+        if (drawerUserEmail != null && email != null) {
+            drawerUserEmail.setText(email);
         }
+        
+        // Generar y mostrar iniciales
+        if (drawerUserInitials != null && fullName != null) {
+            String initials = generateInitials(fullName);
+            drawerUserInitials.setText(initials);
+        }
+        
+        // Mostrar rol del usuario
+        if (drawerUserRole != null) {
+            String rolText = isDriverUser ? 
+                getString(R.string.user_role_driver) : 
+                getString(R.string.user_role_passenger);
+            drawerUserRole.setText(rolText);
+        }
+        
+        // Mostrar rating del usuario
+        if (drawerUserRating != null) {
+            drawerUserRating.setText("4.9");
+        }
+    }
+    
+    private String generateInitials(String fullName) {
+        if (fullName == null || fullName.isEmpty()) {
+            return "UI";
+        }
+        String[] parts = fullName.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+        for (int i = 0; i < Math.min(2, parts.length); i++) {
+            if (parts[i].length() > 0) {
+                initials.append(parts[i].charAt(0));
+            }
+        }
+        return initials.length() > 0 ? initials.toString().toUpperCase() : "UI";
     }
 
     private void logout() {

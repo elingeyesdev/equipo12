@@ -1,8 +1,10 @@
 <resources>
     <string name="app_name">ProyectoCarpooling</string>
     <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
+
     <string name="api_base_url_emulator">http://10.0.2.2:5005</string>
     <string name="api_base_url_device">https://a5c6-177-222-104-10.ngrok-free.app</string>
+
     <string name="origin_placeholder">Recogida: sin seleccionar</string>
     <string name="destination_placeholder">Destino: a donde quieres ir</string>
     <string name="button_select_origin">Seleccionar origen</string>
@@ -128,9 +130,29 @@
     <string name="drawer_edit_profile">Editar perfil</string>
     <string name="drawer_favorites">Tus lugares y viajes favoritos</string>
     <string name="drawer_history">Historial</string>
+    <string name="drawer_my_addresses">Mis direcciones</string>
+    <string name="drawer_notifications">Notificaciones</string>
+    <string name="drawer_security">Seguridad</string>
+    <string name="drawer_help">Ayuda</string>
+    <string name="drawer_support">Soporte</string>
     <string name="drawer_driver_passenger_requests">Solicitudes de pasajeros</string>
     <string name="drawer_driver_requests_need_trip">Crea un viaje activo para ver solicitudes de pasajeros.</string>
     <string name="drawer_logout">Cerrar sesión</string>
+    <string name="drawer_option_coming_soon">Próximamente.</string>
+
+    <string name="account_overview_title">Mi cuenta</string>
+    <string name="account_overview_name_label">Nombre</string>
+    <string name="account_overview_email_label">Cuenta</string>
+    <string name="account_overview_score_label">Calificación</string>
+    <string name="account_overview_score_value">4.9 / 5</string>
+    <string name="account_overview_score_description">Excelente desempeño en viajes</string>
+    <string name="account_overview_close">Cerrar</string>
+    <string name="account_total_trips">Viajes totales</string>
+    <string name="account_reviews">Reseñas</string>
+    <string name="account_info_title">Información de cuenta</string>
+    <string name="account_type">Tipo de cuenta</string>
+    <string name="account_member_since">Miembro desde</string>
+    <string name="button_back">Volver</string>
 
     <string name="login_title">Bienvenido a Univalle Ride</string>
     <string name="login_subtitle">Ingresa con tu cuenta institucional</string>
@@ -231,4 +253,10 @@
     <string name="history_undo">Deshacer</string>
     <string name="history_restored_toast">Viaje restaurado en el historial.</string>
     <string name="history_restore_error">No se pudo restaurar el viaje.</string>
+
+    <!-- Drawer Header Improvements -->
+    <string name="drawer_user_email_placeholder">usuario@univalle.edu</string>
+    <string name="user_role_passenger">Pasajero</string>
+    <string name="user_role_driver">Conductor</string>
+    <string name="user_role_both">Mixto</string>
 </resources>
