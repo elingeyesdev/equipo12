@@ -37,6 +37,7 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation(libs.cardview)
+    implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
     implementation(libs.recyclerview)
     implementation(libs.mapbox.maps)
     implementation(libs.okhttp)

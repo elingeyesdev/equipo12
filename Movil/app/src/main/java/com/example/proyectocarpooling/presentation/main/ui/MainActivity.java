@@ -90,6 +90,10 @@ public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_APPLY_DEST_LNG = "apply_dest_lng";
     public static final String EXTRA_APPLY_PLACE_AS_ORIGIN = "apply_place_as_origin";
     public static final String EXTRA_HISTORY_ROUTE_PREVIEW = "history_route_preview";
+    /** Contexto de la vista previa de ruta: {@link #ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH}. */
+    public static final String EXTRA_ROUTE_PREVIEW_CONTEXT = "route_preview_context";
+    public static final String EXTRA_ROUTE_PREVIEW_DRIVER_NAME = "route_preview_driver_name";
+    public static final String ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH = "driver_match";
 
     private enum SelectionMode { NONE, ORIGIN, DESTINATION }
 
@@ -148,6 +152,9 @@ public class MainActivity extends AppCompatActivity {
     private MainViewModel mainViewModel;
     private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
     private boolean isDriverUser;
+
+    private View driverRoutePreviewBanner;
+    private TextView driverRoutePreviewBannerBody;
 
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
 
@@ -305,6 +312,17 @@ public class MainActivity extends AppCompatActivity {
 
         setupBottomSheetBehavior();
         setupDrawer();
+
+        driverRoutePreviewBanner = findViewById(R.id.driverRoutePreviewBanner);
+        driverRoutePreviewBannerBody = findViewById(R.id.driverRoutePreviewBannerBody);
+        View dismissBanner = findViewById(R.id.driverRoutePreviewBannerDismiss);
+        View closeBanner = findViewById(R.id.driverRoutePreviewBannerClose);
+        if (dismissBanner != null) {
+            dismissBanner.setOnClickListener(v -> hideDriverMatchRouteExplainer());
+        }
+        if (closeBanner != null) {
+            closeBanner.setOnClickListener(v -> hideDriverMatchRouteExplainer());
+        }
 
         menuToggleButton.setOnClickListener(v -> toggleBottomSheet());
         selectOriginButton.setOnClickListener(v -> setSelectionMode(SelectionMode.ORIGIN));
@@ -967,6 +985,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String normalizedKind = kind == null ? "" : kind.trim().toLowerCase(Locale.US);
+        String previewContext = intent.getStringExtra(EXTRA_ROUTE_PREVIEW_CONTEXT);
+        String previewDriverName = intent.getStringExtra(EXTRA_ROUTE_PREVIEW_DRIVER_NAME);
         boolean shouldPreviewRoute = intent.getBooleanExtra(EXTRA_HISTORY_ROUTE_PREVIEW, false);
         if ("route".equals(normalizedKind)) {
             double dLat = intent.getDoubleExtra(EXTRA_APPLY_DEST_LAT, Double.NaN);
@@ -993,8 +1013,14 @@ public class MainActivity extends AppCompatActivity {
         refreshButtons();
         setSelectionMode(SelectionMode.NONE);
         if (shouldPreviewRoute && selectedOrigin != null && selectedDestination != null) {
-            fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
-            Toast.makeText(this, R.string.history_detail_route_loaded, Toast.LENGTH_SHORT).show();
+            boolean driverMatchExplainer = ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH.equals(previewContext);
+            if (driverMatchExplainer) {
+                showDriverMatchRouteExplainer(previewDriverName);
+                fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination, true);
+            } else {
+                fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination, false);
+                Toast.makeText(this, R.string.history_detail_route_loaded, Toast.LENGTH_SHORT).show();
+            }
         } else {
             Toast.makeText(this, R.string.favorite_applied_toast, Toast.LENGTH_SHORT).show();
         }
@@ -1021,9 +1047,37 @@ public class MainActivity extends AppCompatActivity {
         intent.removeExtra(EXTRA_APPLY_DEST_LNG);
         intent.removeExtra(EXTRA_APPLY_PLACE_AS_ORIGIN);
         intent.removeExtra(EXTRA_HISTORY_ROUTE_PREVIEW);
+        intent.removeExtra(EXTRA_ROUTE_PREVIEW_CONTEXT);
+        intent.removeExtra(EXTRA_ROUTE_PREVIEW_DRIVER_NAME);
+    }
+
+    private void showDriverMatchRouteExplainer(String driverNameOrNull) {
+        if (driverRoutePreviewBanner == null || driverRoutePreviewBannerBody == null) {
+            return;
+        }
+        String displayName = driverNameOrNull != null && !driverNameOrNull.isBlank()
+                ? driverNameOrNull.trim()
+                : getString(R.string.driver_match_default_driver_name);
+        driverRoutePreviewBannerBody.setText(getString(R.string.main_driver_route_banner_body, displayName));
+        driverRoutePreviewBanner.setVisibility(View.VISIBLE);
+        selectionInstruction.setText(R.string.selection_instruction_driver_route_preview);
+        if (bottomSheetBehavior != null) {
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        }
+    }
+
+    private void hideDriverMatchRouteExplainer() {
+        if (driverRoutePreviewBanner != null) {
+            driverRoutePreviewBanner.setVisibility(View.GONE);
+        }
+        setSelectionMode(SelectionMode.NONE);
     }
 
     private void fetchAndDrawRoutePreviewAsync(Point origin, Point destination) {
+        fetchAndDrawRoutePreviewAsync(origin, destination, false);
+    }
+
+    private void fetchAndDrawRoutePreviewAsync(Point origin, Point destination, boolean driverMatchPreviewUi) {
         setProgressVisible(true);
         backgroundExecutor.execute(() -> {
             try {
@@ -1037,12 +1091,58 @@ public class MainActivity extends AppCompatActivity {
                         drawRoute(route.points);
                         lastRouteTimeLabel = buildEstimatedTimeLabel(route.distanceMeters);
                         updateRouteTimeText();
+                        if (driverMatchPreviewUi) {
+                            fitCameraToRouteOverview(route.points);
+                        }
                     }
                 });
             } catch (IOException e) {
                 runOnUiThread(() -> setProgressVisible(false));
             }
         });
+    }
+
+    /** Encuadra la ruta completa para que el pasajero entienda el trayecto de un vistazo. */
+    private void fitCameraToRouteOverview(List<Point> routePoints) {
+        if (mapView == null || routePoints == null || routePoints.size() < 2) {
+            return;
+        }
+        mapView.post(() -> fitCameraToRouteOverviewInternal(routePoints));
+    }
+
+    private void fitCameraToRouteOverviewInternal(List<Point> routePoints) {
+        if (mapView == null) {
+            return;
+        }
+        double minLat = 90;
+        double maxLat = -90;
+        double minLon = 180;
+        double maxLon = -180;
+        for (Point p : routePoints) {
+            minLat = Math.min(minLat, p.latitude());
+            maxLat = Math.max(maxLat, p.latitude());
+            minLon = Math.min(minLon, p.longitude());
+            maxLon = Math.max(maxLon, p.longitude());
+        }
+        double latMid = (minLat + maxLat) / 2.0;
+        double lonMid = (minLon + maxLon) / 2.0;
+        double latSpan = Math.max(maxLat - minLat, 1e-5);
+        double lonSpan = Math.max(maxLon - minLon, 1e-5);
+        latSpan *= 1.35;
+        lonSpan *= 1.35 * Math.max(Math.cos(Math.toRadians(latMid)), 0.3);
+
+        int mapW = Math.max(mapView.getWidth(), 320);
+        int mapH = Math.max(mapView.getHeight(), 320);
+
+        double zoomLon = Math.log(mapW * 360.0 / (lonSpan * 256.0 * 1.8)) / Math.log(2.0);
+        double zoomLat = Math.log(mapH * 170.0 / (latSpan * 256.0 * 1.8)) / Math.log(2.0);
+        double zoom = Math.min(17.5, Math.max(11.0, Math.min(zoomLon, zoomLat)));
+
+        Point center = Point.fromLngLat(lonMid, latMid);
+        mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
+                .center(center)
+                .zoom(zoom)
+                .build());
     }
 
     private void openSaveFavoriteDialog() {

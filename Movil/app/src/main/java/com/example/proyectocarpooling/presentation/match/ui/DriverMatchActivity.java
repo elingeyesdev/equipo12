@@ -62,6 +62,7 @@ public class DriverMatchActivity extends AppCompatActivity {
     private TextView driverTimeText;
     private TextView cardCounterText;
     private TextView swipeHintText;
+    private TextView viewRouteHintText;
     private Button rejectButton;
     private Button acceptButton;
     private Button viewRouteButton;
@@ -100,6 +101,7 @@ public class DriverMatchActivity extends AppCompatActivity {
         driverTimeText = findViewById(R.id.driverTimeText);
         cardCounterText = findViewById(R.id.cardCounterText);
         swipeHintText = findViewById(R.id.swipeHintText);
+        viewRouteHintText = findViewById(R.id.viewDriverRouteHintText);
         rejectButton = findViewById(R.id.rejectDriverButton);
         acceptButton = findViewById(R.id.acceptDriverButton);
         viewRouteButton = findViewById(R.id.viewDriverRouteButton);
@@ -457,6 +459,8 @@ public class DriverMatchActivity extends AppCompatActivity {
         intent.putExtra(MainActivity.EXTRA_APPLY_DEST_LAT, current.getDestinationLatitude());
         intent.putExtra(MainActivity.EXTRA_APPLY_DEST_LNG, current.getDestinationLongitude());
         intent.putExtra(MainActivity.EXTRA_HISTORY_ROUTE_PREVIEW, true);
+        intent.putExtra(MainActivity.EXTRA_ROUTE_PREVIEW_CONTEXT, MainActivity.ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH);
+        intent.putExtra(MainActivity.EXTRA_ROUTE_PREVIEW_DRIVER_NAME, current.getDriverName());
         startActivity(intent);
     }
 
@@ -476,6 +480,9 @@ public class DriverMatchActivity extends AppCompatActivity {
             if (viewRouteButton != null) {
                 viewRouteButton.setVisibility(View.GONE);
             }
+            if (viewRouteHintText != null) {
+                viewRouteHintText.setVisibility(View.GONE);
+            }
             return;
         }
 
@@ -493,6 +500,9 @@ public class DriverMatchActivity extends AppCompatActivity {
             acceptButton.setEnabled(false);
             if (viewRouteButton != null) {
                 viewRouteButton.setVisibility(View.GONE);
+            }
+            if (viewRouteHintText != null) {
+                viewRouteHintText.setVisibility(View.GONE);
             }
             return;
         }
@@ -514,6 +524,10 @@ public class DriverMatchActivity extends AppCompatActivity {
             boolean hasRoute = current.hasRouteEndpoints();
             viewRouteButton.setVisibility(hasRoute ? View.VISIBLE : View.GONE);
             viewRouteButton.setEnabled(hasRoute && !swipeAnimating && !candidatesLoading);
+        }
+        if (viewRouteHintText != null) {
+            boolean hasRoute = current.hasRouteEndpoints();
+            viewRouteHintText.setVisibility(hasRoute ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -615,6 +629,10 @@ public class DriverMatchActivity extends AppCompatActivity {
 
         double getDestinationLongitude() {
             return destinationLongitude;
+        }
+
+        String getDriverName() {
+            return driverName;
         }
     }
 }

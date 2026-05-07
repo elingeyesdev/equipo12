@@ -15,4 +15,5 @@
     <color name="match_status_cancelled">#C62828</color>
     <color name="match_status_finished">#546E7A</color>
     <color name="match_card_stroke">#8A9BA8</color>
+    <color name="history_delete_color">#C62828</color>
 </resources>
