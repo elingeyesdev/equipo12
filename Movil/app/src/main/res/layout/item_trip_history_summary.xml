@@ -4,14 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
-    android:layout_marginBottom="14dp"
+    android:layout_marginBottom="12dp"
     android:clickable="true"
     android:focusable="true"
     app:cardBackgroundColor="@color/white"
     app:cardCornerRadius="18dp"
-    app:cardElevation="3dp"
+    app:cardElevation="1dp"
     app:rippleColor="@color/carpool_surface"
-    app:strokeColor="@color/match_card_stroke"
+    app:strokeColor="@color/uber_border"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -41,15 +41,15 @@
                     android:text="@string/history_card_route_label"
                     android:textAllCaps="true"
                     android:textColor="@color/carpool_text_secondary"
-                    android:textSize="11sp"
-                    android:letterSpacing="0.05" />
+                    android:textSize="10sp"
+                    android:letterSpacing="0.08" />
 
                 <TextView
                     android:id="@+id/historyItemRoute"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:lineSpacingExtra="2dp"
+                    android:lineSpacingExtra="3dp"
                     android:textColor="@color/carpool_text_primary"
                     android:textSize="17sp"
                     android:textStyle="bold" />
@@ -59,11 +59,11 @@
                 android:id="@+id/historyItemStatusChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingStart="10dp"
+                android:paddingStart="12dp"
                 android:paddingTop="5dp"
-                android:paddingEnd="10dp"
+                android:paddingEnd="12dp"
                 android:paddingBottom="5dp"
-                android:textColor="@color/white"
+                android:textColor="@color/uber_text_inverse"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -78,10 +78,16 @@
             android:textColor="@color/carpool_text_secondary"
             android:textSize="13sp" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:background="@color/uber_divider" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="10dp"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
@@ -93,9 +99,9 @@
                 android:layout_weight="1"
                 android:text="@string/history_view_detail"
                 android:textAllCaps="false"
-                android:textColor="@color/carpool_primary_dark"
+                android:textColor="@color/uber_accent"
                 app:cornerRadius="12dp"
-                app:strokeColor="@color/carpool_primary_dark"
+                app:strokeColor="@color/uber_accent"
                 app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
@@ -117,15 +123,5 @@
                 app:strokeColor="@color/history_delete_color"
                 app:strokeWidth="1dp" />
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/historyItemTapHint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="center"
-            android:text="@string/history_card_open_detail_hint"
-            android:textColor="@color/carpool_text_secondary"
-            android:textSize="11sp" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

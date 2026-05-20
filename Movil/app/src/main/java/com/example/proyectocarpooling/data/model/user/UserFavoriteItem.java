@@ -15,15 +15,10 @@ public class UserFavoriteItem {
     public final int useCount;
 
     public UserFavoriteItem(
-            String id,
-            String kind,
-            String title,
-            double originLatitude,
-            double originLongitude,
-            Double destinationLatitude,
-            Double destinationLongitude,
-            int useCount
-    ) {
+            String id, String kind, String title,
+            double originLatitude, double originLongitude,
+            Double destinationLatitude, Double destinationLongitude,
+            int useCount) {
         this.id = id;
         this.kind = kind;
         this.title = title;
@@ -42,16 +37,19 @@ public class UserFavoriteItem {
         String id = o.getString("id");
         String kind = o.optString("kind", "place");
         String title = o.optString("title", "");
-        double oLat = o.getDouble("originLatitude");
-        double oLng = o.getDouble("originLongitude");
+
+        JSONObject origin = o.getJSONObject("origin");
+        double oLat = origin.getDouble("latitude");
+        double oLng = origin.getDouble("longitude");
+
         Double dLat = null;
         Double dLng = null;
-        if (o.has("destinationLatitude") && !o.isNull("destinationLatitude")) {
-            dLat = o.getDouble("destinationLatitude");
+        if (o.has("destination") && !o.isNull("destination")) {
+            JSONObject dest = o.getJSONObject("destination");
+            dLat = dest.getDouble("latitude");
+            dLng = dest.getDouble("longitude");
         }
-        if (o.has("destinationLongitude") && !o.isNull("destinationLongitude")) {
-            dLng = o.getDouble("destinationLongitude");
-        }
+
         int useCount = o.optInt("useCount", 0);
         return new UserFavoriteItem(id, kind, title, oLat, oLng, dLat, dLng, useCount);
     }

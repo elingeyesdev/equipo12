@@ -1,8 +1,9 @@
-        using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 using CarPooling.Data;
 using CarPooling.Dtos;
 using CarPooling.Models;
+using CarPooling.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,31 +11,25 @@ namespace CarPooling.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class UsersController(CarPoolingContext context) : ControllerBase
+public class UsersController(CarPoolingContext context,
+    DriverService driverService,
+    VehicleService vehicleService) : ControllerBase
 {
     private readonly CarPoolingContext _context = context;
+    private readonly DriverService _driverService = driverService;
+    private readonly VehicleService _vehicleService = vehicleService;
     private const string AllowedDomain = "@univalle.edu";
 
     [HttpPost("register")]
     public async Task<ActionResult<UserResponseDto>> RegisterAsync([FromBody] RegisterUserDto dto)
     {
         var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-
         if (!TryParseUserRole(dto.Role, out var parsedRole))
-        {
-            return BadRequest("Rol invalido. Usa: student/estudiante (1), driver/chofer (2) o admin/administrador (3).");
-        }
-
-        if (!IsUniversityEmail(normalizedEmail))
-        {
-            return BadRequest("Solo se permiten correos institucionales @univalle.edu");
-        }
-
-        var exists = await _context.Users.AnyAsync(u => u.Email == normalizedEmail);
-        if (exists)
-        {
-            return Conflict("Ya existe un usuario con ese email.");
-        }
+            return BadRequest("Rol invalido.");
+        if (!normalizedEmail.EndsWith(AllowedDomain, StringComparison.OrdinalIgnoreCase))
+            return BadRequest("Solo correos @univalle.edu");
+        if (await _context.Users.AnyAsync(u => u.Email == normalizedEmail))
+            return Conflict("Email ya existe.");
 
         var user = new User
         {
@@ -46,25 +41,18 @@ public class UsersController(CarPoolingContext context) : ControllerBase
             Role = parsedRole
         };
 
-        DriverProfile? driverProfile = null;
+        _context.Users.Add(user);
+
         if (parsedRole == UserRole.Driver)
         {
             if (dto.DriverProfile is null)
-            {
-                return BadRequest("Para registrar un chofer debes enviar los datos del vehiculo.");
-            }
-
-            driverProfile = BuildDriverProfile(dto.DriverProfile, user.Id);
+                return BadRequest("Chofer debe enviar datos de vehiculo.");
+            await _driverService.CreateProfileAsync(user.Id, dto.DriverProfile);
         }
 
-        _context.Users.Add(user);
-        if (driverProfile is not null)
-        {
-            _context.DriverProfiles.Add(driverProfile);
-        }
         await _context.SaveChangesAsync();
-
-        user.DriverProfile = driverProfile;
+        user.DriverProfile = await _context.DriverProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+        user.Vehicles = await _vehicleService.GetAllForDriverAsync(user.Id);
 
         return CreatedAtRoute("GetUserById", new { id = user.Id }, UserResponseDto.FromEntity(user));
     }
@@ -73,24 +61,17 @@ public class UsersController(CarPoolingContext context) : ControllerBase
     public async Task<ActionResult<UserResponseDto>> LoginAsync([FromBody] LoginUserDto dto)
     {
         var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-
-        if (!IsUniversityEmail(normalizedEmail))
-        {
-            return Unauthorized("Debes iniciar sesión con tu correo institucional @univalle.edu");
-        }
+        if (!normalizedEmail.EndsWith(AllowedDomain, StringComparison.OrdinalIgnoreCase))
+            return Unauthorized("Debes usar correo @univalle.edu");
 
         var incomingHash = HashPassword(dto.Password);
-
         var user = await _context.Users
             .Include(u => u.DriverProfile)
+            .Include(u => u.Vehicles)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == normalizedEmail && u.PasswordHash == incomingHash);
 
-        if (user is null)
-        {
-            return Unauthorized("Credenciales inválidas.");
-        }
-
+        if (user is null) return Unauthorized("Credenciales invalidas.");
         return Ok(UserResponseDto.FromEntity(user));
     }
 
@@ -99,74 +80,34 @@ public class UsersController(CarPoolingContext context) : ControllerBase
     {
         var user = await _context.Users
             .Include(u => u.DriverProfile)
+            .Include(u => u.Vehicles)
             .FirstOrDefaultAsync(u => u.Id == id);
-        if (user is null)
-        {
-            return NotFound("Usuario no encontrado.");
-        }
+        if (user is null) return NotFound();
 
         var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-        if (!IsUniversityEmail(normalizedEmail))
-        {
-            return BadRequest("Solo se permiten correos institucionales @univalle.edu");
-        }
-
-        var emailBelongsToAnotherUser = await _context.Users.AnyAsync(u => u.Email == normalizedEmail && u.Id != id);
-        if (emailBelongsToAnotherUser)
-        {
-            return Conflict("El email ingresado ya está en uso por otro usuario.");
-        }
+        if (!normalizedEmail.EndsWith(AllowedDomain, StringComparison.OrdinalIgnoreCase))
+            return BadRequest("Solo correos @univalle.edu");
+        if (await _context.Users.AnyAsync(u => u.Email == normalizedEmail && u.Id != id))
+            return Conflict("Email en uso.");
 
         user.FullName = dto.FullName.Trim();
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
 
-        var requestedRole = user.Role;
-        var roleWasProvided = !string.IsNullOrWhiteSpace(dto.Role);
-        if (!string.IsNullOrWhiteSpace(dto.Role))
+        if (!string.IsNullOrWhiteSpace(dto.Role) && TryParseUserRole(dto.Role, out var pr))
         {
-            if (!TryParseUserRole(dto.Role, out var parsedRole))
-            {
-                return BadRequest("Rol invalido. Usa: student/estudiante (1), driver/chofer (2) o admin/administrador (3).");
-            }
-
-            requestedRole = parsedRole;
-        }
-
-        var roleIsChanging = roleWasProvided && requestedRole != user.Role;
-        var adminOverride = IsAdminOverrideRequested();
-
-        if (roleIsChanging && !dto.RoleChangeRequested && !adminOverride)
-        {
-            return BadRequest("El rol solo puede cambiarse cuando el usuario lo solicita explícitamente o por override de admin.");
-        }
-
-        if (roleIsChanging)
-        {
-            user.Role = requestedRole;
+            var changing = pr != user.Role;
+            if (changing && !dto.RoleChangeRequested && !IsAdminOverride())
+                return BadRequest("Cambio de rol requiere confirmacion.");
+            if (changing) user.Role = pr;
         }
 
         if (user.Role == UserRole.Driver)
         {
             if (dto.DriverProfile is not null)
-            {
-                if (user.DriverProfile is null)
-                {
-                    user.DriverProfile = BuildDriverProfile(dto.DriverProfile, user.Id);
-                }
-                else
-                {
-                    user.DriverProfile.AvailableSeats = dto.DriverProfile.AvailableSeats;
-                    user.DriverProfile.LicensePlate = dto.DriverProfile.LicensePlate.Trim().ToUpperInvariant();
-                    user.DriverProfile.VehicleBrand = dto.DriverProfile.VehicleBrand.Trim();
-                    user.DriverProfile.VehicleColor = dto.DriverProfile.VehicleColor.Trim();
-                    user.DriverProfile.UpdatedAt = DateTime.UtcNow;
-                }
-            }
+                await _driverService.UpsertProfileAsync(user.Id, dto.DriverProfile);
             else if (user.DriverProfile is null)
-            {
-                return BadRequest("Para rol chofer debes enviar los datos del vehiculo.");
-            }
+                return BadRequest("Chofer debe enviar datos de vehiculo.");
         }
         else if (user.DriverProfile is not null)
         {
@@ -175,116 +116,54 @@ public class UsersController(CarPoolingContext context) : ControllerBase
         }
 
         if (!string.IsNullOrWhiteSpace(dto.NewPassword))
-        {
             user.PasswordHash = HashPassword(dto.NewPassword);
-        }
 
         await _context.SaveChangesAsync();
-
+        await _context.Entry(user).Reference(u => u.DriverProfile).LoadAsync();
+        await _context.Entry(user).Collection(u => u.Vehicles).LoadAsync();
         return Ok(UserResponseDto.FromEntity(user));
     }
 
     [HttpPost("logout")]
-    public IActionResult Logout()
-    {
-        return Ok(new { message = "Sesión cerrada." });
-    }
+    public IActionResult Logout() => Ok(new { message = "Sesion cerrada." });
 
     [HttpGet("{id:guid}", Name = "GetUserById")]
     public async Task<ActionResult<UserResponseDto>> GetByIdAsync(Guid id)
     {
         var user = await _context.Users
-            .Include(u => u.DriverProfile)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == id);
-        if (user is null)
-        {
-            return NotFound();
-        }
-
+            .Include(u => u.DriverProfile).Include(u => u.Vehicles)
+            .AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null) return NotFound();
         return Ok(UserResponseDto.FromEntity(user));
     }
 
     [HttpGet("email/{email}")]
     public async Task<ActionResult<UserResponseDto>> GetByEmailAsync(string email)
     {
-        var normalizedEmail = email.Trim().ToLowerInvariant();
-
         var user = await _context.Users
-            .Include(u => u.DriverProfile)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
-        if (user is null)
-        {
-            return NotFound();
-        }
-
+            .Include(u => u.DriverProfile).Include(u => u.Vehicles)
+            .AsNoTracking().FirstOrDefaultAsync(u => u.Email == email.Trim().ToLowerInvariant());
+        if (user is null) return NotFound();
         return Ok(UserResponseDto.FromEntity(user));
     }
 
-    private static string HashPassword(string password)
+    private static string HashPassword(string p)
     {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(p));
         return Convert.ToHexString(bytes);
     }
 
-    private static bool IsUniversityEmail(string email)
-    {
-        return email.EndsWith(AllowedDomain, StringComparison.OrdinalIgnoreCase);
-    }
+    private bool IsAdminOverride() =>
+        Request.Headers.TryGetValue("X-Admin-Override", out var v) && v.ToString().Trim().ToLowerInvariant() is "true" or "1" or "yes";
 
-    private static DriverProfile BuildDriverProfile(DriverProfileDto dto, Guid userId)
+    private static bool TryParseUserRole(string? r, out UserRole role)
     {
-        return new DriverProfile
+        role = (r?.Trim().ToLowerInvariant()) switch
         {
-            UserId = userId,
-            AvailableSeats = dto.AvailableSeats,
-            LicensePlate = dto.LicensePlate.Trim().ToUpperInvariant(),
-            VehicleBrand = dto.VehicleBrand.Trim(),
-            VehicleColor = dto.VehicleColor.Trim()
+            "driver" or "chofer" or "2" => UserRole.Driver,
+            "admin" or "administrador" or "3" => UserRole.Admin,
+            _ => UserRole.Student
         };
-    }
-
-    private bool IsAdminOverrideRequested()
-    {
-        if (!Request.Headers.TryGetValue("X-Admin-Override", out var headerValue))
-        {
-            return false;
-        }
-
-        var normalized = headerValue.ToString().Trim().ToLowerInvariant();
-        return normalized is "true" or "1" or "yes";
-    }
-
-    private static bool TryParseUserRole(string? roleValue, out UserRole role)
-    {
-        var normalizedRole = roleValue?.Trim().ToLowerInvariant();
-
-        if (string.IsNullOrWhiteSpace(normalizedRole))
-        {
-            role = UserRole.Student;
-            return true;
-        }
-
-        if (normalizedRole is "driver" or "chofer" or "2")
-        {
-            role = UserRole.Driver;
-            return true;
-        }
-
-        if (normalizedRole is "admin" or "administrador" or "3")
-        {
-            role = UserRole.Admin;
-            return true;
-        }
-
-        if (normalizedRole is "student" or "estudiante" or "1")
-        {
-            role = UserRole.Student;
-            return true;
-        }
-
-        role = UserRole.Student;
-        return false;
+        return true;
     }
 }

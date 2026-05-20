@@ -6,30 +6,16 @@ public class TripResponse
 {
     public Guid Id { get; init; }
     public TripKind Kind { get; init; } = TripKind.Regular;
-    public double OriginLatitude { get; init; }
-    public double OriginLongitude { get; init; }
-    public double? DestinationLatitude { get; init; }
-    public double? DestinationLongitude { get; init; }
-    public TripStatus Status { get; init; }
+    public LocationDto Origin { get; init; } = null!;
+    public LocationDto Destination { get; init; } = null!;
+    public string StatusLabel { get; init; } = "";
+    public int StatusId { get; init; }
+    public int OfferedSeats { get; init; }
     public int AvailableSeats { get; init; }
+    public Guid? VehicleId { get; init; }
     public string DriverName { get; init; } = "";
+    public Guid? DriverUserId { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public DateTime? CancelledAt { get; init; }
-
-    public static TripResponse FromEntity(Trip trip) => new()
-    {
-        Id = trip.Id,
-        Kind = trip.Kind,
-        OriginLatitude = trip.OriginLatitude,
-        OriginLongitude = trip.OriginLongitude,
-        DestinationLatitude = trip.DestinationLatitude,
-        DestinationLongitude = trip.DestinationLongitude,
-        Status = trip.Status,
-        AvailableSeats = trip.AvailableSeats,
-        DriverName = trip.DriverName,
-        CreatedAt = trip.CreatedAt,
-        UpdatedAt = trip.UpdatedAt,
-        CancelledAt = trip.CancelledAt
-    };
 }

@@ -1,6 +1,7 @@
 using CarPooling.Data;
 using CarPooling.Dtos;
 using CarPooling.Models;
+using CarPooling.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public class AdminController(CarPoolingContext context) : ControllerBase
     {
         var usersQuery = _context.Users
             .Include(u => u.DriverProfile)
+            .Include(u => u.Vehicles)
             .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(name))
@@ -62,7 +64,7 @@ public class AdminController(CarPoolingContext context) : ControllerBase
         var emailBelongsToAnotherUser = await _context.Users.AnyAsync(u => u.Email == normalizedEmail && u.Id != id);
         if (emailBelongsToAnotherUser)
         {
-            return Conflict("El email ingresado ya está en uso por otro usuario.");
+            return Conflict("El email ingresado ya esta en uso por otro usuario.");
         }
 
         if (!TryParseAdminRoleId(dto.RoleId, out var role))
@@ -82,11 +84,18 @@ public class AdminController(CarPoolingContext context) : ControllerBase
                 user.DriverProfile = new DriverProfile
                 {
                     UserId = user.Id,
-                    AvailableSeats = 3,
-                    LicensePlate = "TEMP-000",
-                    VehicleBrand = "Por definir",
-                    VehicleColor = "Por definir"
+                    IsVerified = false
                 };
+
+                _context.Vehicles.Add(new Vehicle
+                {
+                    OwnerUserId = user.Id,
+                    LicensePlate = "TEMP-000",
+                    Brand = "Por definir",
+                    Color = "Por definir",
+                    TotalSeats = 3,
+                    IsActive = true
+                });
             }
         }
         else if (user.DriverProfile is not null)
@@ -121,23 +130,39 @@ public class AdminController(CarPoolingContext context) : ControllerBase
     public async Task<ActionResult<IReadOnlyList<TripResponse>>> GetAllTripsAsync()
     {
         var trips = await _context.Trips
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
             .AsNoTracking()
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
 
-        return Ok(trips.Select(TripResponse.FromEntity).ToList());
+        return Ok(trips.Select(TripService.MapToDto).ToList());
     }
 
     [HttpPut("trips/{id:guid}")]
     public async Task<ActionResult<TripResponse>> UpdateTripAsync(Guid id, [FromBody] AdminUpdateTripDto dto)
     {
-        var trip = await _context.Trips.FirstOrDefaultAsync(t => t.Id == id);
+        var trip = await _context.Trips
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
+            .FirstOrDefaultAsync(t => t.Id == id);
         if (trip is null)
         {
             return NotFound("Viaje no encontrado.");
         }
 
-        if (!TryParseTripStatus(dto.Status, out var status))
+        if (dto.DriverUserId is not null)
+        {
+            var driverExists = await _context.Users.AnyAsync(u => u.Id == dto.DriverUserId.Value);
+            if (!driverExists)
+            {
+                return BadRequest("DriverUserId no corresponde a un usuario existente.");
+            }
+        }
+
+        if (!TryParseTripStatusId(dto.Status, out var statusId))
         {
             return BadRequest("Estado de viaje invalido.");
         }
@@ -164,18 +189,27 @@ public class AdminController(CarPoolingContext context) : ControllerBase
 
         trip.DriverName = dto.DriverName.Trim();
         trip.DriverUserId = dto.DriverUserId;
-        trip.OriginLatitude = dto.OriginLatitude;
-        trip.OriginLongitude = dto.OriginLongitude;
-        trip.DestinationLatitude = dto.DestinationLatitude;
-        trip.DestinationLongitude = dto.DestinationLongitude;
         trip.AvailableSeats = dto.AvailableSeats;
-        trip.Status = status;
+        trip.StatusId = statusId;
         trip.UpdatedAt = DateTime.UtcNow;
-        trip.CancelledAt = status == TripStatus.Cancelled ? DateTime.UtcNow : null;
+        trip.CancelledAt = statusId == 5 ? DateTime.UtcNow : null;
+
+        trip.OriginLocation.Latitude = dto.OriginLatitude;
+        trip.OriginLocation.Longitude = dto.OriginLongitude;
+
+        if (dto.DestinationLatitude is not null)
+        {
+            trip.DestinationLocation.Latitude = dto.DestinationLatitude.Value;
+        }
+
+        if (dto.DestinationLongitude is not null)
+        {
+            trip.DestinationLocation.Longitude = dto.DestinationLongitude.Value;
+        }
 
         await _context.SaveChangesAsync();
 
-        return Ok(TripResponse.FromEntity(trip));
+        return Ok(TripService.MapToDto(trip));
     }
 
     [HttpDelete("trips/{id:guid}")]
@@ -203,31 +237,28 @@ public class AdminController(CarPoolingContext context) : ControllerBase
     public async Task<ActionResult<IReadOnlyList<ReservationDto>>> GetAllReservationsAsync()
     {
         var reservations = await _context.Reservations
+            .Include(r => r.PassengerUser)
+            .Include(r => r.StatusEntity)
             .AsNoTracking()
             .OrderByDescending(r => r.CreatedAt)
-            .Select(r => new ReservationDto
-            {
-                Id = r.Id,
-                TripId = r.TripId,
-                PassengerName = r.PassengerName,
-                Status = r.Status.ToString(),
-                CreatedAt = r.CreatedAt
-            })
             .ToListAsync();
 
-        return Ok(reservations);
+        return Ok(reservations.Select(ReservationService.MapToDto).ToList());
     }
 
     [HttpPut("reservations/{id:guid}")]
     public async Task<ActionResult<ReservationDto>> UpdateReservationAsync(Guid id, [FromBody] AdminUpdateReservationDto dto)
     {
-        var reservation = await _context.Reservations.FirstOrDefaultAsync(r => r.Id == id);
+        var reservation = await _context.Reservations
+            .Include(r => r.PassengerUser)
+            .Include(r => r.StatusEntity)
+            .FirstOrDefaultAsync(r => r.Id == id);
         if (reservation is null)
         {
             return NotFound("Reserva no encontrada.");
         }
 
-        if (!TryParseReservationStatus(dto.Status, out var status))
+        if (!TryParseReservationStatusId(dto.Status, out var statusId))
         {
             return BadRequest("Estado de reserva invalido.");
         }
@@ -238,20 +269,19 @@ public class AdminController(CarPoolingContext context) : ControllerBase
             return BadRequest("TripId no corresponde a un viaje existente.");
         }
 
-        reservation.PassengerName = dto.PassengerName.Trim();
+        var passengerExists = await _context.Users.AnyAsync(u => u.Id == dto.PassengerUserId);
+        if (!passengerExists)
+        {
+            return BadRequest("PassengerUserId no corresponde a un usuario existente.");
+        }
+
+        reservation.PassengerUserId = dto.PassengerUserId;
         reservation.TripId = dto.TripId;
-        reservation.Status = status;
+        reservation.StatusId = statusId;
 
         await _context.SaveChangesAsync();
 
-        return Ok(new ReservationDto
-        {
-            Id = reservation.Id,
-            TripId = reservation.TripId,
-            PassengerName = reservation.PassengerName,
-            Status = reservation.Status.ToString(),
-            CreatedAt = reservation.CreatedAt
-        });
+        return Ok(ReservationService.MapToDto(reservation));
     }
 
     [HttpDelete("reservations/{id:guid}")]
@@ -274,33 +304,31 @@ public class AdminController(CarPoolingContext context) : ControllerBase
     {
         var users = await _context.Users
             .Include(u => u.DriverProfile)
+            .Include(u => u.Vehicles)
             .AsNoTracking()
             .OrderByDescending(u => u.CreatedAt)
             .ToListAsync();
 
         var trips = await _context.Trips
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
             .AsNoTracking()
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
 
         var reservations = await _context.Reservations
+            .Include(r => r.PassengerUser)
+            .Include(r => r.StatusEntity)
             .AsNoTracking()
             .OrderByDescending(r => r.CreatedAt)
-            .Select(r => new ReservationDto
-            {
-                Id = r.Id,
-                TripId = r.TripId,
-                PassengerName = r.PassengerName,
-                Status = r.Status.ToString(),
-                CreatedAt = r.CreatedAt
-            })
             .ToListAsync();
 
         return Ok(new
         {
             users = users.Select(UserResponseDto.FromEntity).ToList(),
-            trips = trips.Select(TripResponse.FromEntity).ToList(),
-            reservations
+            trips = trips.Select(TripService.MapToDto).ToList(),
+            reservations = reservations.Select(ReservationService.MapToDto).ToList()
         });
     }
 
@@ -322,67 +350,45 @@ public class AdminController(CarPoolingContext context) : ControllerBase
         return roleId is 1 or 2 or 3;
     }
 
-    private static bool TryParseTripStatus(string value, out TripStatus status)
+    private static bool TryParseTripStatusId(string value, out int statusId)
     {
         var normalized = value.Trim().ToLowerInvariant();
 
-        if (normalized is "0" or "awaitingdestination" or "awaiting_destination" or "activo" or "pending")
+        switch (normalized)
         {
-            status = TripStatus.AwaitingDestination;
-            return true;
+            case "1" or "scheduled" or "programado":
+                statusId = 1; return true;
+            case "2" or "ready" or "listo":
+                statusId = 2; return true;
+            case "3" or "in_progress" or "inprogress" or "en_curso" or "en curso":
+                statusId = 3; return true;
+            case "4" or "finished" or "finalizado":
+                statusId = 4; return true;
+            case "5" or "cancelled" or "cancelado":
+                statusId = 5; return true;
         }
 
-        if (normalized is "1" or "ready" or "listo")
-        {
-            status = TripStatus.Ready;
-            return true;
-        }
-
-        if (normalized is "2" or "cancelled" or "cancelado")
-        {
-            status = TripStatus.Cancelled;
-            return true;
-        }
-
-        if (normalized is "3" or "inprogress" or "in_progress" or "en_curso")
-        {
-            status = TripStatus.InProgress;
-            return true;
-        }
-
-        if (normalized is "4" or "finished" or "finalizado")
-        {
-            status = TripStatus.Finished;
-            return true;
-        }
-
-        status = TripStatus.AwaitingDestination;
+        statusId = 1;
         return false;
     }
 
-    private static bool TryParseReservationStatus(string value, out ReservationStatus status)
+    private static bool TryParseReservationStatusId(string value, out int statusId)
     {
         var normalized = value.Trim().ToLowerInvariant();
 
-        if (normalized is "0" or "active" or "activo")
+        switch (normalized)
         {
-            status = ReservationStatus.Active;
-            return true;
+            case "1" or "pending" or "pendiente":
+                statusId = 1; return true;
+            case "2" or "confirmed" or "confirmado":
+                statusId = 2; return true;
+            case "3" or "boarded" or "abordado":
+                statusId = 3; return true;
+            case "4" or "cancelled" or "cancelado":
+                statusId = 4; return true;
         }
 
-        if (normalized is "1" or "cancelled" or "cancelado")
-        {
-            status = ReservationStatus.Cancelled;
-            return true;
-        }
-
-        if (normalized is "2" or "boarded" or "abordado")
-        {
-            status = ReservationStatus.Boarded;
-            return true;
-        }
-
-        status = ReservationStatus.Active;
+        statusId = 1;
         return false;
     }
 
@@ -409,7 +415,7 @@ public class AdminController(CarPoolingContext context) : ControllerBase
     public sealed class AdminUpdateReservationDto
     {
         public Guid TripId { get; set; }
-        public string PassengerName { get; set; } = string.Empty;
+        public Guid PassengerUserId { get; set; }
         public string Status { get; set; } = string.Empty;
     }
 }

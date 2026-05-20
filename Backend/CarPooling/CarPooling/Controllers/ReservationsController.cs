@@ -1,246 +1,154 @@
-using CarPooling.Data;
 using CarPooling.Dtos;
 using CarPooling.Models;
+using CarPooling.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ReservationsController(CarPoolingContext context) : ControllerBase
+public class ReservationsController(ReservationService reservationService) : ControllerBase
 {
     [HttpPost("~/api/Trips/{tripId}/Reservations")]
     public async Task<ActionResult<ReservationDto>> CreateReservation(Guid tripId, CreateReservationDto dto)
     {
-        var trip = await context.Trips.FindAsync(tripId);
-
-        if (trip == null)
+        try
         {
-            return NotFound("Viaje no encontrado.");
+            var r = await reservationService.CreateAsync(tripId, dto);
+            return CreatedAtAction(nameof(GetPending), new { tripId }, ReservationService.MapToDto(r));
         }
-
-        if (trip.Kind != TripKind.Regular)
-        {
-            return BadRequest("Este viaje no admite reservas.");
-        }
-
-        if (trip.Status == TripStatus.Cancelled)
-        {
-            return BadRequest("El viaje no está disponible para reserva.");
-        }
-
-        if (trip.AvailableSeats <= 0)
-        {
-            return BadRequest("No hay cupos disponibles en este viaje.");
-        }
-
-        var existingReservation = await context.Reservations
-            .FirstOrDefaultAsync(r => r.TripId == tripId && r.PassengerName == dto.PassengerName && r.Status == ReservationStatus.Active);
-
-        if (existingReservation != null)
-        {
-            return BadRequest("Este pasajero ya tiene una reserva activa para este viaje.");
-        }
-
-        var reservation = new Reservation
-        {
-            TripId = tripId,
-            PassengerName = dto.PassengerName,
-            Status = ReservationStatus.Active,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        trip.AvailableSeats--;
-
-        context.Reservations.Add(reservation);
-        await context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetReservations), new { tripId = trip.Id }, MapToDto(reservation));
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpGet("~/api/Trips/{tripId}/Reservations")]
-    public async Task<ActionResult<IEnumerable<ReservationDto>>> GetReservations(Guid tripId)
+    [HttpPost("~/api/Trips/{tripId}/Reservations/{reservationId}/accept")]
+    public async Task<ActionResult<ReservationDto>> AcceptReservation(Guid tripId, Guid reservationId)
     {
-        var tripExists = await context.Trips.AnyAsync(t => t.Id == tripId);
-        if (!tripExists)
+        try
         {
-            return NotFound("Viaje no encontrado.");
+            var r = await reservationService.AcceptAsync(reservationId);
+            return Ok(ReservationService.MapToDto(r));
         }
-
-        var reservations = await context.Reservations
-            .Where(r => r.TripId == tripId && r.Status == ReservationStatus.Active)
-            .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
-
-        return reservations.Select(MapToDto).ToList();
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpGet("~/api/Trips/{tripId}/Reservations/boarded")]
-    public async Task<ActionResult<IEnumerable<ReservationDto>>> GetBoardedPassengers(Guid tripId)
+    [HttpPost("~/api/Trips/{tripId}/Reservations/{reservationId}/reject")]
+    public async Task<ActionResult<ReservationDto>> RejectReservation(Guid tripId, Guid reservationId)
     {
-        var tripExists = await context.Trips.AnyAsync(t => t.Id == tripId);
-        if (!tripExists)
+        try
         {
-            return NotFound("Viaje no encontrado.");
+            var r = await reservationService.RejectAsync(reservationId);
+            return Ok(ReservationService.MapToDto(r));
         }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
 
-        var boardedReservations = await context.Reservations
-            .Where(r => r.TripId == tripId && r.Status == ReservationStatus.Boarded)
-            .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
-
-        return boardedReservations.Select(MapToDto).ToList();
+    [HttpPost("~/api/Trips/{tripId}/Reservations/{reservationId}/board")]
+    public async Task<ActionResult<ReservationDto>> BoardPassenger(Guid tripId, Guid reservationId)
+    {
+        try
+        {
+            var r = await reservationService.BoardAsync(reservationId);
+            return Ok(ReservationService.MapToDto(r));
+        }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> CancelReservation(Guid id)
     {
-        var reservation = await context.Reservations.Include(r => r.Trip).FirstOrDefaultAsync(r => r.Id == id);
-
-        if (reservation == null)
+        try
         {
-            return NotFound("Reserva no encontrada.");
+            var r = await reservationService.CancelAsync(id);
+            return Ok(ReservationService.MapToDto(r));
         }
-
-        if (reservation.Status == ReservationStatus.Cancelled)
-        {
-            return BadRequest("La reserva ya está cancelada.");
-        }
-
-        if (reservation.Status == ReservationStatus.Boarded)
-        {
-            return BadRequest("No se puede cancelar una reserva de un pasajero ya abordado.");
-        }
-
-        reservation.Status = ReservationStatus.Cancelled;
-        reservation.Trip.AvailableSeats++;
-
-        await context.SaveChangesAsync();
-
-        return Ok(MapToDto(reservation));
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPost("~/api/Trips/{tripId}/Reservations/board")]
-    public async Task<ActionResult<ReservationDto>> ConfirmBoarding(Guid tripId, CreateReservationDto dto)
+    [HttpGet("~/api/Trips/{tripId}/Reservations/pending")]
+    public async Task<ActionResult<IEnumerable<ReservationDto>>> GetPending(Guid tripId)
     {
-        var tripExists = await context.Trips.AnyAsync(t => t.Id == tripId);
-        if (!tripExists)
-        {
-            return NotFound("Viaje no encontrado.");
-        }
-
-        var reservation = await context.Reservations
-            .Where(r => r.TripId == tripId && r.PassengerName == dto.PassengerName)
-            .OrderByDescending(r => r.CreatedAt)
-            .FirstOrDefaultAsync();
-
-        if (reservation == null)
-        {
-            return NotFound("No existe una reserva para este pasajero en el viaje.");
-        }
-
-        if (reservation.Status == ReservationStatus.Cancelled)
-        {
-            return BadRequest("La reserva está cancelada y no puede abordarse.");
-        }
-
-        if (reservation.Status == ReservationStatus.Boarded)
-        {
-            return BadRequest("El pasajero ya fue marcado como abordado.");
-        }
-
-        reservation.Status = ReservationStatus.Boarded;
-        await context.SaveChangesAsync();
-
-        return Ok(MapToDto(reservation));
+        var list = await reservationService.GetPendingForTripAsync(tripId);
+        return Ok(list.Select(ReservationService.MapToDto).ToList());
     }
 
-    [HttpPatch("~/api/Trips/{tripId}/Reservations/{reservationId}/manual-status")]
-    public async Task<ActionResult<ReservationDto>> UpdatePassengerStatusManual(
-        Guid tripId,
-        Guid reservationId,
-        ManualReservationStatusUpdateDto dto)
+    [HttpGet("~/api/Trips/{tripId}/Reservations/confirmed")]
+    public async Task<ActionResult<IEnumerable<ReservationDto>>> GetConfirmed(Guid tripId)
     {
-        var reservation = await context.Reservations
-            .Include(r => r.Trip)
-            .FirstOrDefaultAsync(r => r.Id == reservationId && r.TripId == tripId);
-
-        if (reservation == null)
-        {
-            return NotFound("Reserva no encontrada para el viaje indicado.");
-        }
-
-        var targetStatus = ParseReservationStatus(dto.Status);
-        if (targetStatus == null)
-        {
-            return BadRequest("Estado inválido. Usa: active, boarded o cancelled.");
-        }
-
-        if (reservation.Status == targetStatus.Value)
-        {
-            return Ok(MapToDto(reservation));
-        }
-
-        if (targetStatus.Value == ReservationStatus.Boarded && reservation.Status == ReservationStatus.Cancelled)
-        {
-            return BadRequest("No se puede marcar como abordado una reserva cancelada.");
-        }
-
-        var currentCancelled = reservation.Status == ReservationStatus.Cancelled;
-        var targetCancelled = targetStatus.Value == ReservationStatus.Cancelled;
-
-        if (!currentCancelled && targetCancelled)
-        {
-            reservation.Trip.AvailableSeats++;
-        }
-        else if (currentCancelled && !targetCancelled)
-        {
-            if (reservation.Trip.AvailableSeats <= 0)
-            {
-                return BadRequest("No hay cupos disponibles para reactivar esta reserva.");
-            }
-
-            reservation.Trip.AvailableSeats--;
-        }
-
-        reservation.Status = targetStatus.Value;
-        await context.SaveChangesAsync();
-
-        return Ok(MapToDto(reservation));
+        var list = await reservationService.GetConfirmedForTripAsync(tripId);
+        return Ok(list.Select(ReservationService.MapToDto).ToList());
     }
 
-    private static ReservationStatus? ParseReservationStatus(string value)
+    [HttpGet("~/api/Trips/{tripId}/Reservations/boarded")]
+    public async Task<ActionResult<IEnumerable<ReservationDto>>> GetBoarded(Guid tripId)
     {
-        var normalized = value.Trim().ToLowerInvariant();
-
-        if (normalized == "active" || normalized == "activo")
-        {
-            return ReservationStatus.Active;
-        }
-
-        if (normalized == "boarded" || normalized == "abordado")
-        {
-            return ReservationStatus.Boarded;
-        }
-
-        if (normalized == "cancelled" || normalized == "cancelado")
-        {
-            return ReservationStatus.Cancelled;
-        }
-
-        return null;
+        var list = await reservationService.GetBoardedForTripAsync(tripId);
+        return Ok(list.Select(ReservationService.MapToDto).ToList());
     }
 
-    private static ReservationDto MapToDto(Reservation reservation)
+    [HttpPost("~/api/Trips/{tripId}/Reservations/{reservationId}/verify-code")]
+    public async Task<ActionResult> VerifyBoardingCode(Guid tripId, Guid reservationId, [FromBody] VerifyCodeDto dto)
     {
-        return new ReservationDto
+        try
         {
-            Id = reservation.Id,
-            TripId = reservation.TripId,
-            PassengerName = reservation.PassengerName,
-            Status = reservation.Status.ToString(),
-            CreatedAt = reservation.CreatedAt
+            var ok = await reservationService.VerifyBoardingCodeAsync(reservationId, dto.Code);
+            if (!ok) return BadRequest("Codigo invalido.");
+            await reservationService.BoardAsync(reservationId);
+            return Ok(new { message = "Abordaje confirmado" });
+        }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpGet("~/api/users/{userId:guid}/active-reservation")]
+    public async Task<ActionResult<ActiveReservationDto>> GetActiveReservation(Guid userId)
+    {
+        var r = await reservationService.GetActiveForPassengerAsync(userId);
+        if (r is null) return NotFound();
+        return Ok(ActiveReservationDto.FromReservation(r));
+    }
+}
+
+public class VerifyCodeDto
+{
+    public string Code { get; set; } = "";
+}
+
+public class ActiveReservationDto
+{
+    public Guid ReservationId { get; set; }
+    public Guid TripId { get; set; }
+    public string DriverName { get; set; } = "";
+    public string StatusLabel { get; set; } = "";
+    public int StatusId { get; set; }
+    public string BoardingCode { get; set; } = "";
+    public string OriginAddress { get; set; } = "";
+    public string DestinationAddress { get; set; } = "";
+    public double OriginLatitude { get; set; }
+    public double OriginLongitude { get; set; }
+    public double DestinationLatitude { get; set; }
+    public double DestinationLongitude { get; set; }
+    public string VehicleBrand { get; set; } = "";
+    public string VehicleColor { get; set; } = "";
+    public string VehiclePlate { get; set; } = "";
+
+    public static ActiveReservationDto FromReservation(Reservation r)
+    {
+        return new ActiveReservationDto
+        {
+            ReservationId = r.Id,
+            TripId = r.TripId,
+            DriverName = r.Trip.DriverName,
+            StatusLabel = r.StatusEntity?.LabelEs ?? "",
+            StatusId = r.StatusId,
+            BoardingCode = r.BoardingCode ?? "",
+            OriginAddress = r.Trip.OriginLocation?.AddressLabel ?? "",
+            DestinationAddress = r.Trip.DestinationLocation?.AddressLabel ?? "",
+            OriginLatitude = r.Trip.OriginLocation?.Latitude ?? 0,
+            OriginLongitude = r.Trip.OriginLocation?.Longitude ?? 0,
+            DestinationLatitude = r.Trip.DestinationLocation?.Latitude ?? 0,
+            DestinationLongitude = r.Trip.DestinationLocation?.Longitude ?? 0,
+            VehicleBrand = r.Trip.Vehicle?.Brand ?? "",
+            VehicleColor = r.Trip.Vehicle?.Color ?? "",
+            VehiclePlate = r.Trip.Vehicle?.LicensePlate ?? ""
         };
     }
 }

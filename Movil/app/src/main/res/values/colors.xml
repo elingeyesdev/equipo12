@@ -2,18 +2,32 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="splash_gray">#D3D3D3</color>
-    <color name="carpool_dark">#263238</color>
-    <color name="carpool_primary">#455A64</color>
-    <color name="carpool_primary_dark">#37474F</color>
-    <color name="carpool_surface">#F5F7F8</color>
-    <color name="carpool_text_primary">#1F2A30</color>
-    <color name="carpool_text_secondary">#5E6E76</color>
-    <color name="match_status_active">#1565C0</color>
-    <color name="match_status_ready">#2E7D32</color>
-    <color name="match_status_in_progress">#EF6C00</color>
-    <color name="match_status_cancelled">#C62828</color>
-    <color name="match_status_finished">#546E7A</color>
-    <color name="match_card_stroke">#8A9BA8</color>
-    <color name="history_delete_color">#C62828</color>
+    <color name="splash_gray">#FF000000</color>
+    <color name="carpool_dark">#FF000000</color>
+    <color name="carpool_primary">#FF000000</color>
+    <color name="carpool_primary_dark">#FF111111</color>
+    <color name="carpool_surface">#FFF6F6F6</color>
+    <color name="carpool_text_primary">#FF000000</color>
+    <color name="carpool_text_secondary">#FF6B6B6B</color>
+    <color name="match_status_active">#FF000000</color>
+    <color name="match_status_ready">#FF333333</color>
+    <color name="match_status_in_progress">#FF555555</color>
+    <color name="match_status_cancelled">#FFE02020</color>
+    <color name="match_status_finished">#FF999999</color>
+    <color name="match_card_stroke">#FFE8E8E8</color>
+    <color name="history_delete_color">#FFE02020</color>
+
+    <color name="uber_accent">#FF000000</color>
+    <color name="uber_divider">#FFF0F0F0</color>
+    <color name="uber_chip_bg">#FFF2F2F2</color>
+    <color name="uber_stat_cell">#FFF8F8F8</color>
+    <color name="uber_handle">#FFDDDDDD</color>
+    <color name="uber_scrim">#99000000</color>
+    <color name="uber_success">#FF000000</color>
+    <color name="uber_error">#FFE02020</color>
+    <color name="uber_border">#FFE8E8E8</color>
+    <color name="uber_avatar">#FF111111</color>
+    <color name="uber_button_disabled">#FFCCCCCC</color>
+    <color name="uber_button_disabled_text">#FF888888</color>
+    <color name="uber_text_inverse">#FFFFFFFF</color>
 </resources>

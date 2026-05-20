@@ -1,0 +1,295 @@
+using CarPooling.Data;
+using CarPooling.Dtos;
+using CarPooling.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace CarPooling.Services;
+
+public class TripService(CarPoolingContext context, GeocodingService geocodingService)
+{
+    private readonly CarPoolingContext _context = context;
+    private readonly GeocodingService _geocoding = geocodingService;
+
+    public async Task<Trip> CreateTripAsync(CoordinateRequest request)
+    {
+        var driverName = request.DriverName?.Trim() ?? "";
+        if (driverName.Length > 100) driverName = driverName[..100];
+
+        if (request.DriverUserId is not null)
+        {
+            var exists = await _context.Users.AnyAsync(u => u.Id == request.DriverUserId.Value);
+            if (!exists) throw new InvalidOperationException("DriverUserId no existe.");
+        }
+
+        var originAddress = await _geocoding.ReverseGeocodeAsync(request.Latitude, request.Longitude);
+        var origin = new Location
+        {
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            AddressLabel = originAddress
+        };
+
+        _context.Locations.Add(origin);
+        await _context.SaveChangesAsync();
+
+        var trip = new Trip
+        {
+            Kind = TripKind.Regular,
+            OriginLocationId = origin.Id,
+            DestinationLocationId = origin.Id, // placeholder, se actualiza con SetDestination
+            StatusId = 1, // scheduled
+            DriverName = driverName,
+            DriverUserId = request.DriverUserId,
+            OfferedSeats = request.OfferedSeats ?? 4,
+            AvailableSeats = request.OfferedSeats ?? 4,
+            VehicleId = request.VehicleId
+        };
+
+        _context.Trips.Add(trip);
+        await _context.SaveChangesAsync();
+
+        return trip;
+    }
+
+    public async Task<Trip> SetDestinationAsync(Guid tripId, CoordinateRequest request)
+    {
+        var trip = await _context.Trips
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
+            .FirstOrDefaultAsync(t => t.Id == tripId);
+        if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
+        if (trip.Kind != TripKind.Regular) throw new InvalidOperationException("No es un viaje operativo.");
+        if (trip.StatusId == 5) throw new InvalidOperationException("El viaje fue cancelado.");
+        if (trip.StatusId != 1) throw new InvalidOperationException("El viaje ya tiene destino.");
+
+        var address = await _geocoding.ReverseGeocodeAsync(request.Latitude, request.Longitude);
+        var destination = new Location
+        {
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            AddressLabel = address
+        };
+        _context.Locations.Add(destination);
+
+        trip.DestinationLocationId = destination.Id;
+        trip.StatusId = 2; // ready (listo)
+        trip.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return trip;
+    }
+
+    public async Task<Trip> CancelTripAsync(Guid tripId)
+    {
+        var trip = await _context.Trips
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
+            .FirstOrDefaultAsync(t => t.Id == tripId);
+        if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
+        if (trip.Kind != TripKind.Regular) throw new InvalidOperationException("No es un viaje operativo.");
+        if (trip.StatusId == 5) return trip;
+
+        trip.StatusId = 5; // cancelled
+        trip.CancelledAt = DateTime.UtcNow;
+        trip.UpdatedAt = trip.CancelledAt;
+        await _context.SaveChangesAsync();
+        return trip;
+    }
+
+    public async Task<Trip> StartTripAsync(Guid tripId)
+    {
+        var trip = await _context.Trips
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
+            .FirstOrDefaultAsync(t => t.Id == tripId);
+        if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
+        if (trip.Kind != TripKind.Regular) throw new InvalidOperationException("No es un viaje operativo.");
+        if (trip.StatusId == 5) throw new InvalidOperationException("Viaje cancelado.");
+        if (trip.StatusId != 2) throw new InvalidOperationException("El viaje no esta listo para iniciar.");
+
+        var boardedCount = await _context.Reservations.CountAsync(r =>
+            r.TripId == tripId && r.StatusId == 3); // boarded
+        if (boardedCount <= 0) throw new InvalidOperationException("Debe haber al menos un pasajero abordado.");
+
+        trip.StatusId = 3; // in_progress
+        trip.StartedAt ??= DateTime.UtcNow;
+        trip.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return trip;
+    }
+
+    public async Task<Trip> FinishTripAsync(Guid tripId)
+    {
+        var trip = await _context.Trips
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
+            .FirstOrDefaultAsync(t => t.Id == tripId);
+        if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
+        if (trip.Kind != TripKind.Regular) throw new InvalidOperationException("No es un viaje operativo.");
+        if (trip.StatusId == 5) throw new InvalidOperationException("Viaje cancelado.");
+        if (trip.StatusId == 4) return trip;
+        if (trip.StatusId != 3) throw new InvalidOperationException("Solo se puede finalizar un viaje en curso.");
+
+        trip.StatusId = 4; // finished
+        trip.FinishedAt ??= DateTime.UtcNow;
+        trip.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return trip;
+    }
+
+    public async Task<Trip?> GetByIdAsync(Guid tripId)
+    {
+        return await _context.Trips.AsNoTracking()
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
+            .Include(t => t.Vehicle)
+            .FirstOrDefaultAsync(t => t.Id == tripId);
+    }
+
+    public async Task<List<DriverTripMatchResponse>> GetMatchCandidatesAsync(
+        double referenceLatitude, double referenceLongitude)
+    {
+        if (referenceLatitude is < -90 or > 90 || referenceLongitude is < -180 or > 180)
+            throw new InvalidOperationException("Coordenadas invalidas.");
+
+        var trips = await _context.Trips.AsNoTracking()
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.Vehicle)
+            .Where(t =>
+                t.Kind == TripKind.Regular
+                && (t.StatusId == 2 || t.StatusId == 3) // started (listo/en curso)
+                && t.AvailableSeats > 0)
+            .ToListAsync();
+
+        return trips.Select(t =>
+        {
+            var destLat = t.DestinationLocation.Latitude;
+            var destLon = t.DestinationLocation.Longitude;
+            var origLat = t.OriginLocation.Latitude;
+            var origLon = t.OriginLocation.Longitude;
+            var dOrigin = HaversineKm(referenceLatitude, referenceLongitude, origLat, origLon);
+            var dDest = HaversineKm(referenceLatitude, referenceLongitude, destLat, destLon);
+            var distanceKm = Math.Min(dOrigin, dDest);
+            const double assumedKmh = 28.0;
+            var eta = (int)Math.Clamp(Math.Round(distanceKm / assumedKmh * 60.0), 1, 999);
+
+            var name = string.IsNullOrWhiteSpace(t.DriverName) ? "Conductor" : t.DriverName.Trim();
+            if (name.Length > 100) name = name[..100];
+
+            return new DriverTripMatchResponse
+            {
+                TripId = t.Id,
+                DriverName = name,
+                Origin = new LocationDto
+                {
+                    Id = t.OriginLocation.Id,
+                    Latitude = origLat,
+                    Longitude = origLon,
+                    AddressLabel = t.OriginLocation.AddressLabel
+                },
+                Destination = new LocationDto
+                {
+                    Id = t.DestinationLocation.Id,
+                    Latitude = destLat,
+                    Longitude = destLon,
+                    AddressLabel = t.DestinationLocation.AddressLabel
+                },
+                StatusLabel = t.StatusEntity?.LabelEs ?? "",
+                AvailableSeats = t.AvailableSeats,
+                DistanceKm = Math.Round(distanceKm, 2, MidpointRounding.AwayFromZero),
+                EtaMinutes = eta,
+                VehicleBrand = t.Vehicle?.Brand ?? "",
+                VehicleColor = t.Vehicle?.Color ?? "",
+                VehiclePlate = t.Vehicle?.LicensePlate ?? "",
+            };
+        })
+        .OrderBy(r => r.DistanceKm)
+        .ToList();
+    }
+
+    public async Task<Trip?> GetActiveTripForDriverAsync(Guid driverUserId, string? displayName = null)
+    {
+        var trip = await _context.Trips.AsNoTracking()
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
+            .Where(t =>
+                t.Kind == TripKind.Regular
+                && t.DriverUserId == driverUserId
+                && t.StatusId != 4
+                && t.StatusId != 5)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (trip is null && !string.IsNullOrWhiteSpace(displayName))
+        {
+            var n = displayName.Trim();
+            trip = await _context.Trips.AsNoTracking()
+                .Include(t => t.OriginLocation)
+                .Include(t => t.DestinationLocation)
+                .Include(t => t.StatusEntity)
+                .Where(t =>
+                    t.Kind == TripKind.Regular
+                    && t.DriverUserId == null
+                    && t.DriverName != null
+                    && t.DriverName.Trim() == n
+                    && t.StatusId != 4
+                    && t.StatusId != 5)
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
+
+        return trip;
+    }
+
+    public static TripResponse MapToDto(Trip trip)
+    {
+        return new TripResponse
+        {
+            Id = trip.Id,
+            Kind = trip.Kind,
+            Origin = new LocationDto
+            {
+                Id = trip.OriginLocation.Id,
+                Latitude = trip.OriginLocation.Latitude,
+                Longitude = trip.OriginLocation.Longitude,
+                AddressLabel = trip.OriginLocation.AddressLabel
+            },
+            Destination = new LocationDto
+            {
+                Id = trip.DestinationLocation.Id,
+                Latitude = trip.DestinationLocation.Latitude,
+                Longitude = trip.DestinationLocation.Longitude,
+                AddressLabel = trip.DestinationLocation.AddressLabel
+            },
+            StatusLabel = trip.StatusEntity?.LabelEs ?? "",
+            StatusId = trip.StatusId,
+            OfferedSeats = trip.OfferedSeats,
+            AvailableSeats = trip.AvailableSeats,
+            VehicleId = trip.VehicleId,
+            DriverName = trip.DriverName,
+            DriverUserId = trip.DriverUserId,
+            CreatedAt = trip.CreatedAt,
+            UpdatedAt = trip.UpdatedAt,
+            CancelledAt = trip.CancelledAt
+        };
+    }
+
+    private static double HaversineKm(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double earthRadiusKm = 6371.0;
+        static double ToRad(double degrees) => degrees * (Math.PI / 180.0);
+        var dLat = ToRad(lat2 - lat1);
+        var dLon = ToRad(lon2 - lon1);
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
+                + Math.Cos(ToRad(lat1)) * Math.Cos(ToRad(lat2)) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return earthRadiusKm * c;
+    }
+}

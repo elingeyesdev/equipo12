@@ -1,5 +1,3 @@
-using CarPooling.Models;
-
 namespace CarPooling.Dtos;
 
 public class TripHistorySummaryDto
@@ -58,29 +56,4 @@ public class TripHistoryStatsDto
     public int PassengerTripsCount { get; set; }
     public int DriverTripsCount { get; set; }
     public int TotalTripsCount { get; set; }
-}
-
-internal static class TripHistoryLabelMapper
-{
-    public static string ToTripStatusLabel(TripStatus status)
-    {
-        return status == TripStatus.Ready
-            ? "listo"
-            : status == TripStatus.Cancelled
-                ? "cancelado"
-                : status == TripStatus.InProgress
-                    ? "en_curso"
-                    : status == TripStatus.Finished
-                        ? "finalizado"
-                        : "activo";
-    }
-
-    public static string ToReservationStatusLabel(ReservationStatus status)
-    {
-        return status == ReservationStatus.Boarded
-            ? "abordado"
-            : status == ReservationStatus.Cancelled
-                ? "cancelado"
-                : "activo";
-    }
 }

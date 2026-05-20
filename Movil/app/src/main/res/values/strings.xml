@@ -2,7 +2,7 @@
     <string name="app_name">ProyectoCarpooling</string>
     <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
 
-    <string name="api_base_url_emulator">http://10.0.2.2:5005</string>
+    <string name="api_base_url_emulator">http://10.0.2.2:5000</string>
     <string name="api_base_url_device">https://a5c6-177-222-104-10.ngrok-free.app</string>
 
     <string name="origin_placeholder">Recogida: sin seleccionar</string>
@@ -57,6 +57,7 @@
     <string name="dialog_message_mark_boarded">Ingresa el nombre del pasajero (debe coincidir con la reserva):</string>
     <string name="toast_boarding_confirmed">Pasajero marcado como abordado.</string>
     <string name="toast_boarding_failed">No se pudo validar el abordaje.</string>
+    <string name="toast_boarding_code_invalid">Código de abordaje inválido.</string>
     <string name="button_start_trip">Iniciar viaje</string>
     <string name="toast_trip_started">Viaje iniciado.</string>
     <string name="toast_trip_start_failed">No se pudo iniciar el viaje.</string>
@@ -114,6 +115,9 @@
     <string name="driver_passenger_requests_title">Solicitudes de pasajeros</string>
     <string name="driver_passenger_requests_subtitle">Viaje: %1$s</string>
     <string name="driver_passenger_requests_count">%1$d solicitud(es) activa(s)</string>
+    <string name="driver_passenger_requests_count_sections">%1$d pendientes, %2$d confirmadas</string>
+    <string name="driver_passenger_requests_section_pending">Pendientes (%1$d)</string>
+    <string name="driver_passenger_requests_section_confirmed">Confirmadas (%1$d)</string>
     <string name="driver_passenger_requests_empty">No hay solicitudes activas. Cuando un pasajero confirme contigo desde «Buscar conductor», aparecerá aquí.</string>
     <string name="driver_passenger_requests_solicitado">Solicitado: %1$s</string>
     <string name="driver_passenger_requests_btn_reject">Rechazar</string>
@@ -324,4 +328,14 @@
     <string name="user_role_passenger">Pasajero</string>
     <string name="user_role_driver">Conductor</string>
     <string name="user_role_both">Mixto</string>
+    <string name="user_rating_placeholder">Calificación: --</string>
+    <string name="passenger_reservation_title">Viaje reservado</string>
+    <string name="passenger_reservation_driver">Conductor: %1$s</string>
+    <string name="passenger_reservation_code">Código: %1$s</string>
+    <string name="passenger_reservation_hint">Muestra este código al conductor al abordar</string>
+    <string name="passenger_already_booked">Ya tienes un viaje reservado. Cancélalo antes de buscar otro.</string>
+    <string name="cancel_reservation_title">Cancelar reserva</string>
+    <string name="cancel_reservation_message">¿Estás seguro de que deseas cancelar tu reserva?</string>
+    <string name="cancel_reservation_success">Reserva cancelada</string>
+    <string name="cancel_reservation_error">Error al cancelar la reserva</string>
 </resources>

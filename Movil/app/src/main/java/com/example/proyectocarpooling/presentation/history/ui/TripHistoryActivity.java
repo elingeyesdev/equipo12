@@ -17,32 +17,28 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.proyectocarpooling.CarPoolingApplication;
 import com.example.proyectocarpooling.R;
-import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.history.TripHistoryListResult;
 import com.example.proyectocarpooling.data.model.history.TripHistorySummaryItem;
-import com.example.proyectocarpooling.data.remote.user.TripHistoryRemoteDataSource;
 import com.example.proyectocarpooling.presentation.history.TripHistoryListFilter;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
-import org.json.JSONException;
-
-import java.io.IOException;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Set;
 
 public class TripHistoryActivity extends AppCompatActivity implements TripHistoryAdapter.Listener {
 
@@ -51,37 +47,30 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
     private MaterialToolbar toolbar;
     private ProgressBar progress;
     private View historyEmptyState;
-    private TextView emptyMessageText;
-    private TextView summaryText;
-    private TextView statPassenger;
-    private TextView statDriver;
-    private TextView statTotal;
+    private TextView emptyMessageText, summaryText, statPassenger, statDriver, statTotal;
     private ChipGroup categoryGroup;
     private RecyclerView recycler;
     private TripHistoryAdapter adapter;
     private SessionManager sessionManager;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private TripHistoryViewModel viewModel;
     private TripHistoryListResult loaded;
     private Category selectedCategory = Category.STUDENT;
 
     private TextInputEditText searchEdit;
-    private Spinner statusSpinner;
-    private Spinner monthSpinner;
-    private Spinner sortSpinner;
+    private Spinner statusSpinner, monthSpinner, sortSpinner;
     private ArrayAdapter<String> monthAdapter;
-    /** Índice del spinner mes → YearMonth o null en posición 0. */
     private final List<YearMonth> monthSpinnerKeys = new ArrayList<>();
     private boolean suppressFilterCallbacks;
-
-    private final DateTimeFormatter monthDisplayFormat =
-            DateTimeFormatter.ofPattern("MMMM yyyy", new Locale("es", "ES"));
+    private final DateTimeFormatter monthDisplayFormat = DateTimeFormatter.ofPattern("MMMM yyyy", new Locale("es", "ES"));
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_trip_history);
 
-        sessionManager = new SessionManager(this);
+        sessionManager = ((CarPoolingApplication) getApplication()).getSessionManager();
+        viewModel = new ViewModelProvider(this).get(TripHistoryViewModel.class);
+
         toolbar = findViewById(R.id.historyToolbar);
         progress = findViewById(R.id.historyProgress);
         historyEmptyState = findViewById(R.id.historyEmptyState);
@@ -114,18 +103,32 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
         int initialChipId = selectedCategory == Category.STUDENT ? R.id.historyChipStudent : R.id.historyChipDriver;
         categoryGroup.check(initialChipId);
         categoryGroup.setOnCheckedChangeListener((group, checkedId) -> {
-            if (checkedId == View.NO_ID) {
-                return;
-            }
+            if (checkedId == View.NO_ID) return;
             Category next = checkedId == R.id.historyChipStudent ? Category.STUDENT : Category.DRIVER;
-            if (next == selectedCategory) {
-                return;
-            }
+            if (next == selectedCategory) return;
             selectedCategory = next;
             renderCategory();
         });
 
+        observeViewModel();
         loadHistory();
+    }
+
+    private void observeViewModel() {
+        viewModel.getLoading().observe(this, isLoading -> progress.setVisibility(isLoading ? View.VISIBLE : View.GONE));
+
+        viewModel.getHistoryResult().observe(this, result -> {
+            if (result != null) {
+                loaded = result;
+                renderCategory();
+            }
+        });
+
+        viewModel.getErrorEvent().observe(this, error -> {
+            if (error != null) {
+                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -146,38 +149,22 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
     }
 
     private void setupFilterSpinners() {
-        ArrayAdapter<String> statusAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_dropdown_item,
-                new String[]{
-                        getString(R.string.history_filter_status_all),
-                        getString(R.string.history_filter_status_finished),
-                        getString(R.string.history_filter_status_cancelled)
-                });
+        ArrayAdapter<String> statusAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[]{ getString(R.string.history_filter_status_all), getString(R.string.history_filter_status_finished), getString(R.string.history_filter_status_cancelled) });
         statusSpinner.setAdapter(statusAdapter);
 
         monthAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new ArrayList<>());
         monthSpinner.setAdapter(monthAdapter);
 
-        ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_dropdown_item,
-                new String[]{
-                        getString(R.string.history_sort_recent),
-                        getString(R.string.history_sort_oldest),
-                        getString(R.string.history_sort_only_cancelled)
-                });
+        ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+                new String[]{ getString(R.string.history_sort_recent), getString(R.string.history_sort_oldest), getString(R.string.history_sort_only_cancelled) });
         sortSpinner.setAdapter(sortAdapter);
 
         AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!suppressFilterCallbacks && loaded != null) {
-                    applyFiltersToCurrentCategory();
-                }
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (!suppressFilterCallbacks && loaded != null) applyFiltersToCurrentCategory();
             }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
         };
         statusSpinner.setOnItemSelectedListener(listener);
         monthSpinner.setOnItemSelectedListener(listener);
@@ -186,20 +173,9 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
 
     private void setupSearchField() {
         searchEdit.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (loaded != null) {
-                    applyFiltersToCurrentCategory();
-                }
-            }
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) { if (loaded != null) applyFiltersToCurrentCategory(); }
         });
     }
 
@@ -208,46 +184,34 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
         searchEdit.setText("");
         statusSpinner.setSelection(0);
         sortSpinner.setSelection(0);
-        if (monthSpinner.getCount() > 0) {
-            monthSpinner.setSelection(0);
-        }
+        if (monthSpinner.getCount() > 0) monthSpinner.setSelection(0);
         suppressFilterCallbacks = false;
     }
 
     private TripHistoryListFilter.StatusFilter statusFromSpinner() {
         switch (statusSpinner.getSelectedItemPosition()) {
-            case 1:
-                return TripHistoryListFilter.StatusFilter.FINISHED;
-            case 2:
-                return TripHistoryListFilter.StatusFilter.CANCELLED;
-            default:
-                return TripHistoryListFilter.StatusFilter.ALL;
+            case 1: return TripHistoryListFilter.StatusFilter.FINISHED;
+            case 2: return TripHistoryListFilter.StatusFilter.CANCELLED;
+            default: return TripHistoryListFilter.StatusFilter.ALL;
         }
     }
 
     private TripHistoryListFilter.SortMode sortFromSpinner() {
         switch (sortSpinner.getSelectedItemPosition()) {
-            case 1:
-                return TripHistoryListFilter.SortMode.OLDEST_FIRST;
-            case 2:
-                return TripHistoryListFilter.SortMode.ONLY_CANCELLED_RECENT;
-            default:
-                return TripHistoryListFilter.SortMode.RECENT_FIRST;
+            case 1: return TripHistoryListFilter.SortMode.OLDEST_FIRST;
+            case 2: return TripHistoryListFilter.SortMode.ONLY_CANCELLED_RECENT;
+            default: return TripHistoryListFilter.SortMode.RECENT_FIRST;
         }
     }
 
     @Nullable
     private YearMonth monthFromSpinner() {
         int pos = monthSpinner.getSelectedItemPosition();
-        if (pos < 0 || pos >= monthSpinnerKeys.size()) {
-            return null;
-        }
-        return monthSpinnerKeys.get(pos);
+        return (pos < 0 || pos >= monthSpinnerKeys.size()) ? null : monthSpinnerKeys.get(pos);
     }
 
     private void rebuildMonthSpinner(List<TripHistorySummaryItem> rawCategoryList) {
         YearMonth previousSelection = monthFromSpinner();
-
         monthSpinnerKeys.clear();
         monthSpinnerKeys.add(null);
         List<YearMonth> distinct = TripHistoryListFilter.distinctMonthsDescending(rawCategoryList);
@@ -256,8 +220,7 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
         List<String> labels = new ArrayList<>();
         labels.add(getString(R.string.history_filter_month_all));
         for (int i = 1; i < monthSpinnerKeys.size(); i++) {
-            YearMonth ym = monthSpinnerKeys.get(i);
-            labels.add(capitalizeMonth(monthDisplayFormat.format(ym)));
+            labels.add(capitalizeMonth(monthDisplayFormat.format(monthSpinnerKeys.get(i))));
         }
 
         suppressFilterCallbacks = true;
@@ -268,77 +231,49 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
         int newPos = 0;
         if (previousSelection != null) {
             int idx = monthSpinnerKeys.indexOf(previousSelection);
-            if (idx >= 0) {
-                newPos = idx;
-            }
+            if (idx >= 0) newPos = idx;
         }
         monthSpinner.setSelection(newPos);
         suppressFilterCallbacks = false;
     }
 
     private static String capitalizeMonth(String formatted) {
-        if (formatted == null || formatted.isEmpty()) {
-            return "";
-        }
+        if (formatted == null || formatted.isEmpty()) return "";
         return Character.toUpperCase(formatted.charAt(0)) + formatted.substring(1);
     }
 
     private void loadHistory() {
         String userId = sessionManager.getUserId();
-        if (userId == null || userId.isBlank()) {
-            finish();
-            return;
-        }
-
-        progress.setVisibility(View.VISIBLE);
-        executor.execute(() -> {
-            try {
-                TripHistoryRemoteDataSource api = new TripHistoryRemoteDataSource(ApiBaseUrlProvider.get(this));
-                loaded = api.listHistory(userId, sessionManager.getFullName());
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    renderCategory();
-                });
-            } catch (IOException | JSONException e) {
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    Toast.makeText(this, R.string.history_load_error, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
+        if (userId == null || userId.isBlank()) { finish(); return; }
+        viewModel.loadHistory(userId, sessionManager.getFullName());
     }
 
     private List<TripHistorySummaryItem> rawListForCategory() {
-        if (loaded == null) {
-            return Collections.emptyList();
+        if (loaded == null) return Collections.emptyList();
+        List<TripHistorySummaryItem> list = selectedCategory == Category.STUDENT ? loaded.studentHistory : loaded.driverHistory;
+        if (list == null) return Collections.emptyList();
+
+        Set<String> hidden = sessionManager.getHiddenTripIds();
+        List<TripHistorySummaryItem> filtered = new ArrayList<>();
+        for (TripHistorySummaryItem item : list) {
+            if (!hidden.contains(item.tripId)) filtered.add(item);
         }
-        List<TripHistorySummaryItem> list = selectedCategory == Category.STUDENT
-                ? loaded.studentHistory
-                : loaded.driverHistory;
-        return list != null ? list : Collections.emptyList();
+        return filtered;
     }
 
     private void renderCategory() {
-        if (loaded == null) {
-            return;
-        }
+        if (loaded == null) return;
         if (loaded.summary != null) {
             statPassenger.setText(String.valueOf(loaded.summary.passengerTripsCount));
             statDriver.setText(String.valueOf(loaded.summary.driverTripsCount));
             statTotal.setText(String.valueOf(loaded.summary.totalTripsCount));
-            String creative = getString(
-                    R.string.history_summary_creative,
-                    loaded.summary.passengerTripsCount,
-                    loaded.summary.driverTripsCount,
-                    loaded.summary.totalTripsCount);
+            String creative = getString(R.string.history_summary_creative,
+                    loaded.summary.passengerTripsCount, loaded.summary.driverTripsCount, loaded.summary.totalTripsCount);
             String roleHighlight = loaded.summary.driverTripsCount > 0
-                    ? getString(R.string.history_summary_role_driver)
-                    : getString(R.string.history_summary_role_student);
+                    ? getString(R.string.history_summary_role_driver) : getString(R.string.history_summary_role_student);
             summaryText.setText(String.format(Locale.getDefault(), "%s\n\n%s", creative, roleHighlight));
         } else {
-            statPassenger.setText("0");
-            statDriver.setText("0");
-            statTotal.setText("0");
+            statPassenger.setText("0"); statDriver.setText("0"); statTotal.setText("0");
             summaryText.setText(R.string.history_summary_fallback);
         }
 
@@ -351,31 +286,20 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
         List<TripHistorySummaryItem> raw = rawListForCategory();
         String query = searchEdit.getText() != null ? searchEdit.getText().toString() : "";
 
-        TripHistoryListFilter.StatusFilter statusFilter = statusFromSpinner();
-        TripHistoryListFilter.SortMode sortMode = sortFromSpinner();
-        YearMonth month = monthFromSpinner();
-
         List<TripHistorySummaryItem> filtered = TripHistoryListFilter.apply(
-                raw,
-                query,
-                statusFilter,
-                month,
-                sortMode
-        );
+                raw, query, statusFromSpinner(), monthFromSpinner(), sortFromSpinner());
 
         adapter.setItems(filtered);
 
         boolean rawEmpty = raw.isEmpty();
         boolean filteredEmpty = filtered.isEmpty();
-
         historyEmptyState.setVisibility(filteredEmpty ? View.VISIBLE : View.GONE);
         recycler.setVisibility(filteredEmpty ? View.GONE : View.VISIBLE);
 
         if (emptyMessageText != null) {
             if (rawEmpty) {
                 emptyMessageText.setText(selectedCategory == Category.STUDENT
-                        ? R.string.history_empty_student
-                        : R.string.history_empty_driver);
+                        ? R.string.history_empty_student : R.string.history_empty_driver);
             } else {
                 emptyMessageText.setText(R.string.history_empty_filtered);
             }
@@ -400,61 +324,19 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
     }
 
     private void deleteHistoryItem(TripHistorySummaryItem item) {
-        String userId = sessionManager.getUserId();
-        if (userId == null || userId.isBlank()) {
-            return;
-        }
-        progress.setVisibility(View.VISIBLE);
-        executor.execute(() -> {
-            try {
-                TripHistoryRemoteDataSource api = new TripHistoryRemoteDataSource(ApiBaseUrlProvider.get(this));
-                api.hideHistoryTrip(userId, item.tripId);
-                loaded = api.listHistory(userId, sessionManager.getFullName());
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    renderCategory();
-                    Snackbar snackbar = Snackbar.make(recycler, R.string.history_deleted_toast, Snackbar.LENGTH_LONG);
-                    snackbar.setDuration(5000);
-                    snackbar.setAction(R.string.history_undo, v -> restoreHistoryItem(item));
-                    snackbar.show();
-                });
-            } catch (IOException | JSONException e) {
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    Toast.makeText(this, R.string.history_delete_error, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
+        sessionManager.hideHistoryTrip(item.tripId);
+        loaded.driverHistory.removeIf(i -> i.tripId.equals(item.tripId));
+        loaded.studentHistory.removeIf(i -> i.tripId.equals(item.tripId));
+        renderCategory();
+        Snackbar.make(recycler, R.string.history_deleted_toast, Snackbar.LENGTH_LONG)
+                .setDuration(5000)
+                .setAction(R.string.history_undo, v -> restoreHistoryItem(item))
+                .show();
     }
 
     private void restoreHistoryItem(TripHistorySummaryItem item) {
-        String userId = sessionManager.getUserId();
-        if (userId == null || userId.isBlank()) {
-            return;
-        }
-        progress.setVisibility(View.VISIBLE);
-        executor.execute(() -> {
-            try {
-                TripHistoryRemoteDataSource api = new TripHistoryRemoteDataSource(ApiBaseUrlProvider.get(this));
-                api.restoreHistoryTrip(userId, item.tripId);
-                loaded = api.listHistory(userId, sessionManager.getFullName());
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    renderCategory();
-                    Toast.makeText(this, R.string.history_restored_toast, Toast.LENGTH_SHORT).show();
-                });
-            } catch (IOException | JSONException e) {
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    Toast.makeText(this, R.string.history_restore_error, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        executor.shutdown();
+        sessionManager.restoreHistoryTrip(item.tripId);
+        loadHistory();
+        Toast.makeText(this, R.string.history_restored_toast, Toast.LENGTH_SHORT).show();
     }
 }

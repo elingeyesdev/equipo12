@@ -6,50 +6,38 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.proyectocarpooling.R;
-import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
-import com.example.proyectocarpooling.data.remote.TripsRemoteDataSource;
-import com.example.proyectocarpooling.data.repository.TripRepositoryImpl;
-import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.google.android.material.appbar.MaterialToolbar;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-/**
- * Pantalla del conductor: solicitudes activas (reservas) para el viaje actual,
- * con opciones para rechazar (cancela reserva) o aceptar (confirmación de negocio).
- */
 public class DriverPassengerRequestsActivity extends AppCompatActivity {
 
     public static final String EXTRA_TRIP_ID = "extra_trip_id";
 
-    private MaterialToolbar toolbar;
-    private TextView tripSummaryText;
-    private TextView countText;
-    private TextView emptyText;
-    private RecyclerView recyclerView;
+    private static final int VIEW_TYPE_HEADER = 1;
+    private static final int VIEW_TYPE_ITEM = 2;
 
-    private final List<ReservationResponse> items = new ArrayList<>();
-    /** Reservas que el conductor ya «aceptó» en esta pantalla; mostramos Abordar sin ir al mapa. */
-    private final Set<String> acceptedPendingBoardingIds = new HashSet<>();
-    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+    private MaterialToolbar toolbar;
+    private TextView tripSummaryText, countText, emptyText;
+    private RecyclerView recyclerView;
     private RequestsAdapter adapter;
+
+    private DriverPassengerRequestsViewModel viewModel;
+    private final List<ListItem> items = new ArrayList<>();
     private String tripId;
 
     @Override
@@ -63,6 +51,8 @@ public class DriverPassengerRequestsActivity extends AppCompatActivity {
             finish();
             return;
         }
+
+        viewModel = new ViewModelProvider(this).get(DriverPassengerRequestsViewModel.class);
 
         toolbar = findViewById(R.id.requestsToolbar);
         tripSummaryText = findViewById(R.id.tripSummaryText);
@@ -83,176 +73,210 @@ public class DriverPassengerRequestsActivity extends AppCompatActivity {
         adapter = new RequestsAdapter();
         recyclerView.setAdapter(adapter);
 
-        loadReservations();
+        observeViewModel();
+        viewModel.loadReservations(tripId);
+    }
+
+    private void observeViewModel() {
+        viewModel.getReservations().observe(this, data -> {
+            if (data != null) {
+                applyLists(data.pending, data.confirmed);
+            }
+        });
+
+        viewModel.getSuccessEvent().observe(this, msg -> {
+            if (msg != null) {
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                viewModel.loadReservations(tripId);
+            }
+        });
+
+        viewModel.getErrorEvent().observe(this, error -> {
+            if (error != null) {
+                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private boolean onToolbarMenuItem(MenuItem item) {
         if (item.getItemId() == R.id.action_refresh_requests) {
-            loadReservations();
+            viewModel.loadReservations(tripId);
             return true;
         }
         return false;
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        ioExecutor.shutdownNow();
-    }
-
     private static String shortTripId(String id) {
         String t = id.trim();
-        if (t.length() <= 12) {
-            return t;
-        }
-        return t.substring(0, 8) + "…";
+        return t.length() <= 12 ? t : t.substring(0, 8) + "...";
     }
 
-    private TripRepository buildRepository() {
-        String apiBase = ApiBaseUrlProvider.get(this);
-        String mapboxToken = getString(R.string.mapbox_access_token);
-        return new TripRepositoryImpl(new TripsRemoteDataSource(apiBase, mapboxToken));
-    }
-
-    private void loadReservations() {
-        TripRepository repository = buildRepository();
-        ioExecutor.execute(() -> {
-            try {
-                List<ReservationResponse> list = repository.getReservations(tripId);
-                runOnUiThread(() -> applyList(list));
-            } catch (IOException e) {
-                runOnUiThread(() ->
-                        Toast.makeText(DriverPassengerRequestsActivity.this, R.string.driver_passenger_requests_load_error, Toast.LENGTH_SHORT).show());
-            }
-        });
-    }
-
-    private void applyList(List<ReservationResponse> list) {
-        items.clear();
-        items.addAll(list);
-        // Quitar aceptados que ya no están en la lista (p. ej. abordó o canceló)
-        ArrayList<String> stillPresent = new ArrayList<>();
-        for (ReservationResponse r : list) {
-            stillPresent.add(r.id);
-        }
-        acceptedPendingBoardingIds.retainAll(stillPresent);
+    private void applyLists(List<ReservationResponse> pending, List<ReservationResponse> confirmed) {
+        rebuildFlatItems(pending, confirmed);
         adapter.notifyDataSetChanged();
 
-        int n = items.size();
-        countText.setText(getString(R.string.driver_passenger_requests_count, n));
-        boolean empty = n == 0;
+        int n = pending.size();
+        int m = confirmed.size();
+        countText.setText(getString(R.string.driver_passenger_requests_count_sections, n, m));
+        boolean empty = n + m == 0;
         emptyText.setVisibility(empty ? View.VISIBLE : View.GONE);
         recyclerView.setVisibility(empty ? View.GONE : View.VISIBLE);
+    }
+
+    private void rebuildFlatItems(List<ReservationResponse> pending, List<ReservationResponse> confirmed) {
+        items.clear();
+        if (!pending.isEmpty()) {
+            items.add(ListItem.header(getString(R.string.driver_passenger_requests_section_pending, pending.size()), true));
+            for (ReservationResponse r : pending) {
+                items.add(ListItem.item(r, true));
+            }
+        }
+        if (!confirmed.isEmpty()) {
+            items.add(ListItem.header(getString(R.string.driver_passenger_requests_section_confirmed, confirmed.size()), false));
+            for (ReservationResponse r : confirmed) {
+                items.add(ListItem.item(r, false));
+            }
+        }
     }
 
     private void confirmReject(ReservationResponse reservation) {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.driver_passenger_requests_confirm_reject_title)
-                .setMessage(getString(R.string.driver_passenger_requests_confirm_reject_msg, reservation.passengerName))
+                .setMessage(getString(R.string.driver_passenger_requests_confirm_reject_msg, reservation.getPassengerName()))
                 .setNegativeButton(R.string.dialog_button_cancel, null)
-                .setPositiveButton(R.string.dialog_button_confirm, (d, w) -> executeReject(reservation))
+                .setPositiveButton(R.string.dialog_button_confirm, (d, w) -> viewModel.rejectReservation(tripId, reservation.id))
                 .show();
-    }
-
-    private void executeReject(ReservationResponse reservation) {
-        TripRepository repository = buildRepository();
-        ioExecutor.execute(() -> {
-            try {
-                repository.cancelReservation(reservation.id);
-                runOnUiThread(() -> {
-                    Toast.makeText(this, R.string.driver_passenger_requests_rejected_toast, Toast.LENGTH_SHORT).show();
-                    loadReservations();
-                });
-            } catch (IOException e) {
-                runOnUiThread(() ->
-                        Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show());
-            }
-        });
     }
 
     private void confirmAccept(ReservationResponse reservation) {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.driver_passenger_requests_accept_title)
-                .setMessage(getString(R.string.driver_passenger_requests_accept_msg, reservation.passengerName))
-                .setPositiveButton(R.string.dialog_button_confirm, (d, w) -> {
-                    acceptedPendingBoardingIds.add(reservation.id);
-                    adapter.notifyDataSetChanged();
-                    Toast.makeText(this, R.string.driver_passenger_requests_accept_toast, Toast.LENGTH_LONG).show();
-                })
+                .setMessage(getString(R.string.driver_passenger_requests_accept_msg, reservation.getPassengerName()))
+                .setPositiveButton(R.string.dialog_button_confirm, (d, w) -> viewModel.acceptReservation(tripId, reservation.id))
                 .setNegativeButton(R.string.dialog_button_close, null)
                 .show();
     }
 
     private void executeBoard(ReservationResponse reservation) {
-        TripRepository repository = buildRepository();
-        ioExecutor.execute(() -> {
-            try {
-                repository.markBoardedByName(tripId, reservation.passengerName);
-                runOnUiThread(() -> {
-                    acceptedPendingBoardingIds.remove(reservation.id);
-                    Toast.makeText(this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
-                    loadReservations();
-                });
-            } catch (IOException e) {
-                runOnUiThread(() ->
-                        Toast.makeText(this, R.string.toast_boarding_failed, Toast.LENGTH_SHORT).show());
-            }
-        });
+        final EditText input = new EditText(this);
+        input.setHint("Código de abordaje del pasajero");
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Verificar código de abordaje")
+                .setView(input)
+                .setPositiveButton("Confirmar", (dialog, which) -> {
+                    String code = input.getText().toString().trim();
+                    if (code.isEmpty()) {
+                        Toast.makeText(this, "Ingrese el código", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    viewModel.verifyAndBoardPassenger(tripId, reservation.id, code);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
     }
 
     private static String formatRequestTime(String iso) {
-        if (iso == null || iso.isEmpty()) {
-            return "—";
-        }
+        if (iso == null || iso.isEmpty()) return "-";
         String s = iso.replace('T', ' ');
-        if (s.length() > 16) {
-            return s.substring(0, 16);
-        }
-        return s;
+        return s.length() > 16 ? s.substring(0, 16) : s;
     }
 
-    private class RequestsAdapter extends RecyclerView.Adapter<RequestsAdapter.VH> {
+    private static class ListItem {
+        final boolean isHeader;
+        final boolean isPending;
+        final String headerText;
+        final ReservationResponse reservation;
+
+        private ListItem(boolean isHeader, boolean isPending, String headerText, ReservationResponse reservation) {
+            this.isHeader = isHeader;
+            this.isPending = isPending;
+            this.headerText = headerText;
+            this.reservation = reservation;
+        }
+
+        static ListItem header(String text, boolean isPending) {
+            return new ListItem(true, isPending, text, null);
+        }
+
+        static ListItem item(ReservationResponse r, boolean isPending) {
+            return new ListItem(false, isPending, null, r);
+        }
+    }
+
+    private class RequestsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+        @Override
+        public int getItemViewType(int position) {
+            return items.get(position).isHeader ? VIEW_TYPE_HEADER : VIEW_TYPE_ITEM;
+        }
 
         @NonNull
         @Override
-        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_passenger_request, parent, false);
-            return new VH(v);
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            if (viewType == VIEW_TYPE_HEADER) {
+                View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_section_header, parent, false);
+                return new HeaderVH(v);
+            } else {
+                View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_passenger_request, parent, false);
+                return new ItemVH(v);
+            }
         }
 
         @Override
-        public void onBindViewHolder(@NonNull VH h, int position) {
-            ReservationResponse r = items.get(position);
-            h.name.setText(r.passengerName);
-            h.meta.setText(getString(R.string.driver_passenger_requests_solicitado, formatRequestTime(r.createdAt)));
-            boolean showBoard = acceptedPendingBoardingIds.contains(r.id);
-            h.accept.setVisibility(showBoard ? View.GONE : View.VISIBLE);
-            h.board.setVisibility(showBoard ? View.VISIBLE : View.GONE);
-            h.reject.setOnClickListener(v -> confirmReject(r));
-            h.accept.setOnClickListener(v -> confirmAccept(r));
-            h.board.setOnClickListener(v -> executeBoard(r));
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            ListItem item = items.get(position);
+            if (item.isHeader) {
+                HeaderVH h = (HeaderVH) holder;
+                h.headerText.setText(item.headerText);
+            } else {
+                ItemVH h = (ItemVH) holder;
+                ReservationResponse r = item.reservation;
+                h.name.setText(r.getPassengerName());
+                h.meta.setText(getString(R.string.driver_passenger_requests_solicitado, formatRequestTime(r.createdAt)));
+
+                if (item.isPending) {
+                    h.accept.setVisibility(View.VISIBLE);
+                    h.reject.setVisibility(View.VISIBLE);
+                    h.board.setVisibility(View.GONE);
+                    h.reject.setOnClickListener(v -> confirmReject(r));
+                    h.accept.setOnClickListener(v -> confirmAccept(r));
+                } else {
+                    h.accept.setVisibility(View.GONE);
+                    h.reject.setVisibility(View.GONE);
+                    h.board.setVisibility(View.VISIBLE);
+                    h.board.setOnClickListener(v -> executeBoard(r));
+                }
+            }
         }
 
         @Override
         public int getItemCount() {
             return items.size();
         }
+    }
 
-        class VH extends RecyclerView.ViewHolder {
-            final TextView name;
-            final TextView meta;
-            final Button reject;
-            final Button accept;
-            final Button board;
+    static class HeaderVH extends RecyclerView.ViewHolder {
+        final TextView headerText;
 
-            VH(View itemView) {
-                super(itemView);
-                name = itemView.findViewById(R.id.passengerNameText);
-                meta = itemView.findViewById(R.id.passengerMetaText);
-                reject = itemView.findViewById(R.id.rejectRequestButton);
-                accept = itemView.findViewById(R.id.acceptRequestButton);
-                board = itemView.findViewById(R.id.boardRequestButton);
-            }
+        HeaderVH(View itemView) {
+            super(itemView);
+            headerText = itemView.findViewById(R.id.sectionHeaderText);
+        }
+    }
+
+    static class ItemVH extends RecyclerView.ViewHolder {
+        final TextView name, meta;
+        final Button reject, accept, board;
+
+        ItemVH(View itemView) {
+            super(itemView);
+            name = itemView.findViewById(R.id.passengerNameText);
+            meta = itemView.findViewById(R.id.passengerMetaText);
+            reject = itemView.findViewById(R.id.rejectRequestButton);
+            accept = itemView.findViewById(R.id.acceptRequestButton);
+            board = itemView.findViewById(R.id.boardRequestButton);
         }
     }
 }

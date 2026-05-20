@@ -26,5 +26,9 @@ public class User
 
     public DriverProfile? DriverProfile { get; set; }
 
+    public ICollection<Vehicle> Vehicles { get; set; } = [];
+
+    public ICollection<Trip> Trips { get; set; } = [];
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

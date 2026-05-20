@@ -53,7 +53,11 @@ public class TripsRemoteDataSource {
     }
 
     public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull) throws IOException {
-        TripResponse createdTrip = sendOriginRequest(apiBaseUrl + "/api/Trips/origin", origin, driverNameOrNull, driverUserIdOrNull);
+        return createTrip(origin, destination, driverNameOrNull, driverUserIdOrNull, null);
+    }
+
+    public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull) throws IOException {
+        TripResponse createdTrip = sendOriginRequest(apiBaseUrl + "/api/Trips/origin", origin, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull);
         if (destination != null) {
             createdTrip = sendCoordinateRequest(apiBaseUrl + "/api/Trips/" + createdTrip.id + "/destination", destination);
         }
@@ -225,10 +229,11 @@ public class TripsRemoteDataSource {
         return executeTripRequest(request);
     }
 
-    public void createReservation(String tripId, String passengerName) throws IOException {
+    public void createReservation(String tripId, String passengerUserId, int seatsReserved) throws IOException {
         JSONObject body = new JSONObject();
         try {
-            body.put("passengerName", passengerName);
+            body.put("passengerUserId", passengerUserId);
+            body.put("seatsReserved", seatsReserved);
         } catch (JSONException e) {
             throw new IOException("No se pudo construir reserva", e);
         }
@@ -241,13 +246,60 @@ public class TripsRemoteDataSource {
         executeWithoutBody(request, "Error creando reserva");
     }
 
+    public void acceptReservation(String tripId, String reservationId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations/" + reservationId + "/accept")
+                .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
+                .build();
+        executeWithoutBody(request, "Error aceptando reserva");
+    }
+
+    public void rejectReservation(String tripId, String reservationId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations/" + reservationId + "/reject")
+                .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
+                .build();
+        executeWithoutBody(request, "Error rechazando reserva");
+    }
+
+    public void boardPassenger(String tripId, String reservationId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations/" + reservationId + "/board")
+                .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
+                .build();
+        executeWithoutBody(request, "Error marcando abordaje");
+    }
+
+    public boolean verifyBoardingCode(String tripId, String reservationId, String code) throws IOException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("code", code);
+        } catch (JSONException e) {
+            throw new IOException("No se pudo construir verificacion de codigo", e);
+        }
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations/" + reservationId + "/verify-code")
+                .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                .build();
+        try (Response response = httpClient.newCall(request).execute()) {
+            return response.isSuccessful();
+        }
+    }
+
     public List<ReservationResponse> getReservations(String tripId) throws IOException {
         Request request = new Request.Builder()
-                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations")
+                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations/pending")
                 .get()
                 .build();
-
         return executeReservationsRequest(request, "Error obteniendo reservas");
+    }
+
+    public List<ReservationResponse> getConfirmedReservations(String tripId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations/confirmed")
+                .get()
+                .build();
+        return executeReservationsRequest(request, "Error obteniendo confirmadas");
     }
 
     public List<ReservationResponse> getBoardedPassengers(String tripId) throws IOException {
@@ -259,38 +311,6 @@ public class TripsRemoteDataSource {
         return executeReservationsRequest(request, "Error obteniendo pasajeros abordados");
     }
 
-    public void markBoardedByName(String tripId, String passengerName) throws IOException {
-        JSONObject body = new JSONObject();
-        try {
-            body.put("passengerName", passengerName);
-        } catch (JSONException e) {
-            throw new IOException("No se pudo construir abordaje", e);
-        }
-
-        Request request = new Request.Builder()
-                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations/board")
-                .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
-                .build();
-
-        executeWithoutBody(request, "Error validando abordaje");
-    }
-
-    public void updateReservationStatus(String tripId, String reservationId, String targetStatus) throws IOException {
-        JSONObject body = new JSONObject();
-        try {
-            body.put("status", targetStatus);
-        } catch (JSONException e) {
-            throw new IOException("No se pudo construir cambio de estado", e);
-        }
-
-        Request request = new Request.Builder()
-                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations/" + reservationId + "/manual-status")
-                .patch(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
-                .build();
-
-        executeWithoutBody(request, "Error actualizando estado de reserva");
-    }
-
     public void cancelReservation(String reservationId) throws IOException {
         Request request = new Request.Builder()
                 .url(apiBaseUrl + "/api/Reservations/" + reservationId)
@@ -300,7 +320,27 @@ public class TripsRemoteDataSource {
         executeWithoutBody(request, "Error cancelando reserva");
     }
 
+    public void updateReservationStatus(String tripId, String reservationId, String targetStatus) throws IOException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("status", targetStatus);
+        } catch (JSONException e) {
+            throw new IOException("Error construyendo estado de reserva", e);
+        }
+
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Trips/" + tripId + "/Reservations/" + reservationId + "/status")
+                .put(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                .build();
+
+        executeWithoutBody(request, "Error actualizando estado de reserva");
+    }
+
     private TripResponse sendOriginRequest(String url, Point point, String driverNameOrNull, String driverUserIdOrNull) throws IOException {
+        return sendOriginRequest(url, point, driverNameOrNull, driverUserIdOrNull, null);
+    }
+
+    private TripResponse sendOriginRequest(String url, Point point, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull) throws IOException {
         JSONObject body = new JSONObject();
         try {
             body.put("latitude", point.latitude());
@@ -310,6 +350,9 @@ public class TripsRemoteDataSource {
             }
             if (driverUserIdOrNull != null && !driverUserIdOrNull.trim().isEmpty()) {
                 body.put("driverUserId", driverUserIdOrNull.trim());
+            }
+            if (vehicleIdOrNull != null && !vehicleIdOrNull.trim().isEmpty()) {
+                body.put("vehicleId", vehicleIdOrNull.trim());
             }
         } catch (JSONException e) {
             throw new IOException("No se pudo construir coordenadas", e);
@@ -369,13 +412,7 @@ public class TripsRemoteDataSource {
             JSONArray array = new JSONArray(response.body().string());
             List<ReservationResponse> reservations = new ArrayList<>();
             for (int i = 0; i < array.length(); i++) {
-                JSONObject obj = array.getJSONObject(i);
-                reservations.add(new ReservationResponse(
-                        obj.getString("id"),
-                        obj.getString("passengerName"),
-                        obj.getString("status"),
-                        obj.optString("createdAt", "")
-                ));
+                reservations.add(ReservationResponse.fromJson(array.getJSONObject(i)));
             }
             return reservations;
         } catch (JSONException e) {

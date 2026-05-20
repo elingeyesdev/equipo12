@@ -8,15 +8,17 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/carpool_primary">
+        android:background="@color/white"
+        android:elevation="1dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/historyToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/carpool_primary"
+            android:background="@color/white"
+            app:navigationIcon="?attr/homeAsUpIndicator"
             app:title="@string/history_title"
-            app:titleTextColor="@color/white" />
+            app:titleTextColor="@color/carpool_text_primary" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <LinearLayout
@@ -29,10 +31,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scrollbars="none"
-            android:fadeScrollbars="true"
-            android:paddingTop="16dp"
-            android:paddingBottom="8dp"
-            android:clipToPadding="false">
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp">
 
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/historyChipGroupCategory"
@@ -50,7 +50,8 @@
                     style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/history_category_student" />
+                    android:text="@string/history_category_student"
+                    android:checked="true" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/historyChipDriver"
@@ -70,7 +71,7 @@
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="16dp"
             app:cardElevation="1dp"
-            app:strokeColor="@color/match_card_stroke"
+            app:strokeColor="@color/uber_border"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -84,9 +85,9 @@
                     android:layout_height="wrap_content"
                     android:text="@string/history_summary_title"
                     android:textColor="@color/carpool_text_secondary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.06" />
+                    android:textSize="11sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.08" />
 
                 <TextView
                     android:id="@+id/historySummaryText"
@@ -111,27 +112,27 @@
                         android:background="@drawable/bg_history_stat_cell"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="14dp">
 
                         <TextView
                             android:id="@+id/historyStatPassengerCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/carpool_primary_dark"
-                            android:textSize="22sp"
+                            android:textColor="@color/uber_accent"
+                            android:textSize="24sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:gravity="center"
                             android:text="@string/history_stat_passenger_short"
                             android:textColor="@color/carpool_text_secondary"
                             android:textSize="11sp" />
                     </LinearLayout>
 
-                    <Space
+                    <View
                         android:layout_width="8dp"
                         android:layout_height="0dp" />
 
@@ -142,27 +143,27 @@
                         android:background="@drawable/bg_history_stat_cell"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="14dp">
 
                         <TextView
                             android:id="@+id/historyStatDriverCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/carpool_primary_dark"
-                            android:textSize="22sp"
+                            android:textColor="@color/uber_accent"
+                            android:textSize="24sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:gravity="center"
                             android:text="@string/history_stat_driver_short"
                             android:textColor="@color/carpool_text_secondary"
                             android:textSize="11sp" />
                     </LinearLayout>
 
-                    <Space
+                    <View
                         android:layout_width="8dp"
                         android:layout_height="0dp" />
 
@@ -173,20 +174,20 @@
                         android:background="@drawable/bg_history_stat_cell"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="14dp">
 
                         <TextView
                             android:id="@+id/historyStatTotalCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/carpool_primary_dark"
-                            android:textSize="22sp"
+                            android:textColor="@color/uber_accent"
+                            android:textSize="24sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:gravity="center"
                             android:text="@string/history_stat_total_short"
                             android:textColor="@color/carpool_text_secondary"
@@ -201,34 +202,34 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="10dp"
+            android:layout_marginBottom="8dp"
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="14dp"
             app:cardElevation="1dp"
-            app:strokeColor="@color/match_card_stroke"
+            app:strokeColor="@color/uber_border"
             app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="14dp">
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/history_filters_title"
                     android:textColor="@color/carpool_text_secondary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.06" />
+                    android:textSize="11sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.08" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/historySearchLayout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="12dp"
                     android:hint="@string/history_search_hint"
                     app:endIconMode="clear_text"
                     app:startIconDrawable="@android:drawable/ic_menu_search">
@@ -244,7 +245,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="14dp"
                     android:text="@string/history_filter_status_label"
                     android:textColor="@color/carpool_text_secondary"
                     android:textSize="12sp" />
@@ -253,13 +254,13 @@
                     android:id="@+id/historySpinnerStatus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="6dp"
                     android:minHeight="48dp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="12dp"
                     android:text="@string/history_filter_month_label"
                     android:textColor="@color/carpool_text_secondary"
                     android:textSize="12sp" />
@@ -268,13 +269,13 @@
                     android:id="@+id/historySpinnerMonth"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="6dp"
                     android:minHeight="48dp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="12dp"
                     android:text="@string/history_sort_label"
                     android:textColor="@color/carpool_text_secondary"
                     android:textSize="12sp" />
@@ -283,7 +284,7 @@
                     android:id="@+id/historySpinnerSort"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="6dp"
                     android:minHeight="48dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -322,7 +323,6 @@
                     android:id="@+id/historyEmptyText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="0dp"
                     android:gravity="center"
                     android:text="@string/history_empty"
                     android:textColor="@color/carpool_text_secondary"

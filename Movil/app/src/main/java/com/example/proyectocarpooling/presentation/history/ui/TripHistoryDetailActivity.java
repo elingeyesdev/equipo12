@@ -9,14 +9,14 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.proyectocarpooling.CarPoolingApplication;
 import com.example.proyectocarpooling.R;
-import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.history.TripHistoryDetailItem;
-import com.example.proyectocarpooling.data.remote.user.TripHistoryRemoteDataSource;
 import com.example.proyectocarpooling.presentation.history.HistoryUiHelper;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -24,52 +24,27 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 
-import org.json.JSONException;
-
-import java.io.IOException;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class TripHistoryDetailActivity extends AppCompatActivity {
     public static final String EXTRA_TRIP_ID = "extra_trip_id";
 
     private MaterialToolbar toolbar;
     private View loadingOverlay;
-    private MaterialButton viewRouteButton;
-    private MaterialButton participantsButton;
+    private MaterialButton viewRouteButton, participantsButton;
 
-    private TextView routeTitle;
-    private TextView heroSubtitle;
-    private TextView statusBadge;
-    private TextView categoryLabel;
-
-    private LinearLayout rowStarted;
-    private LinearLayout rowFinished;
-    private TextView valueCreated;
-    private TextView valueStarted;
-    private TextView valueFinished;
-    private TextView valueUpdated;
-
-    private TextView originLine;
-    private TextView destLine;
-    private TextView coordsLine;
-
-    private TextView driverNameText;
-    private TextView vehicleLine;
-    private TextView plateLine;
-
-    private TextView statReservations;
-    private TextView statBoarded;
-    private TextView statCancelled;
-
+    private TextView routeTitle, heroSubtitle, statusBadge, categoryLabel;
+    private LinearLayout rowStarted, rowFinished;
+    private TextView valueCreated, valueStarted, valueFinished, valueUpdated;
+    private TextView originLine, destLine, coordsLine;
+    private TextView driverNameText, vehicleLine, plateLine;
+    private TextView statReservations, statBoarded, statCancelled;
     private View cardYou;
-    private TextView youName;
-    private TextView youReservation;
+    private TextView youName, youReservation;
 
     private TripHistoryDetailItem currentDetail;
     private SessionManager sessionManager;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private TripHistoryDetailViewModel viewModel;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -82,7 +57,8 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
             return;
         }
 
-        sessionManager = new SessionManager(this);
+        sessionManager = ((CarPoolingApplication) getApplication()).getSessionManager();
+        viewModel = new ViewModelProvider(this).get(TripHistoryDetailViewModel.class);
 
         toolbar = findViewById(R.id.historyDetailToolbar);
         loadingOverlay = findViewById(R.id.historyDetailLoadingOverlay);
@@ -130,50 +106,47 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
         participantsButton.setEnabled(false);
         participantsButton.setOnClickListener(v -> showParticipantsBottomSheet());
 
+        observeViewModel();
         loadDetail(tripId);
     }
 
-    private void loadDetail(String tripId) {
-        String userId = sessionManager.getUserId();
-        if (userId == null || userId.isBlank()) {
-            finish();
-            return;
-        }
-        loadingOverlay.setVisibility(View.VISIBLE);
-        viewRouteButton.setEnabled(false);
-        participantsButton.setEnabled(false);
-        executor.execute(() -> {
-            try {
-                TripHistoryRemoteDataSource api = new TripHistoryRemoteDataSource(ApiBaseUrlProvider.get(this));
-                TripHistoryDetailItem d = api.getHistoryDetail(userId, tripId, sessionManager.getFullName());
-                runOnUiThread(() -> {
-                    loadingOverlay.setVisibility(View.GONE);
-                    toolbar.setSubtitle(shortTripIdLabel(d.tripId));
-                    renderDetail(d);
-                });
-            } catch (IOException | JSONException e) {
-                runOnUiThread(() -> {
-                    loadingOverlay.setVisibility(View.GONE);
-                    Toast.makeText(this, R.string.history_load_error, Toast.LENGTH_SHORT).show();
-                    finish();
-                });
+    private void observeViewModel() {
+        viewModel.getDetail().observe(this, d -> {
+            if (d != null) {
+                loadingOverlay.setVisibility(View.GONE);
+                toolbar.setSubtitle(shortTripIdLabel(d.tripId));
+                renderDetail(d);
+            }
+        });
+
+        viewModel.getErrorEvent().observe(this, error -> {
+            if (error != null) {
+                loadingOverlay.setVisibility(View.GONE);
+                Toast.makeText(this, R.string.history_load_error, Toast.LENGTH_SHORT).show();
+                finish();
             }
         });
     }
 
+    private void loadDetail(String tripId) {
+        String userId = sessionManager.getUserId();
+        if (userId == null || userId.isBlank()) { finish(); return; }
+        loadingOverlay.setVisibility(View.VISIBLE);
+        viewRouteButton.setEnabled(false);
+        participantsButton.setEnabled(false);
+        viewModel.loadDetail(userId, tripId, sessionManager.getFullName());
+    }
+
     private static String shortTripIdLabel(String raw) {
-        if (raw == null || raw.isEmpty()) {
-            return "";
-        }
+        if (raw == null || raw.isEmpty()) return "";
         String t = raw.trim();
-        return t.length() <= 14 ? "ID · " + t : "ID · " + t.substring(0, 8) + "…";
+        return t.length() <= 14 ? "ID · " + t : "ID · " + t.substring(0, 8) + "\u2026";
     }
 
     private void renderDetail(TripHistoryDetailItem d) {
         currentDetail = d;
         routeTitle.setText(getString(R.string.history_item_route_arrow,
-                emptyIfBlank(d.originLabel, "—"),
-                emptyIfBlank(d.destinationLabel, "—")));
+                emptyIfBlank(d.originLabel, "\u2014"), emptyIfBlank(d.destinationLabel, "\u2014")));
         heroSubtitle.setText(getString(R.string.history_detail_hero_meta, compactId(d.tripId), compactDate(d.createdAt)));
 
         HistoryUiHelper.applyStatusPill(statusBadge, this, d.statusLabel,
@@ -183,28 +156,23 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
 
         bindSchedule();
 
-        originLine.setText(getString(R.string.history_detail_origin_line, emptyIfBlank(d.originLabel, "—")));
-        destLine.setText(getString(R.string.history_detail_dest_line, emptyIfBlank(d.destinationLabel, "—")));
+        originLine.setText(getString(R.string.history_detail_origin_line, emptyIfBlank(d.originLabel, "\u2014")));
+        destLine.setText(getString(R.string.history_detail_dest_line, emptyIfBlank(d.destinationLabel, "\u2014")));
 
         String destCoords;
         if (d.destinationLatitude != null && d.destinationLongitude != null) {
-            destCoords = String.format(Locale.US, "%.5f · %.5f", d.destinationLatitude, d.destinationLongitude);
+            destCoords = String.format(Locale.US, "%.5f \u00b7 %.5f", d.destinationLatitude, d.destinationLongitude);
         } else {
             destCoords = getString(R.string.history_detail_no_coords_dest_inline);
         }
-        coordsLine.setText(String.format(Locale.US,
-                "%s %.5f · %.5f\n%s %s",
-                getString(R.string.history_detail_coords_origin_prefix),
-                d.originLatitude, d.originLongitude,
-                getString(R.string.history_detail_coords_dest_prefix),
-                destCoords));
+        coordsLine.setText(String.format(Locale.US, "%s %.5f \u00b7 %.5f\n%s %s",
+                getString(R.string.history_detail_coords_origin_prefix), d.originLatitude, d.originLongitude,
+                getString(R.string.history_detail_coords_dest_prefix), destCoords));
 
         driverNameText.setText(emptyIfBlank(d.driverName, getString(R.string.history_detail_driver_fallback)));
         vehicleLine.setText(getString(R.string.history_detail_vehicle_line,
-                emptyIfBlank(d.driverVehicleBrand, "—"),
-                emptyIfBlank(d.driverVehicleColor, "—")));
-        plateLine.setText(getString(R.string.history_detail_plate_line,
-                emptyIfBlank(d.driverLicensePlate, "—")));
+                emptyIfBlank(d.driverVehicleBrand, "\u2014"), emptyIfBlank(d.driverVehicleColor, "\u2014")));
+        plateLine.setText(getString(R.string.history_detail_plate_line, emptyIfBlank(d.driverLicensePlate, "\u2014")));
 
         statReservations.setText(String.format(Locale.US, "%d", d.reservationCount));
         statBoarded.setText(String.format(Locale.US, "%d", d.boardedCount));
@@ -219,11 +187,8 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
 
     private void bindSchedule() {
         TripHistoryDetailItem d = currentDetail;
-        if (d == null) {
-            return;
-        }
+        if (d == null) return;
         valueCreated.setText(compactDate(d.createdAt));
-
         bindOptionalTimelineRow(rowStarted, valueStarted, d.startedAt);
         bindOptionalTimelineRow(rowFinished, valueFinished, d.finishedAt);
         valueUpdated.setText(compactDate(d.updatedAt));
@@ -233,20 +198,18 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
         String v = emptyIfBlank(raw, "");
         boolean useNd = raw == null || raw.trim().isEmpty();
         row.setVisibility(useNd ? View.GONE : View.VISIBLE);
-        value.setText(useNd ? "—" : compactDate(raw));
+        value.setText(useNd ? "\u2014" : compactDate(raw));
     }
 
     private void bindYouSection(TripHistoryDetailItem d) {
         boolean show = !(d.passengerName == null || d.passengerName.trim().isEmpty())
                 || !(d.passengerReservationStatus == null || d.passengerReservationStatus.trim().isEmpty());
         cardYou.setVisibility(show ? View.VISIBLE : View.GONE);
-        if (!show) {
-            return;
-        }
+        if (!show) return;
         youName.setText(getString(R.string.history_detail_you_reserved_as,
                 emptyIfBlank(d.passengerName, getString(R.string.history_detail_you_anonymous))));
         youReservation.setText(getString(R.string.history_detail_you_status,
-                emptyIfBlank(d.passengerReservationStatus, "—")));
+                emptyIfBlank(d.passengerReservationStatus, "\u2014")));
     }
 
     private void openMapWithRoute() {
@@ -290,31 +253,18 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
     }
 
     private static String emptyIfBlank(String value, String fallback) {
-        if (value == null || value.trim().isEmpty()) {
-            return fallback;
-        }
-        return value.trim();
+        return (value == null || value.trim().isEmpty()) ? fallback : value.trim();
     }
 
     private static String compactDate(String iso) {
-        if (iso == null || iso.trim().isEmpty()) {
-            return "—";
-        }
+        if (iso == null || iso.trim().isEmpty()) return "\u2014";
         String t = iso.replace('T', ' ');
         return t.length() > 18 ? t.substring(0, 16) : t;
     }
 
     private static String compactId(String id) {
-        if (id == null || id.isEmpty()) {
-            return "—";
-        }
+        if (id == null || id.isEmpty()) return "\u2014";
         String t = id.trim();
-        return t.length() <= 10 ? t : t.substring(0, 8) + "…";
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        executor.shutdown();
+        return t.length() <= 10 ? t : t.substring(0, 8) + "\u2026";
     }
 }

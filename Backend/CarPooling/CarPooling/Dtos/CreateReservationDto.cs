@@ -5,6 +5,8 @@ namespace CarPooling.Dtos;
 public class CreateReservationDto
 {
     [Required]
-    [MaxLength(100)]
-    public string PassengerName { get; set; } = string.Empty;
+    public Guid PassengerUserId { get; set; }
+
+    [Range(1, 50)]
+    public int SeatsReserved { get; set; } = 1;
 }

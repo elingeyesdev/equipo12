@@ -42,6 +42,8 @@ dependencies {
     implementation(libs.mapbox.maps)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.lifecycle.viewmodel)
+    implementation(libs.lifecycle.livedata)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

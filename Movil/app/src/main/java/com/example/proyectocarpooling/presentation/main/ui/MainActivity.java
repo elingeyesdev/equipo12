@@ -19,7 +19,6 @@ import android.widget.Toast;
 import android.app.AlertDialog;
 import android.widget.EditText;
 import android.widget.ArrayAdapter;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 
 import androidx.activity.EdgeToEdge;
@@ -34,17 +33,14 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.example.proyectocarpooling.CarPoolingApplication;
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.local.SessionManager;
-import com.example.proyectocarpooling.data.local.UserAccessProvider;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
 import com.example.proyectocarpooling.data.model.TripResponse;
-import com.example.proyectocarpooling.data.remote.TripsRemoteDataSource;
-import com.example.proyectocarpooling.data.remote.user.FavoritesRemoteDataSource;
-import com.example.proyectocarpooling.data.repository.TripRepositoryImpl;
-import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.example.proyectocarpooling.domain.model.CreateTripResult;
+import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 import com.example.proyectocarpooling.presentation.account.ui.AccountOverviewActivity;
@@ -52,7 +48,7 @@ import com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequ
 import com.example.proyectocarpooling.presentation.favorites.ui.FavoritePlacesActivity;
 import com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity;
 import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
-import com.example.proyectocarpooling.presentation.main.viewmodel.MainViewModel;
+// MainViewModel now in same package
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
 
 import com.mapbox.geojson.Point;
@@ -82,6 +78,9 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static boolean sReservationCompletedFromBanner = false;
+    public static Intent sReservationResultData = null;
+
     public static final String EXTRA_APPLY_FAVORITE_ID = "apply_favorite_id";
     public static final String EXTRA_APPLY_FAVORITE_KIND = "apply_favorite_kind";
     public static final String EXTRA_APPLY_ORIGIN_LAT = "apply_origin_lat";
@@ -94,6 +93,8 @@ public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_ROUTE_PREVIEW_CONTEXT = "route_preview_context";
     public static final String EXTRA_ROUTE_PREVIEW_DRIVER_NAME = "route_preview_driver_name";
     public static final String ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH = "driver_match";
+    public static final String EXTRA_ROUTE_PREVIEW_TRIP_ID = "route_preview_trip_id";
+    public static final String EXTRA_ROUTE_PREVIEW_DRIVER_TRIP_NAME = "route_preview_driver_trip_name";
 
     private enum SelectionMode { NONE, ORIGIN, DESTINATION }
 
@@ -104,23 +105,22 @@ public class MainActivity extends AppCompatActivity {
     private TextView destinationText;
     private TextView statusText;
     private TextView routeTimeText;
-    private ImageButton menuToggleButton;
-    private Button selectOriginButton;
-    private Button selectDestinationButton;
+    private View menuToggleButton;
     private Button createTripButton;
     private Button cancelTripButton;
-    private Button reserveTripButton;
     private Button findDriverButton;
-    private Button cancelPassengerReservationButton;
     private Button viewBoardedPassengersButton;
     private Button markBoardedButton;
     private Button startTripButton;
     private Button finishTripButton;
+    private Button boardPassengerCodeButton;
     private LinearLayout controlPanel;
-    private LinearLayout selectionButtonsRow;
     private LinearLayout tripButtonsRow;
-    private LinearLayout passengerButtonsRow;
+    private LinearLayout driverActionsRow;
     private Button saveFavoriteButton;
+    private Button bannerAcceptButton;
+    private Button bannerRejectButton;
+    private TextView bottomSheetTitle;
 
     private boolean isInitialPositionSet = false;
     private Point selectedOrigin;
@@ -128,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
     private SelectionMode selectionMode = SelectionMode.NONE;
     private String activeTripId;
     private String lastTripStatusLabel;
+    private int lastTripStatusId;
     private String lastRouteTimeLabel;
     private int activeTripAvailableSeats = 0;
     private Point currentDriverPosition;
@@ -147,6 +148,9 @@ public class MainActivity extends AppCompatActivity {
     private TextView drawerUserInitials;
     private TextView drawerUserRole;
     private TextView drawerUserRating;
+    private LinearLayout drawerReservationInfo;
+    private TextView drawerReservationDriver;
+    private TextView drawerReservationCode;
     private SessionManager sessionManager;
     private UserAccessUseCase userAccessUseCase;
     private MainViewModel mainViewModel;
@@ -155,8 +159,26 @@ public class MainActivity extends AppCompatActivity {
 
     private View driverRoutePreviewBanner;
     private TextView driverRoutePreviewBannerBody;
+    private String routePreviewTripId;
+    private String routePreviewDriverName;
+
+    private boolean hasActivePassengerReservation;
+    private String passengerReservedTripId;
+    private String passengerBoardingCode;
+    private String passengerReservedDriverName;
+    private int activeTripPendingCount;
 
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
+
+    private final android.os.Handler pollingHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable pendingReservationPollingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            checkPendingReservations();
+            pollingHandler.postDelayed(this, 30_000);
+        }
+    };
+    private Runnable passengerPollingRunnable;
 
     private final ActivityResultLauncher<Intent> driverMatchLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -164,7 +186,16 @@ public class MainActivity extends AppCompatActivity {
                     Intent matchData = result.getData();
                     String tripId = matchData.getStringExtra(DriverMatchActivity.EXTRA_RESULT_TRIP_ID);
                     if (tripId != null && !tripId.isEmpty()) {
+                        String driverName = matchData.getStringExtra(DriverMatchActivity.EXTRA_RESULT_DRIVER_NAME);
+                        if (driverName == null) driverName = "Conductor";
                         Toast.makeText(MainActivity.this, R.string.toast_passenger_reserved_with_driver, Toast.LENGTH_LONG).show();
+                        String code = String.format("%04d", (int)(Math.random() * 10000));
+                        sessionManager.savePassengerBookedTrip(tripId, code, driverName);
+                        hasActivePassengerReservation = true;
+                        passengerReservedTripId = tripId;
+                        passengerBoardingCode = code;
+                        passengerReservedDriverName = driverName;
+                        refreshForPassengerReservation();
                     }
                     double oLat = matchData.getDoubleExtra(DriverMatchActivity.EXTRA_RESULT_ORIGIN_LAT, Double.NaN);
                     double oLng = matchData.getDoubleExtra(DriverMatchActivity.EXTRA_RESULT_ORIGIN_LNG, Double.NaN);
@@ -215,8 +246,9 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        sessionManager = new SessionManager(this);
-        userAccessUseCase = UserAccessProvider.create(this);
+        CarPoolingApplication app = (CarPoolingApplication) getApplication();
+        sessionManager = app.getSessionManager();
+        userAccessUseCase = new UserAccessUseCase(app.getUserRepository());
         if (!sessionManager.hasActiveSession()) {
             navigateToLogin();
             return;
@@ -278,21 +310,19 @@ public class MainActivity extends AppCompatActivity {
         statusText = findViewById(R.id.statusText);
         routeTimeText = findViewById(R.id.routeTimeText);
         menuToggleButton = findViewById(R.id.menuToggleButton);
-        selectOriginButton = findViewById(R.id.selectOriginButton);
-        selectDestinationButton = findViewById(R.id.selectDestinationButton);
         createTripButton = findViewById(R.id.createTripButton);
         cancelTripButton = findViewById(R.id.cancelTripButton);
-        reserveTripButton = findViewById(R.id.reserveTripButton);
         findDriverButton = findViewById(R.id.findDriverButton);
-        cancelPassengerReservationButton = findViewById(R.id.cancelPassengerReservationButton);
         viewBoardedPassengersButton = findViewById(R.id.viewBoardedPassengersButton);
         markBoardedButton = findViewById(R.id.markBoardedButton);
         startTripButton = findViewById(R.id.startTripButton);
         finishTripButton = findViewById(R.id.finishTripButton);
-        selectionButtonsRow = findViewById(R.id.selectionButtonsRow);
+        boardPassengerCodeButton = findViewById(R.id.boardPassengerCodeButton);
         tripButtonsRow = findViewById(R.id.tripButtonsRow);
-        passengerButtonsRow = findViewById(R.id.passengerButtonsRow);
+        driverActionsRow = findViewById(R.id.driverActionsRow);
         saveFavoriteButton = findViewById(R.id.saveFavoriteButton);
+
+        bottomSheetTitle = findViewById(R.id.bottomSheetTitle);
 
         if (navigationView != null) {
             var header = navigationView.getHeaderView(0);
@@ -301,6 +331,9 @@ public class MainActivity extends AppCompatActivity {
             drawerUserInitials = header.findViewById(R.id.drawerUserInitials);
             drawerUserRole = header.findViewById(R.id.drawerUserRole);
             drawerUserRating = header.findViewById(R.id.drawerUserRating);
+            drawerReservationInfo = header.findViewById(R.id.drawerReservationInfo);
+            drawerReservationDriver = header.findViewById(R.id.drawerReservationDriver);
+            drawerReservationCode = header.findViewById(R.id.drawerReservationCode);
 
             header.setOnClickListener(v -> {
                 startActivity(new Intent(this, AccountOverviewActivity.class));
@@ -315,6 +348,8 @@ public class MainActivity extends AppCompatActivity {
 
         driverRoutePreviewBanner = findViewById(R.id.driverRoutePreviewBanner);
         driverRoutePreviewBannerBody = findViewById(R.id.driverRoutePreviewBannerBody);
+        bannerAcceptButton = findViewById(R.id.driverRoutePreviewBannerAccept);
+        bannerRejectButton = findViewById(R.id.driverRoutePreviewBannerReject);
         View dismissBanner = findViewById(R.id.driverRoutePreviewBannerDismiss);
         View closeBanner = findViewById(R.id.driverRoutePreviewBannerClose);
         if (dismissBanner != null) {
@@ -323,17 +358,52 @@ public class MainActivity extends AppCompatActivity {
         if (closeBanner != null) {
             closeBanner.setOnClickListener(v -> hideDriverMatchRouteExplainer());
         }
+        if (bannerAcceptButton != null) {
+            bannerAcceptButton.setOnClickListener(v -> acceptDriverRouteFromBanner());
+        }
+        if (bannerRejectButton != null) {
+            bannerRejectButton.setOnClickListener(v -> {
+                hideDriverMatchRouteExplainer();
+                Toast.makeText(this, "Viaje rechazado", Toast.LENGTH_SHORT).show();
+                finish();
+            });
+        }
 
-        menuToggleButton.setOnClickListener(v -> toggleBottomSheet());
-        selectOriginButton.setOnClickListener(v -> setSelectionMode(SelectionMode.ORIGIN));
-        selectDestinationButton.setOnClickListener(v -> setSelectionMode(SelectionMode.DESTINATION));
-        reserveTripButton.setOnClickListener(v -> reserveTrip());
-        findDriverButton.setOnClickListener(v -> openDriverMatchScreen());
-        cancelPassengerReservationButton.setOnClickListener(v -> cancelPassengerReservation());
+        menuToggleButton.setOnClickListener(v -> {
+            if (drawerLayout != null) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
+        originText.setOnClickListener(v -> {
+            if (hasActivePassengerReservation && !isDriverUser) {
+                Toast.makeText(this, "No puedes cambiar el origen de un viaje reservado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (isDriverUser || activeTripId == null) {
+                setSelectionMode(SelectionMode.ORIGIN);
+            }
+        });
+        destinationText.setOnClickListener(v -> {
+            if (hasActivePassengerReservation && !isDriverUser) {
+                Toast.makeText(this, "No puedes cambiar el destino de un viaje reservado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (isDriverUser || activeTripId == null) {
+                setSelectionMode(SelectionMode.DESTINATION);
+            }
+        });
+        findDriverButton.setOnClickListener(v -> {
+            if (hasActivePassengerReservation) {
+                Toast.makeText(this, "Ya tienes un viaje reservado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            openDriverMatchScreen();
+        });
         viewBoardedPassengersButton.setOnClickListener(v -> viewBoardedPassengers());
         markBoardedButton.setOnClickListener(v -> markPassengerBoardedByName());
         startTripButton.setOnClickListener(v -> startTrip());
         finishTripButton.setOnClickListener(v -> finishTrip());
+        boardPassengerCodeButton.setOnClickListener(v -> showBoardPassengerByCodeDialog());
         createTripButton.setOnClickListener(v -> {
             if (activeTripId != null) {
                 Toast.makeText(this, R.string.toast_trip_exists, Toast.LENGTH_SHORT).show();
@@ -354,7 +424,41 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.toast_no_trip, Toast.LENGTH_SHORT).show();
                 return;
             }
-            cancelTrip();
+            setProgressVisible(true);
+            cancelTripButton.setEnabled(false);
+            final String tripId = activeTripId;
+            backgroundExecutor.execute(() -> {
+                try {
+                    String apiBase = ApiBaseUrlProvider.get(MainActivity.this);
+                    String mapboxToken = getString(R.string.mapbox_access_token);
+                    TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
+                    List<ReservationResponse> confirmed = repository.getConfirmedReservations(tripId);
+                    int count = confirmed.size();
+                    runOnUiThread(() -> {
+                        if (isFinishing() || isDestroyed()) {
+                            return;
+                        }
+                        setProgressVisible(false);
+                        cancelTripButton.setEnabled(true);
+                        if (count > 0) {
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("Cancelar viaje")
+                                    .setMessage("Hay " + count + " pasajero(s) confirmado(s). ¿Cancelar el viaje de todos modos?")
+                                    .setPositiveButton("Si, cancelar", (d, w) -> cancelTrip())
+                                    .setNegativeButton("No", null)
+                                    .show();
+                        } else {
+                            cancelTrip();
+                        }
+                    });
+                } catch (IOException e) {
+                    runOnUiThread(() -> {
+                        setProgressVisible(false);
+                        cancelTripButton.setEnabled(true);
+                        cancelTrip();
+                    });
+                }
+            });
         });
 
         if (saveFavoriteButton != null) {
@@ -370,6 +474,169 @@ public class MainActivity extends AppCompatActivity {
         updateRouteTimeText();
 
         maybeRestoreDriverActiveTripAsync();
+        checkPassengerReservationOnStart();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        consumeApplyFavoriteIntent(intent);
+    }
+
+    private void checkPassengerReservationOnStart() {
+        if (isDriverUser) {
+            return;
+        }
+        if (!sessionManager.hasPassengerBookedTrip()) {
+            return;
+        }
+        final String bookedTripId = sessionManager.getPassengerBookedTripId();
+        if (bookedTripId.isEmpty()) {
+            return;
+        }
+        final String apiBase = ApiBaseUrlProvider.get(this);
+        final String mapboxToken = getString(R.string.mapbox_access_token);
+        backgroundExecutor.execute(() -> {
+            try {
+                TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
+                TripResponse trip = repository.getTripByIdIfPresent(bookedTripId);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    if (trip != null && isTripUsableStatus(trip.statusLabel)) {
+                        hasActivePassengerReservation = true;
+                        passengerReservedTripId = trip.id;
+                        passengerBoardingCode = sessionManager.getPassengerBoardingCode();
+                        passengerReservedDriverName = trip.driverName;
+                        if (passengerReservedDriverName == null || passengerReservedDriverName.isEmpty()) {
+                            passengerReservedDriverName = sessionManager.getPassengerDriverName();
+                        }
+                        selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
+                        selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+                        syncSelectionStateToViewModel();
+                        updateCoordinateLabels();
+                        updateMapMarkers();
+                        if (selectedOrigin != null && selectedDestination != null) {
+                            fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
+                        }
+                        refreshForPassengerReservation();
+                    } else {
+                        sessionManager.clearPassengerBookedTrip();
+                        hasActivePassengerReservation = false;
+                        passengerReservedTripId = null;
+                    }
+                });
+            } catch (IOException ignored) {
+            }
+        });
+    }
+
+    private void refreshForPassengerReservation() {
+        if (hasActivePassengerReservation && passengerReservedTripId != null) {
+            if (bottomSheetTitle != null) bottomSheetTitle.setText("Viaje reservado");
+            findDriverButton.setVisibility(View.GONE);
+            if (saveFavoriteButton != null) saveFavoriteButton.setVisibility(View.GONE);
+            selectionInstruction.setText("Viaje reservado - Codigo: " + (passengerBoardingCode != null ? passengerBoardingCode : "----"));
+            statusText.setText("Conductor: " + (passengerReservedDriverName != null ? passengerReservedDriverName : "Asignado"));
+            routeTimeText.setText("Destino confirmado");
+            updateDrawerReservationMenu();
+            refreshDrawerUserInfo();
+            startPassengerPolling();
+        } else {
+            if (bottomSheetTitle != null) bottomSheetTitle.setText(R.string.bottom_sheet_title);
+            findDriverButton.setVisibility(isDriverUser ? View.GONE : View.VISIBLE);
+            if (saveFavoriteButton != null) saveFavoriteButton.setVisibility(View.VISIBLE);
+            selectionInstruction.setText(R.string.selection_instruction_idle);
+            selectionInstruction.setTextColor(getResources().getColor(R.color.carpool_text_secondary, getTheme()));
+            updateDrawerReservationMenu();
+            refreshDrawerUserInfo();
+            stopPassengerPolling();
+        }
+    }
+
+    private void cancelPassengerReservationAction() {
+        if (passengerReservedTripId == null || passengerReservedTripId.isEmpty()) {
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Cancelar reserva")
+                .setMessage("Estas seguro de que deseas cancelar tu reserva para este viaje?")
+                .setPositiveButton("Si, cancelar", (d, w) -> {
+                    setProgressVisible(true);
+                    final String tripId = passengerReservedTripId;
+                    final String userId = sessionManager.getUserId();
+                    backgroundExecutor.execute(() -> {
+                        try {
+                            String apiBase = ApiBaseUrlProvider.get(MainActivity.this);
+                            String mapboxToken = getString(R.string.mapbox_access_token);
+                            TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
+
+                            // Buscar en pendientes y confirmadas
+                            List<ReservationResponse> all = new ArrayList<>();
+                            all.addAll(repository.getReservations(tripId));
+                            all.addAll(repository.getConfirmedReservations(tripId));
+
+                            String reservationId = null;
+                            for (ReservationResponse r : all) {
+                                if (r.passengerUserId != null && r.passengerUserId.equals(userId)) {
+                                    reservationId = r.id;
+                                    break;
+                                }
+                            }
+                            if (reservationId != null) {
+                                repository.cancelReservation(reservationId);
+                            }
+                            runOnUiThread(() -> {
+                                setProgressVisible(false);
+                                sessionManager.clearPassengerBookedTrip();
+                                hasActivePassengerReservation = false;
+                                passengerReservedTripId = null;
+                                passengerBoardingCode = null;
+                                passengerReservedDriverName = null;
+                                stopPassengerPolling();
+                                selectedOrigin = null;
+                                selectedDestination = null;
+                                syncSelectionStateToViewModel();
+                                clearRoute();
+                                updateCoordinateLabels();
+                                updateMapMarkers();
+                                updateStatusText();
+                                updateRouteTimeText();
+                                refreshButtons();
+                                refreshForPassengerReservation();
+                                refreshDrawerUserInfo();
+                                Toast.makeText(MainActivity.this, "Reserva cancelada", Toast.LENGTH_SHORT).show();
+                            });
+                        } catch (IOException e) {
+                            runOnUiThread(() -> {
+                                setProgressVisible(false);
+                                Toast.makeText(MainActivity.this, "Error al cancelar reserva", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    });
+                })
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    private void updateDrawerReservationMenu() {
+        if (navigationView == null) {
+            return;
+        }
+        MenuItem reservationItem = navigationView.getMenu().findItem(R.id.nav_my_reservation);
+        if (reservationItem != null) {
+            reservationItem.setVisible(hasActivePassengerReservation && !isDriverUser);
+        }
+        MenuItem findDriverItem = navigationView.getMenu().findItem(R.id.nav_find_driver);
+        if (findDriverItem != null) {
+            findDriverItem.setVisible(!isDriverUser && !hasActivePassengerReservation);
+        }
+        MenuItem cancelResItem = navigationView.getMenu().findItem(R.id.nav_cancel_reservation);
+        if (cancelResItem != null) {
+            cancelResItem.setVisible(hasActivePassengerReservation && !isDriverUser);
+        }
     }
 
     private void maybeRestoreDriverActiveTripAsync() {
@@ -394,7 +661,7 @@ public class MainActivity extends AppCompatActivity {
 
         backgroundExecutor.execute(() -> {
             try {
-                TripRepository repository = new TripRepositoryImpl(new TripsRemoteDataSource(apiBase, mapboxToken));
+                TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
                 TripResponse restored = null;
 
                 if (userId != null && !userId.isBlank()) {
@@ -405,7 +672,7 @@ public class MainActivity extends AppCompatActivity {
                     String saved = sessionManager.getDriverActiveTripId();
                     if (!saved.isEmpty()) {
                         TripResponse t = repository.getTripByIdIfPresent(saved);
-                        if (t != null && isTripUsableStatus(t.status)) {
+                        if (t != null && isTripUsableStatus(t.statusLabel)) {
                             restored = t;
                         } else {
                             sessionManager.clearDriverActiveTripId();
@@ -415,7 +682,12 @@ public class MainActivity extends AppCompatActivity {
 
                 if (restored != null) {
                     TripResponse trip = restored;
-                    runOnUiThread(() -> applyRestoredDriverTrip(trip));
+                    runOnUiThread(() -> {
+                        if (isFinishing() || isDestroyed()) {
+                            return;
+                        }
+                        applyRestoredDriverTrip(trip);
+                    });
                 }
             } catch (IOException ignored) {
                 // Sin red o sin viaje: se deja estado actual
@@ -432,15 +704,19 @@ public class MainActivity extends AppCompatActivity {
         final String mapboxToken = getString(R.string.mapbox_access_token);
         backgroundExecutor.execute(() -> {
             try {
-                TripRepository repository = new TripRepositoryImpl(new TripsRemoteDataSource(apiBase, mapboxToken));
+                TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
                 TripResponse t = repository.getTripByIdIfPresent(tripId);
                 runOnUiThread(() -> {
-                    if (t != null && isTripUsableStatus(t.status)) {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    if (t != null && isTripUsableStatus(t.statusLabel)) {
                         applyRestoredDriverTrip(t);
                     } else {
                         sessionManager.clearDriverActiveTripId();
                         activeTripId = null;
                         lastTripStatusLabel = null;
+                        lastTripStatusId = 0;
                         activeTripAvailableSeats = 0;
                         lastRouteTimeLabel = null;
                         syncTripStateToViewModel();
@@ -477,17 +753,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyRestoredDriverTrip(TripResponse trip) {
         activeTripId = trip.id;
-        lastTripStatusLabel = trip.status;
+        lastTripStatusLabel = trip.statusLabel;
+        lastTripStatusId = trip.statusId;
         activeTripAvailableSeats = trip.availableSeats;
         sessionManager.saveDriverActiveTripId(trip.id);
         syncTripStateToViewModel();
 
         selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
-        if (trip.destinationLatitude != null && trip.destinationLongitude != null) {
-            selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
-        } else {
-            selectedDestination = null;
-        }
+        selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
         syncSelectionStateToViewModel();
 
         setSelectionMode(SelectionMode.NONE);
@@ -499,6 +772,7 @@ public class MainActivity extends AppCompatActivity {
         updateRouteTimeText();
         refreshButtons();
         updateDrawerDriverMenuVisibility();
+        checkPendingReservations();
     }
 
     /**
@@ -516,13 +790,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyRoleAccess() {
         int driverVisibility = isDriverUser ? View.VISIBLE : View.GONE;
+        int passengerVisibility = isDriverUser ? View.GONE : View.VISIBLE;
         createTripButton.setVisibility(driverVisibility);
         cancelTripButton.setVisibility(driverVisibility);
+        tripButtonsRow.setVisibility(driverVisibility);
         markBoardedButton.setVisibility(driverVisibility);
         startTripButton.setVisibility(driverVisibility);
         finishTripButton.setVisibility(driverVisibility);
-
         viewBoardedPassengersButton.setVisibility(driverVisibility);
+        driverActionsRow.setVisibility(driverVisibility);
+        findDriverButton.setVisibility(passengerVisibility);
+        if (hasActivePassengerReservation && !isDriverUser) {
+            findDriverButton.setVisibility(View.GONE);
+        }
         updateDrawerDriverMenuVisibility();
     }
 
@@ -558,6 +838,14 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, R.string.drawer_option_coming_soon, Toast.LENGTH_SHORT).show();
                 } else if (id == R.id.nav_driver_passenger_requests) {
                     openPassengerRequestsScreen(true);
+                } else if (id == R.id.nav_find_driver) {
+                    openDriverMatchScreen();
+                } else if (id == R.id.nav_my_reservation) {
+                    if (hasActivePassengerReservation) {
+                        showBoardingCodeDialog(passengerReservedDriverName, passengerBoardingCode);
+                    }
+                } else if (id == R.id.nav_cancel_reservation) {
+                    cancelPassengerReservationAction();
                 } else if (id == R.id.nav_logout) {
                     logout();
                 }
@@ -600,6 +888,20 @@ public class MainActivity extends AppCompatActivity {
         // Mostrar rating del usuario
         if (drawerUserRating != null) {
             drawerUserRating.setText("4.9");
+        }
+
+        if (drawerReservationInfo != null) {
+            if (hasActivePassengerReservation && !isDriverUser) {
+                drawerReservationInfo.setVisibility(View.VISIBLE);
+                if (drawerReservationDriver != null && passengerReservedDriverName != null) {
+                    drawerReservationDriver.setText("Conductor: " + passengerReservedDriverName);
+                }
+                if (drawerReservationCode != null && passengerBoardingCode != null) {
+                    drawerReservationCode.setText("Codigo: " + passengerBoardingCode);
+                }
+            } else {
+                drawerReservationInfo.setVisibility(View.GONE);
+            }
         }
     }
     
@@ -649,6 +951,9 @@ public class MainActivity extends AppCompatActivity {
                         case BottomSheetBehavior.STATE_COLLAPSED:
                             break;
                         case BottomSheetBehavior.STATE_EXPANDED:
+                            if (isDriverUser && activeTripId != null && !activeTripId.isEmpty()) {
+                                checkPendingReservations();
+                            }
                             break;
                         case BottomSheetBehavior.STATE_HIDDEN:
                             break;
@@ -685,6 +990,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupMapClickListener() {
+        if (mapView == null) {
+            return;
+        }
         GesturesUtils.getGestures(mapView).addOnMapClickListener(point -> {
             runOnUiThread(() -> handleMapClick(point));
             return true;
@@ -815,17 +1123,64 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void createTrip() {
+        if (isDriverUser) {
+            showVehiclePickerDialog();
+        } else {
+            createTripWithVehicle(null);
+        }
+    }
+
+    private void showVehiclePickerDialog() {
+        setProgressVisible(true);
+        final String userId = sessionManager.getUserId();
+        mainViewModel.getVehiclesForUser(userId, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(List<com.example.proyectocarpooling.data.model.user.VehicleResponse> vehicles) {
+                setProgressVisible(false);
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                if (vehicles.isEmpty()) {
+                    Toast.makeText(MainActivity.this, "No tienes vehiculos registrados", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (vehicles.size() == 1) {
+                    createTripWithVehicle(vehicles.get(0).id);
+                    return;
+                }
+                String[] items = new String[vehicles.size()];
+                for (int i = 0; i < vehicles.size(); i++) {
+                    com.example.proyectocarpooling.data.model.user.VehicleResponse v = vehicles.get(i);
+                    items[i] = v.brand + " " + v.model + " (" + v.licensePlate + ")";
+                }
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Seleccionar vehiculo")
+                        .setItems(items, (dialog, which) -> createTripWithVehicle(vehicles.get(which).id))
+                        .setNegativeButton("Cancelar", null)
+                        .show();
+            }
+
+            @Override
+            public void onError(String message) {
+                setProgressVisible(false);
+                Toast.makeText(MainActivity.this, "Error al cargar vehiculos", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void createTripWithVehicle(String vehicleId) {
         setProgressVisible(true);
         createTripButton.setEnabled(false);
 
         final Point origin = selectedOrigin;
         final Point destination = selectedDestination;
-        mainViewModel.createTrip(origin, destination, new MainViewModel.ResultCallback<>() {
+        mainViewModel.createTrip(origin, destination, vehicleId, new MainViewModel.ResultCallback<>() {
             @Override
             public void onSuccess(CreateTripResult result) {
                 TripResponse response = result.trip;
                 activeTripId = response.id;
-                lastTripStatusLabel = response.status;
+                lastTripStatusLabel = response.statusLabel;
+                lastTripStatusId = response.statusId;
                 activeTripAvailableSeats = response.availableSeats;
                 lastRouteTimeLabel = buildEstimatedTimeLabel(result.route.distanceMeters);
                 sessionManager.saveDriverActiveTripId(response.id);
@@ -839,6 +1194,7 @@ public class MainActivity extends AppCompatActivity {
                 updateRouteTimeText();
                 setProgressVisible(false);
                 refreshButtons();
+                checkPendingReservations();
             }
 
             @Override
@@ -859,11 +1215,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(TripResponse response) {
                 activeTripId = null;
-                lastTripStatusLabel = response.status;
+                lastTripStatusLabel = response.statusLabel;
+                lastTripStatusId = response.statusId;
                 activeTripAvailableSeats = 0;
+                activeTripPendingCount = 0;
                 lastRouteTimeLabel = null;
                 sessionManager.clearDriverActiveTripId();
                 syncTripStateToViewModel();
+                pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
                 Toast.makeText(MainActivity.this, R.string.toast_trip_cancelled, Toast.LENGTH_SHORT).show();
                 selectedOrigin = null;
                 selectedDestination = null;
@@ -946,6 +1305,313 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void updateStatusText() {
+        if (statusText == null) {
+            return;
+        }
+
+        if (hasActivePassengerReservation && !isDriverUser) {
+            String driverName = passengerReservedDriverName != null && !passengerReservedDriverName.isEmpty()
+                    ? passengerReservedDriverName
+                    : "Asignado";
+            statusText.setText("Conductor: " + driverName);
+            return;
+        }
+
+        if (activeTripId == null || activeTripId.isEmpty()) {
+            statusText.setText(R.string.trip_status_idle);
+            return;
+        }
+
+        String baseStatus;
+        if (lastTripStatusLabel != null && !lastTripStatusLabel.isEmpty()) {
+            baseStatus = getString(R.string.trip_status_with_id, activeTripId) + " · " + lastTripStatusLabel;
+        } else {
+            baseStatus = getString(R.string.trip_status_with_id, activeTripId);
+        }
+        if (isDriverUser && activeTripPendingCount > 0) {
+            baseStatus = baseStatus + "\nSolicitudes pendientes: " + activeTripPendingCount;
+        }
+        statusText.setText(baseStatus);
+    }
+
+    private void updateRouteTimeText() {
+        if (routeTimeText == null) {
+            return;
+        }
+
+        if (hasActivePassengerReservation && !isDriverUser) {
+            routeTimeText.setText("Destino confirmado");
+            return;
+        }
+
+        if (lastRouteTimeLabel == null || lastRouteTimeLabel.isEmpty()) {
+            routeTimeText.setText(R.string.route_time_idle);
+        } else {
+            routeTimeText.setText(lastRouteTimeLabel);
+        }
+    }
+
+    private void setProgressVisible(boolean visible) {
+        if (loadingIndicator != null) {
+            loadingIndicator.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void hideDriverMatchRouteExplainer() {
+        if (driverRoutePreviewBanner != null) {
+            driverRoutePreviewBanner.setVisibility(View.GONE);
+        }
+        routePreviewTripId = null;
+        routePreviewDriverName = null;
+    }
+
+    private void acceptDriverRouteFromBanner() {
+        hideDriverMatchRouteExplainer();
+        Toast.makeText(this, R.string.favorite_applied_toast, Toast.LENGTH_SHORT).show();
+    }
+
+    private void openSaveFavoriteDialog() {
+        boolean hasOrigin = selectedOrigin != null;
+        boolean hasDestination = selectedDestination != null;
+
+        if (!hasOrigin && !hasDestination) {
+            Toast.makeText(this, R.string.favorite_save_need_point, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final EditText input = new EditText(this);
+        input.setHint(R.string.favorite_save_hint);
+
+        String defaultTitle;
+        if (hasOrigin && hasDestination) {
+            defaultTitle = getString(R.string.favorite_type_route);
+        } else {
+            defaultTitle = getString(R.string.favorite_type_place);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.favorite_save_dialog_title)
+                .setMessage(defaultTitle)
+                .setView(input)
+                .setPositiveButton(R.string.favorite_save_confirm, (dialog, which) -> {
+                    String title = input.getText().toString().trim();
+                    if (title.isEmpty()) {
+                        Toast.makeText(this, R.string.favorite_save_validation_title, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    saveFavorite(title);
+                })
+                .setNegativeButton(R.string.dialog_button_cancel, null)
+                .show();
+    }
+
+    private void saveFavorite(String title) {
+        String userId = sessionManager.getUserId();
+        if (userId == null || userId.isBlank()) {
+            Toast.makeText(this, R.string.favorites_error_session, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (selectedOrigin == null && selectedDestination == null) {
+            Toast.makeText(this, R.string.favorite_save_need_point, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final String kind = selectedOrigin != null && selectedDestination != null ? "route" : "place";
+        final Point origin = selectedOrigin != null ? selectedOrigin : selectedDestination;
+        final Double destLat = selectedOrigin != null && selectedDestination != null ? selectedDestination.latitude() : null;
+        final Double destLng = selectedOrigin != null && selectedDestination != null ? selectedDestination.longitude() : null;
+
+        setProgressVisible(true);
+        backgroundExecutor.execute(() -> {
+            try {
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                app.getFavoritesRepository().createFavorite(userId, kind, title, origin.latitude(), origin.longitude(), destLat, destLng);
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(this, R.string.favorite_save_success, Toast.LENGTH_SHORT).show();
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(this, R.string.favorite_save_error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void fetchAndDrawRoutePreviewAsync(Point origin, Point destination) {
+        if (origin == null || destination == null) {
+            return;
+        }
+
+        setProgressVisible(true);
+        final boolean showPreviewBanner = routePreviewTripId != null || routePreviewDriverName != null;
+        final String previewDriverName = routePreviewDriverName;
+
+        backgroundExecutor.execute(() -> {
+            try {
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                com.example.proyectocarpooling.data.model.RouteData route = app.getTripRepository().fetchRoute(origin, destination);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    drawRoute(route.points);
+                    lastRouteTimeLabel = buildEstimatedTimeLabel(route.distanceMeters);
+                    updateRouteTimeText();
+                    if (showPreviewBanner && driverRoutePreviewBanner != null) {
+                        String driverName = previewDriverName != null && !previewDriverName.isEmpty()
+                                ? previewDriverName
+                                : getString(R.string.driver_match_default_driver_name);
+                        if (driverRoutePreviewBannerBody != null) {
+                            driverRoutePreviewBannerBody.setText(getString(R.string.main_driver_route_banner_body, driverName));
+                        }
+                        driverRoutePreviewBanner.setVisibility(View.VISIBLE);
+                    }
+                    setProgressVisible(false);
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(this, R.string.driver_match_fetch_error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void showBoardingCodeDialog(String driverName, String boardingCode) {
+        if (boardingCode == null || boardingCode.isEmpty()) {
+            Toast.makeText(this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String safeDriverName = driverName == null || driverName.isEmpty()
+                ? getString(R.string.driver_match_default_driver_name)
+                : driverName;
+
+        new AlertDialog.Builder(this)
+                .setTitle("Código de abordaje")
+                .setMessage("Conductor: " + safeDriverName + "\nCódigo: " + boardingCode)
+                .setPositiveButton(R.string.dialog_button_close, null)
+                .show();
+    }
+
+    private boolean isTripReadyToStart() {
+        return activeTripId != null && !activeTripId.isEmpty() && lastTripStatusId == 2;
+    }
+
+    private boolean isTripInProgress() {
+        return activeTripId != null && !activeTripId.isEmpty() && lastTripStatusId == 3;
+    }
+
+    private void startTrip() {
+        if (!isTripReadyToStart()) {
+            Toast.makeText(this, R.string.toast_trip_start_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        setProgressVisible(true);
+        mainViewModel.startTrip(activeTripId, currentDriverPosition, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(TripResponse response) {
+                lastTripStatusLabel = response.statusLabel;
+                lastTripStatusId = response.statusId;
+                activeTripAvailableSeats = response.availableSeats;
+                syncTripStateToViewModel();
+                updateStatusText();
+                updateRouteTimeText();
+                setProgressVisible(false);
+                refreshButtons();
+                pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
+                pollingHandler.post(pendingReservationPollingRunnable);
+                Toast.makeText(MainActivity.this, R.string.toast_trip_started, Toast.LENGTH_SHORT).show();
+                showBoardPassengerByCodeDialog();
+            }
+
+            @Override
+            public void onError(String message) {
+                setProgressVisible(false);
+                Toast.makeText(MainActivity.this, R.string.toast_trip_start_failed, Toast.LENGTH_SHORT).show();
+                refreshButtons();
+            }
+        });
+    }
+
+    private void finishTrip() {
+        if (!isTripInProgress()) {
+            Toast.makeText(this, R.string.toast_trip_finish_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        setProgressVisible(true);
+        mainViewModel.finishTrip(activeTripId, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(TripResponse response) {
+                activeTripId = null;
+                lastTripStatusLabel = response.statusLabel;
+                lastTripStatusId = response.statusId;
+                activeTripAvailableSeats = response.availableSeats;
+                activeTripPendingCount = 0;
+                lastRouteTimeLabel = null;
+                sessionManager.clearDriverActiveTripId();
+                syncTripStateToViewModel();
+                pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
+                clearRoute();
+                selectedOrigin = null;
+                selectedDestination = null;
+                syncSelectionStateToViewModel();
+                updateCoordinateLabels();
+                updateMapMarkers();
+                updateStatusText();
+                updateRouteTimeText();
+                setProgressVisible(false);
+                refreshButtons();
+                Toast.makeText(MainActivity.this, R.string.toast_trip_finished, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(String message) {
+                setProgressVisible(false);
+                Toast.makeText(MainActivity.this, R.string.toast_trip_finish_failed, Toast.LENGTH_SHORT).show();
+                refreshButtons();
+            }
+        });
+    }
+
+    private void clearFavoriteApplyExtras(Intent intent) {
+        if (intent == null) {
+            return;
+        }
+
+        intent.removeExtra(EXTRA_APPLY_FAVORITE_ID);
+        intent.removeExtra(EXTRA_APPLY_FAVORITE_KIND);
+        intent.removeExtra(EXTRA_APPLY_ORIGIN_LAT);
+        intent.removeExtra(EXTRA_APPLY_ORIGIN_LNG);
+        intent.removeExtra(EXTRA_APPLY_DEST_LAT);
+        intent.removeExtra(EXTRA_APPLY_DEST_LNG);
+        intent.removeExtra(EXTRA_APPLY_PLACE_AS_ORIGIN);
+        intent.removeExtra(EXTRA_HISTORY_ROUTE_PREVIEW);
+        intent.removeExtra(EXTRA_ROUTE_PREVIEW_CONTEXT);
+        intent.removeExtra(EXTRA_ROUTE_PREVIEW_DRIVER_NAME);
+        intent.removeExtra(EXTRA_ROUTE_PREVIEW_TRIP_ID);
+        intent.removeExtra(EXTRA_ROUTE_PREVIEW_DRIVER_TRIP_NAME);
+    }
+
+    private String normalizeTripStatus(String status) {
+        if (status == null) {
+            return "";
+        }
+        return status.trim().toLowerCase(Locale.US)
+                .replace("í", "i")
+                .replace("á", "a")
+                .replace("é", "e")
+                .replace("ó", "o")
+                .replace("ú", "u")
+                .replace(" ", "");
+    }
+
     private String formatCoordinate(Point point) {
         return getString(R.string.coordinate_value_format,
                 point.latitude(),
@@ -956,13 +1622,16 @@ public class MainActivity extends AppCompatActivity {
         boolean canCreate = isDriverUser && selectedOrigin != null && selectedDestination != null && activeTripId == null;
         createTripButton.setEnabled(canCreate);
         cancelTripButton.setEnabled(isDriverUser && activeTripId != null);
-        reserveTripButton.setEnabled(activeTripId != null);
-        findDriverButton.setEnabled(!isDriverUser && selectedDestination != null);
-        cancelPassengerReservationButton.setEnabled(activeTripId != null);
+        findDriverButton.setEnabled(!isDriverUser && selectedDestination != null && !hasActivePassengerReservation);
         viewBoardedPassengersButton.setEnabled(isDriverUser && activeTripId != null);
         markBoardedButton.setEnabled(isDriverUser && activeTripId != null);
         startTripButton.setEnabled(isDriverUser && activeTripId != null && isTripReadyToStart());
         finishTripButton.setEnabled(isDriverUser && activeTripId != null && isTripInProgress());
+        if (boardPassengerCodeButton != null) {
+            boolean tripInProgress = isDriverUser && activeTripId != null && isTripInProgress();
+            boardPassengerCodeButton.setEnabled(tripInProgress);
+            boardPassengerCodeButton.setVisibility(tripInProgress ? View.VISIBLE : View.GONE);
+        }
         if (saveFavoriteButton != null) {
             boolean canSaveFavorite = selectedOrigin != null || selectedDestination != null;
             saveFavoriteButton.setEnabled(canSaveFavorite);
@@ -985,9 +1654,19 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String normalizedKind = kind == null ? "" : kind.trim().toLowerCase(Locale.US);
-        String previewContext = intent.getStringExtra(EXTRA_ROUTE_PREVIEW_CONTEXT);
-        String previewDriverName = intent.getStringExtra(EXTRA_ROUTE_PREVIEW_DRIVER_NAME);
+        String prevContext = intent.getStringExtra(EXTRA_ROUTE_PREVIEW_CONTEXT);
+        String prevDriverName = intent.getStringExtra(EXTRA_ROUTE_PREVIEW_DRIVER_NAME);
+        String prevTripId = intent.getStringExtra(EXTRA_ROUTE_PREVIEW_TRIP_ID);
         boolean shouldPreviewRoute = intent.getBooleanExtra(EXTRA_HISTORY_ROUTE_PREVIEW, false);
+        
+        // Asignar los valores de preview si vienen del intent
+        if (prevTripId != null && !prevTripId.isEmpty()) {
+            routePreviewTripId = prevTripId;
+        }
+        if (prevDriverName != null && !prevDriverName.isEmpty()) {
+            routePreviewDriverName = prevDriverName;
+        }
+        
         if ("route".equals(normalizedKind)) {
             double dLat = intent.getDoubleExtra(EXTRA_APPLY_DEST_LAT, Double.NaN);
             double dLng = intent.getDoubleExtra(EXTRA_APPLY_DEST_LNG, Double.NaN);
@@ -1010,424 +1689,10 @@ public class MainActivity extends AppCompatActivity {
         syncSelectionStateToViewModel();
         updateCoordinateLabels();
         updateMapMarkers();
-        refreshButtons();
-        setSelectionMode(SelectionMode.NONE);
-        if (shouldPreviewRoute && selectedOrigin != null && selectedDestination != null) {
-            boolean driverMatchExplainer = ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH.equals(previewContext);
-            if (driverMatchExplainer) {
-                showDriverMatchRouteExplainer(previewDriverName);
-                fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination, true);
-            } else {
-                fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination, false);
-                Toast.makeText(this, R.string.history_detail_route_loaded, Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            Toast.makeText(this, R.string.favorite_applied_toast, Toast.LENGTH_SHORT).show();
+        if (selectedOrigin != null && selectedDestination != null) {
+            fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
         }
-
-        clearFavoriteApplyExtras(intent);
-
-        if (favId != null && !favId.isBlank() && sessionManager.hasActiveSession()) {
-            String uid = sessionManager.getUserId();
-            backgroundExecutor.execute(() -> {
-                try {
-                    new FavoritesRemoteDataSource(ApiBaseUrlProvider.get(MainActivity.this)).recordUse(uid, favId);
-                } catch (IOException ignored) {
-                }
-            });
-        }
-    }
-
-    private static void clearFavoriteApplyExtras(Intent intent) {
-        intent.removeExtra(EXTRA_APPLY_FAVORITE_KIND);
-        intent.removeExtra(EXTRA_APPLY_FAVORITE_ID);
-        intent.removeExtra(EXTRA_APPLY_ORIGIN_LAT);
-        intent.removeExtra(EXTRA_APPLY_ORIGIN_LNG);
-        intent.removeExtra(EXTRA_APPLY_DEST_LAT);
-        intent.removeExtra(EXTRA_APPLY_DEST_LNG);
-        intent.removeExtra(EXTRA_APPLY_PLACE_AS_ORIGIN);
-        intent.removeExtra(EXTRA_HISTORY_ROUTE_PREVIEW);
-        intent.removeExtra(EXTRA_ROUTE_PREVIEW_CONTEXT);
-        intent.removeExtra(EXTRA_ROUTE_PREVIEW_DRIVER_NAME);
-    }
-
-    private void showDriverMatchRouteExplainer(String driverNameOrNull) {
-        if (driverRoutePreviewBanner == null || driverRoutePreviewBannerBody == null) {
-            return;
-        }
-        String displayName = driverNameOrNull != null && !driverNameOrNull.isBlank()
-                ? driverNameOrNull.trim()
-                : getString(R.string.driver_match_default_driver_name);
-        driverRoutePreviewBannerBody.setText(getString(R.string.main_driver_route_banner_body, displayName));
-        driverRoutePreviewBanner.setVisibility(View.VISIBLE);
-        selectionInstruction.setText(R.string.selection_instruction_driver_route_preview);
-        if (bottomSheetBehavior != null) {
-            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-        }
-    }
-
-    private void hideDriverMatchRouteExplainer() {
-        if (driverRoutePreviewBanner != null) {
-            driverRoutePreviewBanner.setVisibility(View.GONE);
-        }
-        setSelectionMode(SelectionMode.NONE);
-    }
-
-    private void fetchAndDrawRoutePreviewAsync(Point origin, Point destination) {
-        fetchAndDrawRoutePreviewAsync(origin, destination, false);
-    }
-
-    private void fetchAndDrawRoutePreviewAsync(Point origin, Point destination, boolean driverMatchPreviewUi) {
-        setProgressVisible(true);
-        backgroundExecutor.execute(() -> {
-            try {
-                TripsRemoteDataSource api = new TripsRemoteDataSource(
-                        ApiBaseUrlProvider.get(MainActivity.this),
-                        getString(R.string.mapbox_access_token));
-                var route = api.fetchRoute(origin, destination);
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    if (route != null && route.points != null && !route.points.isEmpty()) {
-                        drawRoute(route.points);
-                        lastRouteTimeLabel = buildEstimatedTimeLabel(route.distanceMeters);
-                        updateRouteTimeText();
-                        if (driverMatchPreviewUi) {
-                            fitCameraToRouteOverview(route.points);
-                        }
-                    }
-                });
-            } catch (IOException e) {
-                runOnUiThread(() -> setProgressVisible(false));
-            }
-        });
-    }
-
-    /** Encuadra la ruta completa para que el pasajero entienda el trayecto de un vistazo. */
-    private void fitCameraToRouteOverview(List<Point> routePoints) {
-        if (mapView == null || routePoints == null || routePoints.size() < 2) {
-            return;
-        }
-        mapView.post(() -> fitCameraToRouteOverviewInternal(routePoints));
-    }
-
-    private void fitCameraToRouteOverviewInternal(List<Point> routePoints) {
-        if (mapView == null) {
-            return;
-        }
-        double minLat = 90;
-        double maxLat = -90;
-        double minLon = 180;
-        double maxLon = -180;
-        for (Point p : routePoints) {
-            minLat = Math.min(minLat, p.latitude());
-            maxLat = Math.max(maxLat, p.latitude());
-            minLon = Math.min(minLon, p.longitude());
-            maxLon = Math.max(maxLon, p.longitude());
-        }
-        double latMid = (minLat + maxLat) / 2.0;
-        double lonMid = (minLon + maxLon) / 2.0;
-        double latSpan = Math.max(maxLat - minLat, 1e-5);
-        double lonSpan = Math.max(maxLon - minLon, 1e-5);
-        latSpan *= 1.35;
-        lonSpan *= 1.35 * Math.max(Math.cos(Math.toRadians(latMid)), 0.3);
-
-        int mapW = Math.max(mapView.getWidth(), 320);
-        int mapH = Math.max(mapView.getHeight(), 320);
-
-        double zoomLon = Math.log(mapW * 360.0 / (lonSpan * 256.0 * 1.8)) / Math.log(2.0);
-        double zoomLat = Math.log(mapH * 170.0 / (latSpan * 256.0 * 1.8)) / Math.log(2.0);
-        double zoom = Math.min(17.5, Math.max(11.0, Math.min(zoomLon, zoomLat)));
-
-        Point center = Point.fromLngLat(lonMid, latMid);
-        mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
-                .center(center)
-                .zoom(zoom)
-                .build());
-    }
-
-    private void openSaveFavoriteDialog() {
-        boolean hasO = selectedOrigin != null;
-        boolean hasD = selectedDestination != null;
-        if (!hasO && !hasD) {
-            Toast.makeText(this, R.string.favorite_save_need_point, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String userId = sessionManager.getUserId();
-        if (userId == null || userId.isBlank()) {
-            Toast.makeText(this, R.string.favorites_error_session, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (hasO && hasD) {
-            new AlertDialog.Builder(this)
-                    .setTitle(R.string.favorite_save_pick_kind)
-                    .setItems(new CharSequence[]{
-                            getString(R.string.favorite_save_as_route),
-                            getString(R.string.favorite_save_place_origin),
-                            getString(R.string.favorite_save_place_destination)
-                    }, (d, which) -> promptFavoriteTitleAndSubmit(which))
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show();
-        } else {
-            promptFavoriteTitleAndSubmit(hasO ? 1 : 2);
-        }
-    }
-
-    private void promptFavoriteTitleAndSubmit(int choiceWhenBothPresent) {
-        EditText input = new EditText(this);
-        input.setHint(R.string.favorite_save_hint);
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.favorite_save_dialog_title)
-                .setView(input)
-                .setPositiveButton(R.string.favorite_save_confirm, (dialog, which) -> {
-                    String title = String.valueOf(input.getText()).trim();
-                    if (title.isEmpty()) {
-                        Toast.makeText(MainActivity.this, R.string.favorite_save_validation_title, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    String userId = sessionManager.getUserId();
-                    if (userId == null || userId.isBlank()) {
-                        return;
-                    }
-                    if (choiceWhenBothPresent == 0) {
-                        if (selectedOrigin != null && selectedDestination != null) {
-                            submitFavoriteRoute(userId, title, selectedOrigin, selectedDestination);
-                        }
-                    } else if (choiceWhenBothPresent == 1 && selectedOrigin != null) {
-                        submitFavoritePlace(userId, title, selectedOrigin);
-                    } else if (choiceWhenBothPresent == 2 && selectedDestination != null) {
-                        submitFavoritePlace(userId, title, selectedDestination);
-                    }
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
-    private void submitFavoriteRoute(String userId, String title, Point origin, Point dest) {
-        setProgressVisible(true);
-        backgroundExecutor.execute(() -> {
-            try {
-                new FavoritesRemoteDataSource(ApiBaseUrlProvider.get(MainActivity.this)).createFavorite(
-                        userId,
-                        "route",
-                        title,
-                        origin.latitude(),
-                        origin.longitude(),
-                        dest.latitude(),
-                        dest.longitude()
-                );
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    Toast.makeText(MainActivity.this, R.string.favorite_save_success, Toast.LENGTH_SHORT).show();
-                });
-            } catch (IOException e) {
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    Toast.makeText(MainActivity.this, R.string.favorite_save_error, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
-    }
-
-    private void submitFavoritePlace(String userId, String title, Point place) {
-        setProgressVisible(true);
-        backgroundExecutor.execute(() -> {
-            try {
-                new FavoritesRemoteDataSource(ApiBaseUrlProvider.get(MainActivity.this)).createFavorite(
-                        userId,
-                        "place",
-                        title,
-                        place.latitude(),
-                        place.longitude(),
-                        null,
-                        null
-                );
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    Toast.makeText(MainActivity.this, R.string.favorite_save_success, Toast.LENGTH_SHORT).show();
-                });
-            } catch (IOException e) {
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    Toast.makeText(MainActivity.this, R.string.favorite_save_error, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
-    }
-
-    private boolean isTripReadyToStart() {
-        if (lastTripStatusLabel == null) return false;
-        var normalized = lastTripStatusLabel.trim().toLowerCase();
-        return normalized.equals("listo") || normalized.equals("ready") || normalized.equals("1");
-    }
-
-    private boolean isTripInProgress() {
-        if (lastTripStatusLabel == null) return false;
-        var normalized = lastTripStatusLabel.trim().toLowerCase();
-        return normalized.equals("en curso")
-                || normalized.equals("en_curso")
-                || normalized.equals("inprogress")
-                || normalized.equals("3");
-    }
-
-    private void startTrip() {
-        if (activeTripId == null) return;
-
-        setProgressVisible(true);
-        startTripButton.setEnabled(false);
-
-        final String tripId = activeTripId;
-        final Point driverPosition = currentDriverPosition;
-
-        mainViewModel.startTrip(tripId, driverPosition, new MainViewModel.ResultCallback<>() {
-            @Override
-            public void onSuccess(TripResponse tripResponse) {
-                Toast.makeText(MainActivity.this, R.string.toast_trip_started, Toast.LENGTH_SHORT).show();
-                lastTripStatusLabel = tripResponse.status;
-                activeTripAvailableSeats = tripResponse.availableSeats;
-                syncTripStateToViewModel();
-                updateStatusText();
-                setProgressVisible(false);
-                refreshButtons();
-            }
-
-            @Override
-            public void onError(String message) {
-                Toast.makeText(MainActivity.this, R.string.toast_trip_start_failed, Toast.LENGTH_SHORT).show();
-                setProgressVisible(false);
-                refreshButtons();
-            }
-        });
-    }
-
-    private void finishTrip() {
-        if (activeTripId == null) return;
-
-        setProgressVisible(true);
-        finishTripButton.setEnabled(false);
-
-        final String tripId = activeTripId;
-
-        mainViewModel.finishTrip(tripId, new MainViewModel.ResultCallback<>() {
-            @Override
-            public void onSuccess(TripResponse tripResponse) {
-                Toast.makeText(MainActivity.this, R.string.toast_trip_finished, Toast.LENGTH_SHORT).show();
-                activeTripId = null;
-                lastTripStatusLabel = tripResponse.status;
-                activeTripAvailableSeats = tripResponse.availableSeats;
-                lastRouteTimeLabel = null;
-                sessionManager.clearDriverActiveTripId();
-                syncTripStateToViewModel();
-                selectedOrigin = null;
-                selectedDestination = null;
-                syncSelectionStateToViewModel();
-                clearRoute();
-                setSelectionMode(SelectionMode.NONE);
-                updateCoordinateLabels();
-                updateMapMarkers();
-                updateStatusText();
-                updateRouteTimeText();
-                setProgressVisible(false);
-                refreshButtons();
-                updateDrawerDriverMenuVisibility();
-            }
-
-            @Override
-            public void onError(String message) {
-                Toast.makeText(MainActivity.this, R.string.toast_trip_finish_failed, Toast.LENGTH_SHORT).show();
-                setProgressVisible(false);
-                refreshButtons();
-            }
-        });
-    }
-
-    private void updateStatusText() {
-        if (activeTripId == null) {
-            statusText.setText(R.string.trip_status_idle);
-        } else {
-            String suffix = lastTripStatusLabel == null ? "" : " · " + lastTripStatusLabel;
-            statusText.setText(getString(R.string.trip_status_with_id, activeTripId) + suffix + " · Cupos: " + activeTripAvailableSeats);
-        }
-    }
-
-    private void updateRouteTimeText() {
-        if (routeTimeText == null) {
-            return;
-        }
-
-        if (lastRouteTimeLabel == null || activeTripId == null) {
-            routeTimeText.setText(R.string.route_time_idle);
-        } else {
-            routeTimeText.setText(lastRouteTimeLabel);
-        }
-    }
-
-    private void setProgressVisible(boolean show) {
-        if (loadingIndicator != null) {
-            loadingIndicator.setVisibility(show ? View.VISIBLE : View.GONE);
-        }
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        consumeApplyFavoriteIntent(intent);
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        if (mapView != null) {
-            mapView.onStart();
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (mapView != null) {
-            mapView.onStop();
-        }
-    }
-
-    @Override
-    public void onLowMemory() {
-        super.onLowMemory();
-        if (mapView != null) {
-            mapView.onLowMemory();
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        clearRoute();
-        if (pointAnnotationManager != null) {
-            pointAnnotationManager.deleteAll();
-            pointAnnotationManager = null;
-        }
-        if (polylineAnnotationManager != null) {
-            polylineAnnotationManager.deleteAll();
-            polylineAnnotationManager = null;
-        }
-        if (locationComponentPlugin != null) {
-            locationComponentPlugin.removeOnIndicatorPositionChangedListener(onIndicatorPositionChangedListener);
-        }
-        if (mapView != null) {
-            mapView.onDestroy();
-        }
-        backgroundExecutor.shutdownNow();
-        super.onDestroy();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        isDriverUser = sessionManager.isDriver();
-        refreshDrawerUserInfo();
-        applyRoleAccess();
-        refreshButtons();
-        maybeRestoreDriverActiveTripAsync();
+        refreshForPassengerReservation();
     }
 
     private void reserveTrip() {
@@ -1437,29 +1702,20 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        final EditText input = new EditText(this);
-        input.setHint(R.string.dialog_message_reserve);
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_title_reserve)
-                .setView(input)
-                .setPositiveButton(R.string.dialog_button_confirm, (dialog, which) -> {
-                    String name = input.getText().toString().trim();
-                    if (name.isEmpty()) name = "Pasajero " + (int)(Math.random() * 100);
-                    submitReservation(name);
-                })
-                .setNegativeButton(R.string.dialog_button_cancel, null)
-                .show();
+        String userId = sessionManager.getUserId();
+        if (userId.isEmpty()) {
+            Toast.makeText(this, "Sesión inválida", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        submitReservation(userId);
     }
 
-    private void submitReservation(String passengerName) {
+    private void submitReservation(String passengerUserId) {
         setProgressVisible(true);
-        mainViewModel.createReservation(activeTripId, passengerName, new MainViewModel.SimpleCallback() {
+        mainViewModel.createReservation(activeTripId, passengerUserId, 1, new MainViewModel.SimpleCallback() {
             @Override
             public void onSuccess() {
                 Toast.makeText(MainActivity.this, R.string.toast_reservation_created, Toast.LENGTH_SHORT).show();
-                activeTripAvailableSeats--;
-                syncTripStateToViewModel();
-                updateStatusText();
                 setProgressVisible(false);
             }
 
@@ -1474,32 +1730,22 @@ public class MainActivity extends AppCompatActivity {
     private void cancelPassengerReservation() {
         if (activeTripId == null) return;
 
-        final EditText input = new EditText(this);
-        input.setHint("Nombre");
-        new AlertDialog.Builder(this)
-                .setTitle("Cancelar Reserva")
-                .setMessage("Ingresa tu nombre para buscar y cancelar tu reserva:")
-                .setView(input)
-                .setPositiveButton(R.string.dialog_button_confirm, (dialog, which) -> {
-                    String name = input.getText().toString().trim();
-                    if (!name.isEmpty()) {
-                        findAndCancelPassengerReservation(name);
-                    } else {
-                        Toast.makeText(this, "Nombre inválido", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton(R.string.dialog_button_cancel, null)
-                .show();
+        String userId = sessionManager.getUserId();
+        if (userId.isEmpty()) {
+            Toast.makeText(this, "Sesión inválida", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        findAndCancelPassengerReservation(userId);
     }
 
-    private void findAndCancelPassengerReservation(String passengerName) {
+    private void findAndCancelPassengerReservation(String passengerUserId) {
         setProgressVisible(true);
         mainViewModel.getReservations(activeTripId, new MainViewModel.ResultCallback<>() {
             @Override
             public void onSuccess(List<ReservationResponse> reservations) {
                 String targetReservationId = null;
                 for (ReservationResponse reservation : reservations) {
-                    if (reservation.passengerName.equalsIgnoreCase(passengerName)) {
+                    if (reservation.passengerUserId != null && reservation.passengerUserId.equals(passengerUserId)) {
                         targetReservationId = reservation.id;
                         break;
                     }
@@ -1508,7 +1754,7 @@ public class MainActivity extends AppCompatActivity {
                 if (targetReservationId != null) {
                     executeCancelReservation(targetReservationId);
                 } else {
-                    Toast.makeText(MainActivity.this, "No se encontró reserva para: " + passengerName, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "No se encontró reserva", Toast.LENGTH_SHORT).show();
                     setProgressVisible(false);
                 }
             }
@@ -1537,66 +1783,136 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showManualStatusOptions(ReservationResponse reservation, boolean refreshBoardedList) {
-        String[] statuses = new String[]{
-                getString(R.string.manual_status_active),
-                getString(R.string.manual_status_boarded),
-                getString(R.string.manual_status_cancelled)
-        };
+        String[] statuses;
+        if (reservation.statusId == 1) { // pending
+            statuses = new String[]{
+                    "Aceptar (Confirmado)",
+                    "Rechazar (Cancelado)"
+            };
+        } else {
+            statuses = new String[]{
+                    getString(R.string.manual_status_active),
+                    getString(R.string.manual_status_boarded),
+                    getString(R.string.manual_status_cancelled)
+            };
+        }
 
         new AlertDialog.Builder(this)
-                .setTitle(getString(R.string.dialog_title_manual_status) + ": " + reservation.passengerName)
+                .setTitle(getString(R.string.dialog_title_manual_status) + ": " + reservation.getPassengerName())
                 .setItems(statuses, (dialog, which) -> {
-                    String targetStatus;
-                    if (which == 0) {
-                        targetStatus = "Active";
-                    } else if (which == 1) {
-                        targetStatus = "Boarded";
+                    if (reservation.statusId == 1) { // pending
+                        if (which == 0) {
+                            acceptPendingReservation(reservation.id);
+                        } else {
+                            rejectPendingReservation(reservation.id);
+                        }
                     } else {
-                        targetStatus = "Cancelled";
+                        String targetStatus;
+                        if (which == 0) targetStatus = "Active";
+                        else if (which == 1) targetStatus = "Boarded";
+                        else targetStatus = "Cancelled";
+                        updatePassengerStatusManual(reservation, targetStatus, refreshBoardedList);
                     }
-                    updatePassengerStatusManual(reservation, targetStatus, refreshBoardedList);
                 })
                 .setNegativeButton(R.string.dialog_button_cancel, null)
                 .show();
+    }
+
+    private void acceptPendingReservation(String reservationId) {
+        setProgressVisible(true);
+        String apiBase = ApiBaseUrlProvider.get(this);
+        String mapboxToken = getString(R.string.mapbox_access_token);
+        TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
+        backgroundExecutor.execute(() -> {
+            try {
+                repository.acceptReservation(activeTripId, reservationId);
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    activeTripAvailableSeats--;
+                    syncTripStateToViewModel();
+                    updateStatusText();
+                    Toast.makeText(MainActivity.this, "Reserva aceptada", Toast.LENGTH_SHORT).show();
+                    openPassengerRequestsScreen(false);
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, "Error al aceptar", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void rejectPendingReservation(String reservationId) {
+        setProgressVisible(true);
+        String apiBase = ApiBaseUrlProvider.get(this);
+        String mapboxToken = getString(R.string.mapbox_access_token);
+        TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
+        backgroundExecutor.execute(() -> {
+            try {
+                repository.rejectReservation(activeTripId, reservationId);
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, "Reserva rechazada", Toast.LENGTH_SHORT).show();
+                    openPassengerRequestsScreen(false);
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, "Error al rechazar", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
     private void markPassengerBoardedByName() {
         if (activeTripId == null) return;
-
-        final EditText input = new EditText(this);
-        input.setHint(R.string.dialog_message_mark_boarded);
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_title_mark_boarded)
-                .setMessage(R.string.dialog_message_mark_boarded)
-                .setView(input)
-                .setPositiveButton(R.string.dialog_button_confirm, (dialog, which) -> {
-                    String name = input.getText().toString().trim();
-                    if (name.isEmpty()) {
-                        Toast.makeText(this, "Nombre inválido", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    submitBoardingByName(name);
-                })
-                .setNegativeButton(R.string.dialog_button_cancel, null)
-                .show();
-    }
-
-    private void submitBoardingByName(String passengerName) {
         setProgressVisible(true);
-        mainViewModel.markBoardedByName(activeTripId, passengerName, new MainViewModel.SimpleCallback() {
+        mainViewModel.getConfirmedReservations(activeTripId, new MainViewModel.ResultCallback<>() {
             @Override
-            public void onSuccess() {
-                Toast.makeText(MainActivity.this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
-                openPassengerRequestsScreen(false);
-                viewBoardedPassengers();
+            public void onSuccess(List<ReservationResponse> confirmed) {
                 setProgressVisible(false);
+                if (confirmed.isEmpty()) {
+                    Toast.makeText(MainActivity.this, "No hay reservas confirmadas para abordar", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                ArrayAdapter<ReservationResponse> adapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_list_item_1, confirmed);
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Seleccionar pasajero a abordar")
+                        .setAdapter(adapter, (dialog, which) -> {
+                            ReservationResponse selected = confirmed.get(which);
+                            boardPassenger(selected.id);
+                        })
+                        .setNegativeButton(R.string.dialog_button_cancel, null)
+                        .show();
             }
 
             @Override
             public void onError(String message) {
-                Toast.makeText(MainActivity.this, R.string.toast_boarding_failed, Toast.LENGTH_SHORT).show();
                 setProgressVisible(false);
+                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void boardPassenger(String reservationId) {
+        setProgressVisible(true);
+        String apiBase = ApiBaseUrlProvider.get(this);
+        String mapboxToken = getString(R.string.mapbox_access_token);
+        TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
+        backgroundExecutor.execute(() -> {
+            try {
+                repository.boardPassenger(activeTripId, reservationId);
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
+                    viewBoardedPassengers();
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, R.string.toast_boarding_failed, Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }
@@ -1661,7 +1977,7 @@ public class MainActivity extends AppCompatActivity {
     private void confirmCancelReservation(ReservationResponse reservation) {
         new AlertDialog.Builder(this)
                 .setTitle("Cancelar Reserva")
-                .setMessage("¿Deseas cancelar la reserva de " + reservation.passengerName + "?")
+                .setMessage("¿Deseas cancelar la reserva de " + reservation.getPassengerName() + "?")
                 .setPositiveButton("Sí, Cancelar", (dialog, which) -> executeCancelReservation(reservation.id))
                 .setNegativeButton("No", null)
                 .show();
@@ -1673,9 +1989,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess() {
                 Toast.makeText(MainActivity.this, R.string.toast_reservation_cancelled, Toast.LENGTH_SHORT).show();
-                activeTripAvailableSeats++;
-                syncTripStateToViewModel();
-                updateStatusText();
                 setProgressVisible(false);
             }
 
@@ -1688,6 +2001,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openDriverMatchScreen() {
+        if (hasActivePassengerReservation) {
+            Toast.makeText(this, "Ya tienes un viaje reservado. Cancelalo antes de buscar otro.", Toast.LENGTH_LONG).show();
+            return;
+        }
         if (selectedDestination == null) {
             Toast.makeText(this, R.string.toast_destination_required, Toast.LENGTH_SHORT).show();
             return;
@@ -1700,4 +2017,224 @@ public class MainActivity extends AppCompatActivity {
         driverMatchLauncher.launch(intent);
     }
 
+    private void checkPendingReservations() {
+        if (!isDriverUser || activeTripId == null || activeTripId.isEmpty()) {
+            return;
+        }
+        final String tripId = activeTripId;
+        backgroundExecutor.execute(() -> {
+            try {
+                String apiBase = ApiBaseUrlProvider.get(MainActivity.this);
+                String mapboxToken = getString(R.string.mapbox_access_token);
+                TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
+                List<ReservationResponse> pending = repository.getReservations(tripId);
+                final int count = pending.size();
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    activeTripPendingCount = count;
+                    updateStatusText();
+                });
+            } catch (IOException ignored) {
+            }
+        });
+    }
+
+    private void showBoardPassengerByCodeDialog() {
+        if (activeTripId == null || activeTripId.isEmpty()) {
+            return;
+        }
+        final EditText input = new EditText(this);
+        input.setHint("Código de abordaje del pasajero");
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Subir pasajero")
+                .setView(input)
+                .setPositiveButton("Confirmar", (dialog, which) -> {
+                    String code = input.getText().toString().trim();
+                    if (code.isEmpty()) {
+                        Toast.makeText(this, "Ingrese el codigo", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    verifyAndBoardPassengerByCode(code);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void verifyAndBoardPassengerByCode(String code) {
+        final String tripId = activeTripId;
+        setProgressVisible(true);
+        mainViewModel.getConfirmedReservations(tripId, new MainViewModel.ResultCallback<>() {
+            @Override
+            public void onSuccess(List<ReservationResponse> confirmed) {
+                if (confirmed.isEmpty()) {
+                    setProgressVisible(false);
+                    Toast.makeText(MainActivity.this, "No hay pasajeros confirmados", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                tryMatchCode(tripId, confirmed, code, 0);
+            }
+
+            @Override
+            public void onError(String message) {
+                setProgressVisible(false);
+                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void tryMatchCode(String tripId, List<ReservationResponse> confirmed, String code, int index) {
+        if (index >= confirmed.size()) {
+            setProgressVisible(false);
+            Toast.makeText(MainActivity.this, "Codigo no coincide con ningun pasajero confirmado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ReservationResponse reservation = confirmed.get(index);
+        mainViewModel.verifyBoardingCode(tripId, reservation.id, code, new MainViewModel.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                mainViewModel.boardPassenger(tripId, reservation.id, new MainViewModel.SimpleCallback() {
+                    @Override
+                    public void onSuccess() {
+                        setProgressVisible(false);
+                        Toast.makeText(MainActivity.this, "Pasajero abordado", Toast.LENGTH_SHORT).show();
+                        viewBoardedPassengers();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        setProgressVisible(false);
+                        Toast.makeText(MainActivity.this, "Error al abordar", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                tryMatchCode(tripId, confirmed, code, index + 1);
+            }
+        });
+    }
+
+    private void pollPassengerReservationStatus() {
+        if (!hasActivePassengerReservation || isDriverUser) {
+            return;
+        }
+        final String userId = sessionManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            return;
+        }
+        backgroundExecutor.execute(() -> {
+            try {
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                org.json.JSONObject reservation = app.getUserRepository().getActiveReservation(userId);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    if (reservation != null) {
+                        int statusId = reservation.optInt("statusId", 0);
+                        if (selectionInstruction != null) {
+                            if (statusId == 1) {
+                                selectionInstruction.setText("Pendiente de confirmación");
+                            } else if (statusId == 2) {
+                                String bc = reservation.optString("boardingCode", "----");
+                                selectionInstruction.setText("Confirmado - Código: " + bc);
+                            } else if (statusId == 3) {
+                                selectionInstruction.setText("Abordado - Buen viaje!");
+                            }
+                        }
+                        if (statusText != null) {
+                            String dName = reservation.optString("driverName", "");
+                            String vBrand = reservation.optString("vehicleBrand", "");
+                            String vPlate = reservation.optString("vehiclePlate", "");
+                            StringBuilder sb = new StringBuilder();
+                            if (!dName.isEmpty()) {
+                                sb.append("Conductor: ").append(dName);
+                            }
+                            if (!vBrand.isEmpty() || !vPlate.isEmpty()) {
+                                if (sb.length() > 0) sb.append(" · ");
+                                sb.append(vBrand);
+                                if (!vPlate.isEmpty()) {
+                                    if (!vBrand.isEmpty()) sb.append(" ");
+                                    sb.append(vPlate);
+                                }
+                            }
+                            if (sb.length() > 0) {
+                                statusText.setText(sb.toString());
+                            }
+                        }
+                    }
+                });
+            } catch (IOException ignored) {
+            }
+        });
+    }
+
+    private void startPassengerPolling() {
+        if (passengerPollingRunnable != null) {
+            pollingHandler.removeCallbacks(passengerPollingRunnable);
+        }
+        passengerPollingRunnable = new Runnable() {
+            @Override
+            public void run() {
+                pollPassengerReservationStatus();
+                if (hasActivePassengerReservation && !isDriverUser) {
+                    pollingHandler.postDelayed(this, 15_000);
+                }
+            }
+        };
+        pollingHandler.post(passengerPollingRunnable);
+    }
+
+    private void stopPassengerPolling() {
+        if (passengerPollingRunnable != null) {
+            pollingHandler.removeCallbacks(passengerPollingRunnable);
+            passengerPollingRunnable = null;
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (hasActivePassengerReservation && !isDriverUser) {
+            startPassengerPolling();
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (mapView != null) {
+            mapView.onStart();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopPassengerPolling();
+    }
+
+    @Override
+    protected void onStop() {
+        if (mapView != null) {
+            mapView.onStop();
+        }
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mapView != null) {
+            mapView.onDestroy();
+        }
+        super.onDestroy();
+        pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
+        stopPassengerPolling();
+        backgroundExecutor.shutdownNow();
+    }
 }

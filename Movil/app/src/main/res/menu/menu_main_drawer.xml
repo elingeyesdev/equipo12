@@ -1,53 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:id="@+id/nav_edit_profile"
-        android:icon="@android:drawable/ic_menu_edit"
-        android:title="@string/drawer_edit_profile" />
+    <group android:id="@+id/group_main">
+        <item
+            android:id="@+id/nav_edit_profile"
+            android:icon="@android:drawable/ic_menu_edit"
+            android:title="@string/drawer_edit_profile" />
 
-    <item
-        android:id="@+id/nav_favorites"
-        android:icon="@android:drawable/btn_star_big_off"
-        android:title="@string/drawer_favorites" />
+        <item
+            android:id="@+id/nav_favorites"
+            android:icon="@android:drawable/btn_star_big_on"
+            android:title="@string/drawer_favorites" />
 
-    <item
-        android:id="@+id/nav_history"
-        android:icon="@android:drawable/ic_menu_recent_history"
-        android:title="@string/drawer_history" />
+        <item
+            android:id="@+id/nav_history"
+            android:icon="@android:drawable/ic_menu_recent_history"
+            android:title="@string/drawer_history" />
+    </group>
 
-    <item
-        android:id="@+id/nav_my_addresses"
-        android:icon="@android:drawable/ic_menu_mylocation"
-        android:title="@string/drawer_my_addresses" />
+    <group android:id="@+id/group_reservation">
+        <item
+            android:id="@+id/nav_my_reservation"
+            android:icon="@android:drawable/ic_menu_directions"
+            android:title="Mi viaje reservado"
+            android:visible="false" />
 
-    <item
-        android:id="@+id/nav_notifications"
-        android:icon="@android:drawable/ic_dialog_info"
-        android:title="@string/drawer_notifications" />
+        <item
+            android:id="@+id/nav_find_driver"
+            android:icon="@android:drawable/ic_menu_search"
+            android:title="Buscar conductor"
+            android:visible="false" />
 
-    <item
-        android:id="@+id/nav_security"
-        android:icon="@android:drawable/ic_lock_lock"
-        android:title="@string/drawer_security" />
+        <item
+            android:id="@+id/nav_cancel_reservation"
+            android:icon="@android:drawable/ic_menu_close_clear_cancel"
+            android:title="Cancelar mi reserva"
+            android:visible="false" />
+    </group>
 
-    <item
-        android:id="@+id/nav_help"
-        android:icon="@android:drawable/ic_menu_help"
-        android:title="@string/drawer_help" />
+    <group android:id="@+id/group_secondary">
+        <item
+            android:id="@+id/nav_my_addresses"
+            android:icon="@android:drawable/ic_menu_mylocation"
+            android:title="@string/drawer_my_addresses" />
 
-    <item
-        android:id="@+id/nav_support"
-        android:icon="@android:drawable/ic_menu_call"
-        android:title="@string/drawer_support" />
+        <item
+            android:id="@+id/nav_notifications"
+            android:icon="@android:drawable/ic_dialog_info"
+            android:title="@string/drawer_notifications" />
 
-    <item
-        android:id="@+id/nav_driver_passenger_requests"
-        android:icon="@android:drawable/ic_menu_agenda"
-        android:title="@string/drawer_driver_passenger_requests"
-        android:visible="false" />
+        <item
+            android:id="@+id/nav_security"
+            android:icon="@android:drawable/ic_lock_lock"
+            android:title="@string/drawer_security" />
 
-    <item
-        android:id="@+id/nav_logout"
-        android:icon="@android:drawable/ic_lock_power_off"
-        android:title="@string/drawer_logout" />
+        <item
+            android:id="@+id/nav_help"
+            android:icon="@android:drawable/ic_menu_help"
+            android:title="@string/drawer_help" />
+
+        <item
+            android:id="@+id/nav_support"
+            android:icon="@android:drawable/ic_menu_call"
+            android:title="@string/drawer_support" />
+
+        <item
+            android:id="@+id/nav_driver_passenger_requests"
+            android:icon="@android:drawable/ic_menu_agenda"
+            android:title="@string/drawer_driver_passenger_requests"
+            android:visible="false" />
+    </group>
+
+    <group android:id="@+id/group_bottom">
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@android:drawable/ic_lock_power_off"
+            android:title="@string/drawer_logout" />
+    </group>
 </menu>

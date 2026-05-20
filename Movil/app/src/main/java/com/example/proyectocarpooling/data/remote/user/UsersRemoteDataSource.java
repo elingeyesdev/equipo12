@@ -4,13 +4,17 @@ import com.example.proyectocarpooling.data.model.user.LoginUserRequest;
 import com.example.proyectocarpooling.data.model.user.RegisterUserRequest;
 import com.example.proyectocarpooling.data.model.user.UpdateUserRequest;
 import com.example.proyectocarpooling.data.model.user.UserResponse;
+import com.example.proyectocarpooling.data.model.user.VehicleResponse;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
@@ -104,7 +108,7 @@ public class UsersRemoteDataSource {
     }
 
     public UserResponse getByEmail(String email) throws IOException {
-        String encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8);
+        String encodedEmail = URLEncoder.encode(email, "UTF-8");
         Request request = new Request.Builder()
             .url(apiBaseUrl + "/api/Users/email/" + encodedEmail)
                 .get()
@@ -144,6 +148,148 @@ public class UsersRemoteDataSource {
                 .build();
 
         return executeUserRequest(httpRequest, "Error actualizando perfil");
+    }
+
+    public List<VehicleResponse> getVehicles(String userId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/" + userId + "/vehicles")
+                .get()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Error consultando vehículos: " + response.code() + " " + errorBody);
+            }
+            if (response.body() == null) throw new IOException("Respuesta vacía");
+            return VehicleResponse.fromJsonArray(response.body().string());
+        } catch (JSONException e) {
+            throw new IOException("Respuesta inválida de vehículos", e);
+        }
+    }
+
+    public VehicleResponse addVehicle(String userId, String licensePlate, String brand, String model,
+                                       String color, int vehicleYear, int totalSeats) throws IOException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("licensePlate", licensePlate);
+            body.put("brand", brand);
+            body.put("model", model);
+            body.put("color", color);
+            body.put("vehicleYear", vehicleYear);
+            body.put("totalSeats", totalSeats);
+        } catch (JSONException e) {
+            throw new IOException("No se pudo construir vehículo", e);
+        }
+
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/" + userId + "/vehicles")
+                .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (response.body() == null) throw new IOException("Respuesta vacía");
+            String responseBody = response.body().string();
+            if (!response.isSuccessful()) {
+                throw new IOException("Error agregando vehículo: " + response.code() + " " + responseBody);
+            }
+            return VehicleResponse.fromJson(new JSONObject(responseBody));
+        } catch (JSONException e) {
+            throw new IOException("Respuesta inválida", e);
+        }
+    }
+
+    public VehicleResponse updateVehicle(String userId, String vehicleId, String licensePlate, String brand,
+                                          String model, String color, int vehicleYear, int totalSeats) throws IOException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("licensePlate", licensePlate);
+            body.put("brand", brand);
+            body.put("model", model);
+            body.put("color", color);
+            body.put("vehicleYear", vehicleYear);
+            body.put("totalSeats", totalSeats);
+        } catch (JSONException e) {
+            throw new IOException("No se pudo construir vehículo", e);
+        }
+
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/" + userId + "/vehicles/" + vehicleId)
+                .put(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (response.body() == null) throw new IOException("Respuesta vacía");
+            String responseBody = response.body().string();
+            if (!response.isSuccessful()) {
+                throw new IOException("Error actualizando vehículo: " + response.code() + " " + responseBody);
+            }
+            return VehicleResponse.fromJson(new JSONObject(responseBody));
+        } catch (JSONException e) {
+            throw new IOException("Respuesta inválida", e);
+        }
+    }
+
+    public void deleteVehicle(String userId, String vehicleId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/" + userId + "/vehicles/" + vehicleId)
+                .delete()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Error eliminando vehículo: " + response.code() + " " + errorBody);
+            }
+        }
+    }
+
+    public List<VehicleResponse> getVehiclesForUser(String userId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/" + userId + "/vehicles")
+                .get()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Error consultando vehiculos: " + response.code() + " " + errorBody);
+            }
+            if (response.body() == null) {
+                throw new IOException("Respuesta vacia del servidor");
+            }
+            JSONArray array = new JSONArray(response.body().string());
+            List<VehicleResponse> vehicles = new ArrayList<>();
+            for (int i = 0; i < array.length(); i++) {
+                vehicles.add(VehicleResponse.fromJson(array.getJSONObject(i)));
+            }
+            return vehicles;
+        } catch (JSONException e) {
+            throw new IOException("Respuesta invalida de vehiculos", e);
+        }
+    }
+
+    public JSONObject getActiveReservation(String userId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/" + userId + "/active-reservation")
+                .get()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (response.code() == 404) {
+                return null;
+            }
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Error consultando reserva activa: " + response.code() + " " + errorBody);
+            }
+            if (response.body() == null) {
+                throw new IOException("Respuesta vacia del servidor");
+            }
+            return new JSONObject(response.body().string());
+        } catch (JSONException e) {
+            throw new IOException("Respuesta invalida de reserva activa", e);
+        }
     }
 
     public void logout() throws IOException {

@@ -1,5 +1,6 @@
 using CarPooling.Data;
 using CarPooling.Security;
+using CarPooling.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,14 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddDbContext<CarPoolingContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Services
+builder.Services.AddScoped<TripService>();
+builder.Services.AddScoped<ReservationService>();
+builder.Services.AddScoped<VehicleService>();
+builder.Services.AddScoped<DriverService>();
+builder.Services.AddScoped<GeocodingService>();
+builder.Services.AddHttpClient<GeocodingService>();
 
 builder.Services.AddCors(options =>
 {

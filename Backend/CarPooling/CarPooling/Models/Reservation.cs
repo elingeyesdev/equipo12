@@ -11,13 +11,22 @@ public class Reservation
     public Guid TripId { get; set; }
 
     [Required]
-    [MaxLength(100)]
-    public string PassengerName { get; set; } = string.Empty;
+    public Guid PassengerUserId { get; set; }
 
-    public ReservationStatus Status { get; set; } = ReservationStatus.Active;
+    [ForeignKey(nameof(PassengerUserId))]
+    public User PassengerUser { get; set; } = null!;
+
+    public int SeatsReserved { get; set; } = 1;
+
+    public int StatusId { get; set; }
+
+    public ReservationStatusEntity StatusEntity { get; set; } = null!;
+
+    [MaxLength(10)]
+    public string? BoardingCode { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    [ForeignKey("TripId")]
+    [ForeignKey(nameof(TripId))]
     public Trip Trip { get; set; } = null!;
 }

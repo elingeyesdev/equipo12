@@ -84,6 +84,28 @@ function formatCoordinates(lat, lng) {
   return `Lat: ${Number(lat).toFixed(5)}, Lng: ${Number(lng).toFixed(5)}`;
 }
 
+function getTripOriginCoordinates(trip) {
+  const origin = trip?.origin ?? trip?.Origin ?? null;
+
+  return {
+    lat: origin?.latitude ?? trip?.originLatitude ?? trip?.OriginLatitude ?? null,
+    lng: origin?.longitude ?? trip?.originLongitude ?? trip?.OriginLongitude ?? null
+  };
+}
+
+function getTripDestinationCoordinates(trip) {
+  const destination = trip?.destination ?? trip?.Destination ?? null;
+
+  return {
+    lat: destination?.latitude ?? trip?.destinationLatitude ?? trip?.DestinationLatitude ?? null,
+    lng: destination?.longitude ?? trip?.destinationLongitude ?? trip?.DestinationLongitude ?? null
+  };
+}
+
+function hasTripCoordinates(point) {
+  return point?.lat != null && point?.lng != null;
+}
+
 function isDriverUser(user) {
   return Number(user?.roleId) === 2 || String(user?.role || "").toLowerCase() === "driver";
 }
@@ -229,16 +251,18 @@ function renderTripCoordinatesOnMap(trip) {
     return;
   }
 
-  const hasOrigin = trip.originLatitude != null && trip.originLongitude != null;
-  const hasDestination = trip.destinationLatitude != null && trip.destinationLongitude != null;
+  const origin = getTripOriginCoordinates(trip);
+  const destination = getTripDestinationCoordinates(trip);
+  const hasOrigin = hasTripCoordinates(origin);
+  const hasDestination = hasTripCoordinates(destination);
 
   if (!hasOrigin) {
     return;
   }
 
   state.tripOrigin = {
-    lat: Number(trip.originLatitude),
-    lng: Number(trip.originLongitude)
+    lat: Number(origin.lat),
+    lng: Number(origin.lng)
   };
 
   if (state.tripOriginMarker) {
@@ -251,8 +275,8 @@ function renderTripCoordinatesOnMap(trip) {
 
   if (hasDestination) {
     state.tripDestination = {
-      lat: Number(trip.destinationLatitude),
-      lng: Number(trip.destinationLongitude)
+      lat: Number(destination.lat),
+      lng: Number(destination.lng)
     };
 
     if (state.tripDestinationMarker) {
@@ -414,11 +438,11 @@ function renderReservationCards(reservations, emptyMessage) {
 function getTripStatusKey(value) {
   const normalized = String(value ?? "").trim().toLowerCase();
 
-  if (normalized === "0" || normalized === "awaitingdestination") return "awaitingdestination";
-  if (normalized === "1" || normalized === "ready") return "ready";
-  if (normalized === "2" || normalized === "cancelled") return "cancelled";
-  if (normalized === "3" || normalized === "inprogress") return "inprogress";
-  if (normalized === "4" || normalized === "finished") return "finished";
+  if (normalized === "0" || normalized === "1" || normalized === "awaitingdestination" || normalized === "scheduled" || normalized === "programado" || normalized === "esperando destino") return "awaitingdestination";
+  if (normalized === "2" || normalized === "ready" || normalized === "listo") return "ready";
+  if (normalized === "3" || normalized === "inprogress" || normalized === "in_progress" || normalized === "en curso" || normalized === "en_curso") return "inprogress";
+  if (normalized === "4" || normalized === "finished" || normalized === "finalizado") return "finished";
+  if (normalized === "5" || normalized === "cancelled" || normalized === "cancelado") return "cancelled";
 
   return "unknown";
 }
@@ -497,7 +521,10 @@ function renderTripDetails(trip) {
     `;
   }
 
-  const hasDestination = trip.destinationLatitude != null && trip.destinationLongitude != null;
+  const destination = getTripDestinationCoordinates(trip);
+  const hasDestination = hasTripCoordinates(destination);
+  const origin = getTripOriginCoordinates(trip);
+  const tripStatusValue = trip.statusLabel ?? trip.statusId ?? trip.status;
 
   return `
     <article class="detail-card">
@@ -506,16 +533,16 @@ function renderTripDetails(trip) {
           <h4>${escapeHtml(trip.driverName || "Viaje")}</h4>
           <p>${escapeHtml(formatTripKind(trip.kind))}</p>
         </div>
-        <span class="status-badge status-badge--${escapeHtml(getTripStatusKey(trip.status))}">
-          ${escapeHtml(formatTripStatus(trip.status))}
+        <span class="status-badge status-badge--${escapeHtml(getTripStatusKey(tripStatusValue))}">
+          ${escapeHtml(formatTripStatus(tripStatusValue))}
         </span>
       </div>
 
       <div class="detail-grid">
         <div><strong>ID:</strong> ${escapeHtml(trip.id || "-")}</div>
         <div><strong>Cupos:</strong> ${escapeHtml(trip.availableSeats ?? "-")}</div>
-        <div><strong>Origen:</strong> ${escapeHtml(`${trip.originLatitude}, ${trip.originLongitude}`)}</div>
-        <div><strong>Destino:</strong> ${escapeHtml(hasDestination ? `${trip.destinationLatitude}, ${trip.destinationLongitude}` : "Sin destino")}</div>
+        <div><strong>Origen:</strong> ${escapeHtml(hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "Sin origen")}</div>
+        <div><strong>Destino:</strong> ${escapeHtml(hasDestination ? `${destination.lat}, ${destination.lng}` : "Sin destino")}</div>
         <div><strong>Creado:</strong> ${escapeHtml(formatDateTime(trip.createdAt))}</div>
         <div><strong>Actualizado:</strong> ${escapeHtml(trip.updatedAt ? formatDateTime(trip.updatedAt) : "Sin cambios")}</div>
       </div>
@@ -729,11 +756,12 @@ function getRoleIdValue(user) {
 
 function getTripStatusValue(status) {
   const key = getTripStatusKey(status);
-  if (key === "ready") return "1";
-  if (key === "cancelled") return "2";
+  if (key === "awaitingdestination") return "1";
+  if (key === "ready") return "2";
   if (key === "inprogress") return "3";
   if (key === "finished") return "4";
-  return "0";
+  if (key === "cancelled") return "5";
+  return "1";
 }
 
 function getReservationStatusValue(status) {
@@ -785,22 +813,26 @@ function getEditFormMarkup(type, entity) {
   }
 
   if (type === "trip") {
+    const origin = getTripOriginCoordinates(entity);
+    const destination = getTripDestinationCoordinates(entity);
+    const statusValue = entity.statusId ?? entity.status ?? entity.statusLabel;
+
     return `
       <label class="field"><span>ID</span><input type="text" value="${escapeHtml(entity.id || "")}" disabled /></label>
       <label class="field"><span>Nombre del conductor</span><input type="text" name="driverName" value="${escapeHtml(entity.driverName || "")}" required /></label>
       <label class="field"><span>Driver User ID (opcional)</span><input type="text" name="driverUserId" value="${escapeHtml(entity.driverUserId || "")}" /></label>
-      <label class="field"><span>Latitud origen</span><input type="number" step="any" name="originLatitude" value="${escapeHtml(entity.originLatitude ?? "")}" required /></label>
-      <label class="field"><span>Longitud origen</span><input type="number" step="any" name="originLongitude" value="${escapeHtml(entity.originLongitude ?? "")}" required /></label>
-      <label class="field"><span>Latitud destino (opcional)</span><input type="number" step="any" name="destinationLatitude" value="${escapeHtml(entity.destinationLatitude ?? "")}" /></label>
-      <label class="field"><span>Longitud destino (opcional)</span><input type="number" step="any" name="destinationLongitude" value="${escapeHtml(entity.destinationLongitude ?? "")}" /></label>
+      <label class="field"><span>Latitud origen</span><input type="number" step="any" name="originLatitude" value="${escapeHtml(origin.lat ?? "")}" required /></label>
+      <label class="field"><span>Longitud origen</span><input type="number" step="any" name="originLongitude" value="${escapeHtml(origin.lng ?? "")}" required /></label>
+      <label class="field"><span>Latitud destino (opcional)</span><input type="number" step="any" name="destinationLatitude" value="${escapeHtml(destination.lat ?? "")}" /></label>
+      <label class="field"><span>Longitud destino (opcional)</span><input type="number" step="any" name="destinationLongitude" value="${escapeHtml(destination.lng ?? "")}" /></label>
       <label class="field"><span>Cupos disponibles</span><input type="number" min="0" name="availableSeats" value="${escapeHtml(entity.availableSeats ?? 0)}" required /></label>
       <label class="field"><span>Estado</span>
         <select name="status">
-          <option value="0" ${getTripStatusValue(entity.status) === "0" ? "selected" : ""}>Esperando destino</option>
-          <option value="1" ${getTripStatusValue(entity.status) === "1" ? "selected" : ""}>Listo</option>
-          <option value="2" ${getTripStatusValue(entity.status) === "2" ? "selected" : ""}>Cancelado</option>
-          <option value="3" ${getTripStatusValue(entity.status) === "3" ? "selected" : ""}>En curso</option>
-          <option value="4" ${getTripStatusValue(entity.status) === "4" ? "selected" : ""}>Finalizado</option>
+          <option value="1" ${getTripStatusValue(statusValue) === "1" ? "selected" : ""}>Esperando destino</option>
+          <option value="2" ${getTripStatusValue(statusValue) === "2" ? "selected" : ""}>Listo</option>
+          <option value="3" ${getTripStatusValue(statusValue) === "3" ? "selected" : ""}>En curso</option>
+          <option value="4" ${getTripStatusValue(statusValue) === "4" ? "selected" : ""}>Finalizado</option>
+          <option value="5" ${getTripStatusValue(statusValue) === "5" ? "selected" : ""}>Cancelado</option>
         </select>
       </label>
       <div class="modal-actions">
@@ -961,12 +993,18 @@ function renderTripsTable(trips) {
   }
 
   adminTripsBody.innerHTML = trips.map((trip) => `
+    ${(() => {
+      const origin = getTripOriginCoordinates(trip);
+      const destination = getTripDestinationCoordinates(trip);
+      const tripStatusValue = trip.statusLabel ?? trip.statusId ?? trip.status;
+
+      return `
     <tr>
       <td>${escapeHtml(trip.id || "-")}</td>
       <td>${escapeHtml(trip.driverName || "-")}</td>
-      <td>${escapeHtml(`${trip.originLatitude}, ${trip.originLongitude}`)}</td>
-      <td>${escapeHtml(trip.destinationLatitude != null && trip.destinationLongitude != null ? `${trip.destinationLatitude}, ${trip.destinationLongitude}` : "-")}</td>
-      <td>${escapeHtml(formatTripStatus(trip.status))}</td>
+      <td>${escapeHtml(hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "-")}</td>
+      <td>${escapeHtml(hasTripCoordinates(destination) ? `${destination.lat}, ${destination.lng}` : "-")}</td>
+      <td>${escapeHtml(formatTripStatus(tripStatusValue))}</td>
       <td>${escapeHtml(trip.availableSeats)}</td>
       <td>
         <div class="action-row">
@@ -975,6 +1013,8 @@ function renderTripsTable(trips) {
         </div>
       </td>
     </tr>
+  `;
+    })()}
   `).join("");
 }
 

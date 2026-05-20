@@ -11,17 +11,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
-import com.example.proyectocarpooling.data.local.UserAccessProvider;
 import com.example.proyectocarpooling.data.model.user.DriverProfileRequest;
 import com.example.proyectocarpooling.data.model.user.RegisterUserRequest;
-import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -39,17 +35,16 @@ public class RegisterActivity extends AppCompatActivity {
     private Button registerButton;
     private ProgressBar loading;
 
-    private UserAccessUseCase userAccessUseCase;
+    private AuthViewModel authViewModel;
     private SessionManager sessionManager;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        userAccessUseCase = UserAccessProvider.create(this);
         sessionManager = new SessionManager(this);
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
 
         nameInput = findViewById(R.id.registerNameInput);
         emailInput = findViewById(R.id.registerEmailInput);
@@ -71,6 +66,29 @@ public class RegisterActivity extends AppCompatActivity {
 
         registerButton.setOnClickListener(v -> performRegister());
         backToLogin.setOnClickListener(v -> finish());
+
+        observeViewModel();
+    }
+
+    private void observeViewModel() {
+        authViewModel.getLoading().observe(this, isLoading -> {
+            loading.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            registerButton.setEnabled(!isLoading);
+        });
+
+        authViewModel.getLoginSuccess().observe(this, user -> {
+            if (user != null) {
+                sessionManager.saveUser(user);
+                Toast.makeText(this, R.string.register_success, Toast.LENGTH_SHORT).show();
+                navigateToMain();
+            }
+        });
+
+        authViewModel.getErrorEvent().observe(this, error -> {
+            if (error != null) {
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void performRegister() {
@@ -95,22 +113,7 @@ public class RegisterActivity extends AppCompatActivity {
                 ? new DriverProfileRequest(seats, plate.toUpperCase(), brand, color)
                 : null;
 
-        setLoading(true);
-        executor.execute(() -> {
-            try {
-                var user = userAccessUseCase.register(new RegisterUserRequest(fullName, email, password, phone, role, driverProfile));
-                runOnUiThread(() -> {
-                    sessionManager.saveUser(user);
-                    Toast.makeText(this, R.string.register_success, Toast.LENGTH_SHORT).show();
-                    navigateToMain();
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    setLoading(false);
-                    Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        });
+        authViewModel.register(new RegisterUserRequest(fullName, email, password, phone, role, driverProfile));
     }
 
     private boolean validate(
@@ -197,21 +200,10 @@ public class RegisterActivity extends AppCompatActivity {
         return true;
     }
 
-    private void setLoading(boolean isLoading) {
-        loading.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-        registerButton.setEnabled(!isLoading);
-    }
-
     private void navigateToMain() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
-    }
-
-    @Override
-    protected void onDestroy() {
-        executor.shutdownNow();
-        super.onDestroy();
     }
 }

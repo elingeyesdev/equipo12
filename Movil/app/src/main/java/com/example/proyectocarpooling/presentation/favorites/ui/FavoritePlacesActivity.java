@@ -11,23 +11,16 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.proyectocarpooling.CarPoolingApplication;
 import com.example.proyectocarpooling.R;
-import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.user.UserFavoriteItem;
-import com.example.proyectocarpooling.data.remote.user.FavoritesRemoteDataSource;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
-
-import org.json.JSONException;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class FavoritePlacesActivity extends AppCompatActivity implements FavoritesAdapter.Listener {
 
@@ -39,7 +32,7 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
     private RecyclerView recycler;
     private FavoritesAdapter adapter;
     private SessionManager sessionManager;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private FavoritesViewModel viewModel;
     private boolean pickMode;
 
     @Override
@@ -47,13 +40,14 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_favorite_places);
 
-        sessionManager = new SessionManager(this);
+        sessionManager = ((CarPoolingApplication) getApplication()).getSessionManager();
         if (!sessionManager.hasActiveSession()) {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
         }
 
+        viewModel = new ViewModelProvider(this).get(FavoritesViewModel.class);
         pickMode = getIntent().getBooleanExtra(EXTRA_PICK_MODE, false);
 
         toolbar = findViewById(R.id.favoritesToolbar);
@@ -72,7 +66,32 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
         recycler.setLayoutManager(new LinearLayoutManager(this));
         recycler.setAdapter(adapter);
 
+        observeViewModel();
         loadFavorites();
+    }
+
+    private void observeViewModel() {
+        viewModel.getLoading().observe(this, isLoading -> progress.setVisibility(isLoading ? View.VISIBLE : View.GONE));
+
+        viewModel.getFavorites().observe(this, list -> {
+            adapter.setItems(list);
+            boolean isEmpty = list == null || list.isEmpty();
+            empty.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+            recycler.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+        });
+
+        viewModel.getSuccessEvent().observe(this, msg -> {
+            if (msg != null) {
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                loadFavorites();
+            }
+        });
+
+        viewModel.getErrorEvent().observe(this, error -> {
+            if (error != null) {
+                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void loadFavorites() {
@@ -82,28 +101,7 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
             finish();
             return;
         }
-
-        progress.setVisibility(View.VISIBLE);
-        empty.setVisibility(View.GONE);
-
-        executor.execute(() -> {
-            try {
-                FavoritesRemoteDataSource api = new FavoritesRemoteDataSource(ApiBaseUrlProvider.get(this));
-                List<UserFavoriteItem> list = api.listFavorites(userId);
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    adapter.setItems(list);
-                    boolean isEmpty = list.isEmpty();
-                    empty.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
-                    recycler.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-                });
-            } catch (IOException | JSONException e) {
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    Toast.makeText(this, R.string.favorites_load_error, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
+        viewModel.loadFavorites(userId);
     }
 
     @Override
@@ -133,11 +131,8 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
                             getString(R.string.favorite_apply_route),
                             getString(R.string.favorite_delete_confirm_action)
                     }, (d, which) -> {
-                        if (which == 0) {
-                            navigateToMainWithFavorite(item, false);
-                        } else {
-                            confirmDelete(item);
-                        }
+                        if (which == 0) navigateToMainWithFavorite(item, false);
+                        else confirmDelete(item);
                     })
                     .setNegativeButton(android.R.string.cancel, null)
                     .show();
@@ -149,13 +144,9 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
                             getString(R.string.favorite_apply_as_origin),
                             getString(R.string.favorite_delete_confirm_action)
                     }, (d, which) -> {
-                        if (which == 0) {
-                            navigateToMainWithFavorite(item, false);
-                        } else if (which == 1) {
-                            navigateToMainWithFavorite(item, true);
-                        } else {
-                            confirmDelete(item);
-                        }
+                        if (which == 0) navigateToMainWithFavorite(item, false);
+                        else if (which == 1) navigateToMainWithFavorite(item, true);
+                        else confirmDelete(item);
                     })
                     .setNegativeButton(android.R.string.cancel, null)
                     .show();
@@ -172,28 +163,9 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
     }
 
     private void deleteFavorite(UserFavoriteItem item) {
-        String userId = sessionManager.getUserId();
-        progress.setVisibility(View.VISIBLE);
-        executor.execute(() -> {
-            try {
-                new FavoritesRemoteDataSource(ApiBaseUrlProvider.get(this)).deleteFavorite(userId, item.id);
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    Toast.makeText(this, R.string.favorite_deleted_toast, Toast.LENGTH_SHORT).show();
-                    loadFavorites();
-                });
-            } catch (IOException e) {
-                runOnUiThread(() -> {
-                    progress.setVisibility(View.GONE);
-                    Toast.makeText(this, R.string.favorites_load_error, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
+        viewModel.deleteFavorite(sessionManager.getUserId(), item.id);
     }
 
-    /**
-     * @param asOriginForPlace solo aplica si el favorito es lugar (un solo punto): true = origen, false = destino.
-     */
     private void navigateToMainWithFavorite(UserFavoriteItem item, boolean asOriginForPlace) {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -213,11 +185,5 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
     @Override
     public void onDeleteClicked(UserFavoriteItem item) {
         confirmDelete(item);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        executor.shutdown();
     }
 }

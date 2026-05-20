@@ -7,6 +7,7 @@ import android.os.Looper;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.proyectocarpooling.CarPoolingApplication;
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
@@ -18,7 +19,7 @@ public class SplashActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
-        SessionManager sessionManager = new SessionManager(this);
+        SessionManager sessionManager = ((CarPoolingApplication) getApplication()).getSessionManager();
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             Intent intent = sessionManager.hasActiveSession()

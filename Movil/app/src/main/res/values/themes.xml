@@ -1,8 +1,23 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
     <style name="Base.Theme.ProyectoCarpooling" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="colorPrimary">@color/uber_accent</item>
+        <item name="colorOnPrimary">@color/uber_text_inverse</item>
+        <item name="colorPrimaryContainer">@color/uber_chip_bg</item>
+        <item name="colorOnPrimaryContainer">@color/uber_accent</item>
+        <item name="colorSecondary">@color/carpool_text_secondary</item>
+        <item name="colorOnSecondary">@color/uber_text_inverse</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/carpool_text_primary</item>
+        <item name="colorSurfaceVariant">@color/carpool_surface</item>
+        <item name="colorOnSurfaceVariant">@color/carpool_text_secondary</item>
+        <item name="colorError">@color/uber_error</item>
+        <item name="colorOnError">@color/uber_text_inverse</item>
+        <item name="android:colorBackground">@color/carpool_surface</item>
+        <item name="colorOnBackground">@color/carpool_text_primary</item>
+        <item name="android:windowBackground">@color/carpool_surface</item>
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <style name="Theme.ProyectoCarpooling" parent="Base.Theme.ProyectoCarpooling" />

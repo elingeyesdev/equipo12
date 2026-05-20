@@ -3,196 +3,363 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/carpool_surface">
+    android:background="@color/carpool_surface"
+    android:fillViewport="true">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="24dp">
-
-        <TextView
-            android:id="@+id/registerTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:text="@string/register_title"
-            android:textColor="@color/carpool_text_primary"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <EditText
-            android:id="@+id/registerNameInput"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:background="@drawable/bg_info_field"
-            android:hint="@string/hint_full_name"
-            android:inputType="textPersonName"
-            android:minHeight="52dp"
-            android:padding="14dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerTitle" />
-
-        <EditText
-            android:id="@+id/registerEmailInput"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_info_field"
-            android:hint="@string/hint_university_email"
-            android:inputType="textEmailAddress"
-            android:minHeight="52dp"
-            android:padding="14dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerNameInput" />
-
-        <EditText
-            android:id="@+id/registerPhoneInput"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_info_field"
-            android:hint="@string/hint_phone"
-            android:inputType="phone"
-            android:minHeight="52dp"
-            android:padding="14dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerEmailInput" />
-
-        <CheckBox
-            android:id="@+id/registerHasVehicleCheckbox"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/register_has_vehicle"
-            android:textColor="@color/carpool_text_primary"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerPhoneInput" />
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingTop="48dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="40dp">
 
         <LinearLayout
-            android:id="@+id/registerVehicleFieldsContainer"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:gravity="center"
             android:orientation="vertical"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerHasVehicleCheckbox">
+            android:paddingBottom="24dp">
 
-            <EditText
-                android:id="@+id/registerSeatsInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_info_field"
-                android:hint="@string/hint_vehicle_seats"
-                android:inputType="number"
-                android:minHeight="52dp"
-                android:padding="14dp" />
+            <FrameLayout
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginBottom="14dp"
+                android:background="@drawable/avatar_gradient_background">
 
-            <EditText
-                android:id="@+id/registerPlateInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_info_field"
-                android:hint="@string/hint_vehicle_plate"
-                android:inputType="textCapCharacters"
-                android:minHeight="52dp"
-                android:padding="14dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="+"
+                    android:textColor="@color/uber_text_inverse"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
 
-            <EditText
-                android:id="@+id/registerBrandInput"
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/registerTitle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_info_field"
-                android:hint="@string/hint_vehicle_brand"
-                android:inputType="textCapWords"
-                android:minHeight="52dp"
-                android:padding="14dp" />
+                android:text="@string/register_title"
+                android:textColor="@color/carpool_text_primary"
+                android:textSize="26sp"
+                android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/registerColorInput"
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_info_field"
-                android:hint="@string/hint_vehicle_color"
-                android:inputType="textCapWords"
-                android:minHeight="52dp"
-                android:padding="14dp" />
+                android:layout_marginTop="8dp"
+                android:text="Completa tus datos para empezar"
+                android:textColor="@color/carpool_text_secondary"
+                android:textSize="14sp" />
         </LinearLayout>
 
-        <EditText
-            android:id="@+id/registerPasswordInput"
-            android:layout_width="0dp"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_info_field"
-            android:hint="@string/hint_password"
-            android:inputType="textPassword"
-            android:minHeight="52dp"
-            android:padding="14dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerVehicleFieldsContainer" />
+            android:elevation="4dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
 
-        <EditText
-            android:id="@+id/registerConfirmPasswordInput"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_info_field"
-            android:hint="@string/hint_confirm_password"
-            android:inputType="textPassword"
-            android:minHeight="52dp"
-            android:padding="14dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerPasswordInput" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="22dp"
+                android:paddingTop="24dp"
+                android:paddingEnd="22dp"
+                android:paddingBottom="24dp">
 
-        <Button
-            android:id="@+id/registerButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:background="@drawable/bg_primary_action"
-            android:backgroundTint="@null"
-            android:text="@string/register_action"
-            android:textColor="@color/white"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerConfirmPasswordInput" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Información personal"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:layout_marginBottom="14dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hint_full_name"
+                    android:textColor="@color/carpool_text_secondary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
+
+                <EditText
+                    android:id="@+id/registerNameInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_input_modern"
+                    android:hint="Tu nombre completo"
+                    android:inputType="textPersonName"
+                    android:minHeight="52dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textColorHint="@color/carpool_text_secondary"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/hint_university_email"
+                    android:textColor="@color/carpool_text_secondary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
+
+                <EditText
+                    android:id="@+id/registerEmailInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_input_modern"
+                    android:hint="usuario@correounivalle.edu.co"
+                    android:inputType="textEmailAddress"
+                    android:minHeight="52dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textColorHint="@color/carpool_text_secondary"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/hint_phone"
+                    android:textColor="@color/carpool_text_secondary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
+
+                <EditText
+                    android:id="@+id/registerPhoneInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_input_modern"
+                    android:hint="300 000 0000"
+                    android:inputType="phone"
+                    android:minHeight="52dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textColorHint="@color/carpool_text_secondary"
+                    android:textSize="15sp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@color/uber_divider" />
+
+                <CheckBox
+                    android:id="@+id/registerHasVehicleCheckbox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/register_has_vehicle"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="14sp"
+                    android:paddingStart="0dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp" />
+
+                <LinearLayout
+                    android:id="@+id/registerVehicleFieldsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <EditText
+                        android:id="@+id/registerSeatsInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_input_modern"
+                        android:hint="@string/hint_vehicle_seats"
+                        android:inputType="number"
+                        android:minHeight="52dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="14dp"
+                        android:textColor="@color/carpool_text_primary"
+                        android:textColorHint="@color/carpool_text_secondary"
+                        android:textSize="15sp" />
+
+                    <EditText
+                        android:id="@+id/registerPlateInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_input_modern"
+                        android:hint="@string/hint_vehicle_plate"
+                        android:inputType="textCapCharacters"
+                        android:minHeight="52dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="14dp"
+                        android:textColor="@color/carpool_text_primary"
+                        android:textColorHint="@color/carpool_text_secondary"
+                        android:textSize="15sp" />
+
+                    <EditText
+                        android:id="@+id/registerBrandInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_input_modern"
+                        android:hint="@string/hint_vehicle_brand"
+                        android:inputType="textCapWords"
+                        android:minHeight="52dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="14dp"
+                        android:textColor="@color/carpool_text_primary"
+                        android:textColorHint="@color/carpool_text_secondary"
+                        android:textSize="15sp" />
+
+                    <EditText
+                        android:id="@+id/registerColorInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_input_modern"
+                        android:hint="@string/hint_vehicle_color"
+                        android:inputType="textCapWords"
+                        android:minHeight="52dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="14dp"
+                        android:textColor="@color/carpool_text_primary"
+                        android:textColorHint="@color/carpool_text_secondary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@color/uber_divider" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Seguridad"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:layout_marginBottom="14dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hint_password"
+                    android:textColor="@color/carpool_text_secondary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
+
+                <EditText
+                    android:id="@+id/registerPasswordInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_input_modern"
+                    android:hint="Mínimo 6 caracteres"
+                    android:inputType="textPassword"
+                    android:minHeight="52dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textColorHint="@color/carpool_text_secondary"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/hint_confirm_password"
+                    android:textColor="@color/carpool_text_secondary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
+
+                <EditText
+                    android:id="@+id/registerConfirmPasswordInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_input_modern"
+                    android:hint="Repite tu contraseña"
+                    android:inputType="textPassword"
+                    android:minHeight="52dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textColorHint="@color/carpool_text_secondary"
+                    android:textSize="15sp" />
+
+                <Button
+                    android:id="@+id/registerButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="28dp"
+                    android:background="@drawable/bg_primary_action"
+                    android:backgroundTint="@null"
+                    android:text="@string/register_action"
+                    android:textColor="@color/button_text_color"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.04" />
+
+                <ProgressBar
+                    android:id="@+id/registerLoading"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/backToLoginText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="22dp"
             android:text="@string/register_back_login"
-            android:textColor="@color/carpool_primary"
+            android:textColor="@color/carpool_text_primary"
+            android:textSize="14sp"
             android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/registerButton" />
+            android:padding="10dp"
+            android:clickable="true"
+            android:focusable="true" />
 
-        <ProgressBar
-            android:id="@+id/registerLoading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/backToLoginText" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
 </ScrollView>

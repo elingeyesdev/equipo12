@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
+        android:name=".CarPoolingApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -49,22 +50,22 @@
         <activity
             android:name=".presentation.auth.ui.LoginActivity"
             android:exported="false"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            android:theme="@style/Theme.ProyectoCarpooling" />
 
         <activity
             android:name=".presentation.auth.ui.RegisterActivity"
             android:exported="false"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            android:theme="@style/Theme.ProyectoCarpooling" />
 
         <activity
             android:name=".presentation.profile.ui.ProfileActivity"
             android:exported="false"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            android:theme="@style/Theme.ProyectoCarpooling" />
 
         <activity
             android:name=".presentation.account.ui.AccountOverviewActivity"
             android:exported="false"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            android:theme="@style/Theme.ProyectoCarpooling" />
 
         <activity
             android:name=".presentation.favorites.ui.FavoritePlacesActivity"

@@ -19,73 +19,53 @@ public class TripRepositoryImpl implements TripRepository {
         this.remoteDataSource = remoteDataSource;
     }
 
-    @Override
-    public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull) throws IOException {
+    @Override public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull) throws IOException {
         return remoteDataSource.createTrip(origin, destination, driverNameOrNull, driverUserIdOrNull);
     }
-
-    @Override
-    public List<DriverTripMatch> searchTripMatchCandidates(double referenceLatitude, double referenceLongitude) throws IOException {
-        return remoteDataSource.searchTripMatchCandidates(referenceLatitude, referenceLongitude);
+    @Override public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull) throws IOException {
+        return remoteDataSource.createTrip(origin, destination, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull);
     }
-
-    @Override
-    public TripResponse getTripByIdIfPresent(String tripId) throws IOException {
-        return remoteDataSource.getTripByIdIfPresent(tripId);
+    @Override public List<DriverTripMatch> searchTripMatchCandidates(double a, double b) throws IOException {
+        return remoteDataSource.searchTripMatchCandidates(a, b);
     }
-
-    @Override
-    public TripResponse findActiveTripForDriver(String driverUserId, String driverDisplayNameForFallback) throws IOException {
-        return remoteDataSource.findActiveTripForDriver(driverUserId, driverDisplayNameForFallback);
+    @Override public TripResponse getTripByIdIfPresent(String id) throws IOException {
+        return remoteDataSource.getTripByIdIfPresent(id);
     }
-
-    @Override
-    public TripResponse cancelTrip(String tripId) throws IOException {
-        return remoteDataSource.cancelTrip(tripId);
+    @Override public TripResponse findActiveTripForDriver(String uid, String name) throws IOException {
+        return remoteDataSource.findActiveTripForDriver(uid, name);
     }
-
-    @Override
-    public RouteData fetchRoute(Point origin, Point destination) throws IOException {
-        return remoteDataSource.fetchRoute(origin, destination);
+    @Override public TripResponse cancelTrip(String id) throws IOException { return remoteDataSource.cancelTrip(id); }
+    @Override public RouteData fetchRoute(Point o, Point d) throws IOException { return remoteDataSource.fetchRoute(o, d); }
+    @Override public TripResponse startTrip(String id, Point p) throws IOException { return remoteDataSource.startTrip(id, p); }
+    @Override public TripResponse finishTrip(String id) throws IOException { return remoteDataSource.finishTrip(id); }
+    @Override public void createReservation(String tripId, String passengerUserId, int seats) throws IOException {
+        remoteDataSource.createReservation(tripId, passengerUserId, seats);
     }
-
-    @Override
-    public TripResponse startTrip(String tripId, Point driverPosition) throws IOException {
-        return remoteDataSource.startTrip(tripId, driverPosition);
+    @Override public void acceptReservation(String tripId, String reservationId) throws IOException {
+        remoteDataSource.acceptReservation(tripId, reservationId);
     }
-
-    @Override
-    public TripResponse finishTrip(String tripId) throws IOException {
-        return remoteDataSource.finishTrip(tripId);
+    @Override public void rejectReservation(String tripId, String reservationId) throws IOException {
+        remoteDataSource.rejectReservation(tripId, reservationId);
     }
-
-    @Override
-    public void createReservation(String tripId, String passengerName) throws IOException {
-        remoteDataSource.createReservation(tripId, passengerName);
+    @Override public void boardPassenger(String tripId, String reservationId) throws IOException {
+        remoteDataSource.boardPassenger(tripId, reservationId);
     }
-
-    @Override
-    public List<ReservationResponse> getReservations(String tripId) throws IOException {
+    @Override public boolean verifyBoardingCode(String tripId, String reservationId, String code) throws IOException {
+        return remoteDataSource.verifyBoardingCode(tripId, reservationId, code);
+    }
+    @Override public List<ReservationResponse> getReservations(String tripId) throws IOException {
         return remoteDataSource.getReservations(tripId);
     }
-
-    @Override
-    public List<ReservationResponse> getBoardedPassengers(String tripId) throws IOException {
+    @Override public List<ReservationResponse> getConfirmedReservations(String tripId) throws IOException {
+        return remoteDataSource.getConfirmedReservations(tripId);
+    }
+    @Override public List<ReservationResponse> getBoardedPassengers(String tripId) throws IOException {
         return remoteDataSource.getBoardedPassengers(tripId);
     }
-
-    @Override
-    public void markBoardedByName(String tripId, String passengerName) throws IOException {
-        remoteDataSource.markBoardedByName(tripId, passengerName);
+    @Override public void updateReservationStatus(String tripId, String resid, String status) throws IOException {
+        remoteDataSource.updateReservationStatus(tripId, resid, status);
     }
-
-    @Override
-    public void updateReservationStatus(String tripId, String reservationId, String targetStatus) throws IOException {
-        remoteDataSource.updateReservationStatus(tripId, reservationId, targetStatus);
-    }
-
-    @Override
-    public void cancelReservation(String reservationId) throws IOException {
+    @Override public void cancelReservation(String reservationId) throws IOException {
         remoteDataSource.cancelReservation(reservationId);
     }
 }

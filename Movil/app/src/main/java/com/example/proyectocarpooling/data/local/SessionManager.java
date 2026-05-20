@@ -5,6 +5,9 @@ import android.content.SharedPreferences;
 
 import com.example.proyectocarpooling.data.model.user.UserResponse;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class SessionManager {
 
     private static final String PREF_NAME = "carpooling_session";
@@ -17,6 +20,10 @@ public class SessionManager {
     private static final String KEY_EXPIRES_AT = "expires_at";
     /** Viaje activo del conductor en este dispositivo (clave por usuario). */
     private static final String KEY_DRIVER_ACTIVE_TRIP_PREFIX = "driver_active_trip_";
+    /** Viaje reservado por el pasajero en este dispositivo. */
+    private static final String KEY_PASSENGER_BOOKED_TRIP_ID = "passenger_booked_trip_id";
+    private static final String KEY_PASSENGER_BOOKING_CODE = "passenger_boarding_code";
+    private static final String KEY_PASSENGER_DRIVER_NAME = "passenger_driver_name";
     private static final long THIRTY_DAYS_MILLIS = 30L * 24L * 60L * 60L * 1000L;
 
     private final SharedPreferences preferences;
@@ -106,6 +113,58 @@ public class SessionManager {
 
     public void clearDriverActiveTripId() {
         preferences.edit().remove(driverActiveTripKey()).apply();
+    }
+
+    public void savePassengerBookedTrip(String tripId, String boardingCode, String driverName) {
+        preferences.edit()
+                .putString(KEY_PASSENGER_BOOKED_TRIP_ID, tripId != null ? tripId.trim() : "")
+                .putString(KEY_PASSENGER_BOOKING_CODE, boardingCode != null ? boardingCode : "")
+                .putString(KEY_PASSENGER_DRIVER_NAME, driverName != null ? driverName : "")
+                .apply();
+    }
+
+    public String getPassengerBookedTripId() {
+        return preferences.getString(KEY_PASSENGER_BOOKED_TRIP_ID, "");
+    }
+
+    public String getPassengerBoardingCode() {
+        return preferences.getString(KEY_PASSENGER_BOOKING_CODE, "");
+    }
+
+    public String getPassengerDriverName() {
+        return preferences.getString(KEY_PASSENGER_DRIVER_NAME, "");
+    }
+
+    public boolean hasPassengerBookedTrip() {
+        String id = getPassengerBookedTripId();
+        return id != null && !id.isEmpty();
+    }
+
+    public void clearPassengerBookedTrip() {
+        preferences.edit()
+                .remove(KEY_PASSENGER_BOOKED_TRIP_ID)
+                .remove(KEY_PASSENGER_BOOKING_CODE)
+                .remove(KEY_PASSENGER_DRIVER_NAME)
+                .apply();
+    }
+
+    // --- Historial: ocultar viajes localmente ---
+    private static final String KEY_HIDDEN_TRIP_IDS = "hidden_trip_ids";
+
+    public void hideHistoryTrip(String tripId) {
+        Set<String> hidden = getHiddenTripIds();
+        hidden.add(tripId);
+        preferences.edit().putStringSet(KEY_HIDDEN_TRIP_IDS, hidden).apply();
+    }
+
+    public void restoreHistoryTrip(String tripId) {
+        Set<String> hidden = getHiddenTripIds();
+        hidden.remove(tripId);
+        preferences.edit().putStringSet(KEY_HIDDEN_TRIP_IDS, hidden).apply();
+    }
+
+    public Set<String> getHiddenTripIds() {
+        return new HashSet<>(preferences.getStringSet(KEY_HIDDEN_TRIP_IDS, new HashSet<>()));
     }
 
     public void clearSession() {

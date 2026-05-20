@@ -10,24 +10,19 @@ public class DriverProfile
     [Required]
     public Guid UserId { get; set; }
 
-    [Range(1, 12)]
-    public int AvailableSeats { get; set; }
+    public bool IsVerified { get; set; } = false;
 
-    [Required]
-    [MaxLength(20)]
-    public string LicensePlate { get; set; } = string.Empty;
-
-    [Required]
-    [MaxLength(60)]
-    public string VehicleBrand { get; set; } = string.Empty;
-
-    [Required]
     [MaxLength(30)]
-    public string VehicleColor { get; set; } = string.Empty;
+    public string? LicenseNumber { get; set; }
+
+    [MaxLength(300)]
+    public string? LicenseDocumentUrl { get; set; }
+
+    public DateTime? VerifiedAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
-    [ForeignKey("UserId")]
+    [ForeignKey(nameof(UserId))]
     public User User { get; set; } = null!;
 }

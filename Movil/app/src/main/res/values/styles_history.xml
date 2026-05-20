@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <style name="HistoryDetailRow">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:orientation">vertical</item>
-        <item name="android:layout_marginTop">14dp</item>
+        <item name="android:layout_marginTop">16dp</item>
     </style>
 
     <style name="HistoryDetailLabel">
@@ -13,15 +12,16 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textColor">@color/carpool_text_secondary</item>
         <item name="android:textSize">12sp</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textAllCaps">true</item>
     </style>
 
     <style name="HistoryDetailValue">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:layout_marginTop">6dp</item>
         <item name="android:textColor">@color/carpool_text_primary</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">15sp</item>
     </style>
 
     <style name="HistoryStatBox">
@@ -29,14 +29,14 @@
         <item name="android:orientation">vertical</item>
         <item name="android:background">@drawable/bg_history_stat_cell</item>
         <item name="android:gravity">center</item>
-        <item name="android:padding">12dp</item>
+        <item name="android:padding">14dp</item>
     </style>
 
     <style name="HistoryStatNumber">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textColor">@color/carpool_primary_dark</item>
-        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/uber_accent</item>
+        <item name="android:textSize">22sp</item>
         <item name="android:textStyle">bold</item>
     </style>
 

@@ -5,7 +5,6 @@
     android:background="@color/carpool_surface"
     android:orientation="vertical">
 
-    <!-- Header with Gradient Background -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -14,32 +13,30 @@
         android:gravity="center"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
-        android:paddingTop="32dp"
-        android:paddingBottom="24dp">
+        android:paddingTop="48dp"
+        android:paddingBottom="32dp">
 
-        <!-- Back Button -->
         <Button
             android:id="@+id/accountBackButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:background="?attr/selectableItemBackground"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="start"
+            android:layout_marginBottom="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:text="←"
-            android:textColor="@color/white"
-            android:textSize="20sp"
-            android:padding="8dp" />
+            android:textColor="@color/uber_text_inverse"
+            android:textSize="22sp"
+            android:padding="4dp" />
 
-        <!-- Avatar with Badge -->
         <FrameLayout
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
             android:layout_marginBottom="16dp">
 
             <FrameLayout
-                android:layout_width="100dp"
-                android:layout_height="100dp"
-                android:background="@drawable/avatar_gradient_background"
-                android:elevation="4dp">
+                android:layout_width="88dp"
+                android:layout_height="88dp"
+                android:background="@drawable/avatar_gradient_background">
 
                 <TextView
                     android:id="@+id/accountUserInitials"
@@ -47,42 +44,38 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="UI"
-                    android:textColor="@color/white"
-                    android:textSize="40sp"
+                    android:textColor="@color/uber_text_inverse"
+                    android:textSize="36sp"
                     android:textStyle="bold" />
             </FrameLayout>
 
-            <!-- Online Indicator -->
             <View
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:layout_gravity="bottom|end"
-                android:background="@drawable/online_indicator_background"
-                android:layout_margin="2dp" />
+                android:layout_margin="4dp"
+                android:background="@drawable/online_indicator_background" />
         </FrameLayout>
 
-        <!-- User Name -->
         <TextView
             android:id="@+id/accountNameValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Usuario Demo"
-            android:textColor="@color/white"
-            android:textSize="22sp"
+            android:textColor="@color/uber_text_inverse"
+            android:textSize="24sp"
             android:textStyle="bold" />
 
-        <!-- User Email -->
         <TextView
             android:id="@+id/accountEmailValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="usuario@univalle.edu"
-            android:textColor="#B3FFFFFF"
+            android:textColor="#99FFFFFF"
             android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- Scrollable Content -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -92,31 +85,30 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="20dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="24dp"
             android:paddingBottom="20dp">
 
-            <!-- Rating Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/rating_card_background"
                 android:orientation="vertical"
-                android:padding="24dp"
+                android:padding="28dp"
                 android:gravity="center"
-                android:elevation="2dp">
+                android:elevation="1dp">
 
-                <!-- Rating Label -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/account_overview_score_label"
-                    android:textColor="#B3263238"
-                    android:textSize="12sp"
-                    android:layout_marginBottom="8dp" />
+                    android:textColor="@color/carpool_text_secondary"
+                    android:textSize="11sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.08"
+                    android:layout_marginBottom="12dp" />
 
-                <!-- Big Rating Number -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -129,56 +121,45 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="4.9"
-                        android:textColor="#1565C0"
-                        android:textSize="48sp"
+                        android:textColor="@color/uber_accent"
+                        android:textSize="56sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="/5"
-                        android:textColor="#1565C0"
+                        android:textColor="@color/carpool_text_secondary"
                         android:textSize="20sp"
                         android:layout_marginStart="4dp"
                         android:gravity="bottom"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="10dp" />
                 </LinearLayout>
 
-                <!-- Stars -->
-                <LinearLayout
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center"
-                    android:layout_marginBottom="12dp">
+                    android:text="★★★★★"
+                    android:textColor="@color/uber_accent"
+                    android:textSize="22sp"
+                    android:layout_marginBottom="10dp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="★★★★★"
-                        android:textColor="#FFD700"
-                        android:textSize="20sp" />
-                </LinearLayout>
-
-                <!-- Rating Description -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/account_overview_score_description"
-                    android:textColor="#5E6E76"
+                    android:textColor="@color/carpool_text_secondary"
                     android:textSize="12sp"
                     android:gravity="center" />
             </LinearLayout>
 
-            <!-- Info Cards Section -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginTop="24dp">
+                android:layout_marginTop="20dp">
 
-                <!-- Trips Card -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -186,7 +167,7 @@
                     android:background="@drawable/info_card_background"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:padding="16dp"
+                    android:padding="18dp"
                     android:elevation="1dp"
                     android:layout_marginEnd="8dp">
 
@@ -194,8 +175,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="12"
-                        android:textColor="@color/match_status_active"
-                        android:textSize="24sp"
+                        android:textColor="@color/uber_accent"
+                        android:textSize="28sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -204,10 +185,9 @@
                         android:text="@string/account_total_trips"
                         android:textColor="@color/carpool_text_secondary"
                         android:textSize="11sp"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="6dp" />
                 </LinearLayout>
 
-                <!-- Reviews Card -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -215,7 +195,7 @@
                     android:background="@drawable/info_card_background"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:padding="16dp"
+                    android:padding="18dp"
                     android:elevation="1dp"
                     android:layout_marginStart="8dp">
 
@@ -223,8 +203,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="8"
-                        android:textColor="@color/match_status_ready"
-                        android:textSize="24sp"
+                        android:textColor="@color/uber_accent"
+                        android:textSize="28sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -233,36 +213,36 @@
                         android:text="@string/account_reviews"
                         android:textColor="@color/carpool_text_secondary"
                         android:textSize="11sp"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="6dp" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Detailed Info -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/account_info_title"
                 android:textColor="@color/carpool_text_primary"
-                android:textSize="14sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginTop="28dp"
+                android:layout_marginBottom="14dp" />
 
-            <!-- Account Type Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_info_field"
                 android:orientation="vertical"
                 android:padding="16dp"
-                android:layout_marginBottom="12dp">
+                android:layout_marginBottom="10dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/account_type"
                     android:textColor="@color/carpool_text_secondary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.06" />
 
                 <TextView
                     android:id="@+id/accountRoleValue"
@@ -275,7 +255,6 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Member Since -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -289,7 +268,9 @@
                     android:layout_height="wrap_content"
                     android:text="@string/account_member_since"
                     android:textColor="@color/carpool_text_secondary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.06" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -303,15 +284,17 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Close Button -->
     <Button
         android:id="@+id/accountCloseButton"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="24dp"
         android:background="@drawable/bg_primary_action"
         android:backgroundTint="@null"
         android:text="@string/account_overview_close"
-        android:textColor="@color/white"
+        android:textColor="@color/button_text_color"
+        android:textSize="16sp"
         android:textStyle="bold" />
 </LinearLayout>

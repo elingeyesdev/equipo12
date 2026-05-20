@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet"
+    android:paddingStart="28dp"
+    android:paddingTop="32dp"
+    android:paddingEnd="28dp"
+    android:paddingBottom="36dp"
+    android:gravity="center">
+
+    <FrameLayout
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:background="@drawable/avatar_gradient_background"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:id="@+id/popupCodeInitial"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="✓"
+            android:textColor="@color/uber_text_inverse"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Viaje confirmado"
+        android:textColor="@color/carpool_text_primary"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:id="@+id/popupCodeDriverName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/carpool_text_secondary"
+        android:textSize="14sp"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tu codigo de abordaje"
+        android:textColor="@color/carpool_text_secondary"
+        android:textSize="12sp"
+        android:letterSpacing="0.06"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/popupCodeValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="8421"
+        android:textColor="@color/uber_accent"
+        android:textSize="48sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.16"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Muestra este codigo al conductor para abordar"
+        android:textColor="@color/carpool_text_secondary"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sera indispensable para validar tu ingreso al viaje"
+        android:textColor="@color/carpool_text_secondary"
+        android:textSize="11sp"
+        android:gravity="center" />
+</LinearLayout>

@@ -12,10 +12,13 @@ public class CoordinateRequest
     [Range(-180, 180)]
     public double Longitude { get; set; }
 
-    /// <summary>Opcional: se usa al crear el origen del viaje para listados de match.</summary>
     [MaxLength(100)]
     public string? DriverName { get; set; }
 
-    /// <summary>Opcional: id del usuario conductor (sesión móvil) para recuperar el viaje activo.</summary>
     public Guid? DriverUserId { get; set; }
+
+    public Guid? VehicleId { get; set; }
+
+    [Range(1, 50)]
+    public int? OfferedSeats { get; set; }
 }

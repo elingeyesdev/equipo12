@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/action_refresh_requests"
+        android:icon="@android:drawable/ic_menu_rotate"
         android:title="@string/driver_passenger_requests_menu_refresh"
         app:showAsAction="ifRoom" />
 </menu>

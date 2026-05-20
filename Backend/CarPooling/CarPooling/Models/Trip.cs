@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CarPooling.Models;
 
@@ -8,39 +9,49 @@ public class Trip
 
     public TripKind Kind { get; set; } = TripKind.Regular;
 
-    [Range(-90, 90)]
-    public double OriginLatitude { get; set; }
+    // --- Location references (reemplazan coordenadas directas) ---
+    [Required]
+    public Guid OriginLocationId { get; set; }
 
-    [Range(-180, 180)]
-    public double OriginLongitude { get; set; }
+    public Location OriginLocation { get; set; } = null!;
 
-    [Range(-90, 90)]
-    public double? DestinationLatitude { get; set; }
+    [Required]
+    public Guid DestinationLocationId { get; set; }
 
-    [Range(-180, 180)]
-    public double? DestinationLongitude { get; set; }
+    public Location DestinationLocation { get; set; } = null!;
 
-    public TripStatus Status { get; set; } = TripStatus.AwaitingDestination;
+    // --- Status (FK a tabla de estados) ---
+    public int StatusId { get; set; }
+
+    public TripStatusEntity StatusEntity { get; set; } = null!;
+
+    // --- Asientos ---
+    public int OfferedSeats { get; set; } = 4;
 
     public int AvailableSeats { get; set; } = 4;
 
-    /// <summary>Nombre del conductor que publicó el viaje (persistido al crear el origen).</summary>
+    // --- Vehículo ---
+    public Guid? VehicleId { get; set; }
+
+    public Vehicle? Vehicle { get; set; }
+
+    // --- Conductor ---
+    [MaxLength(100)]
     public string DriverName { get; set; } = "";
 
-    /// <summary>Usuario conductor dueño del viaje (para recuperar viaje activo al volver a iniciar sesión).</summary>
     public Guid? DriverUserId { get; set; }
 
+    [ForeignKey(nameof(DriverUserId))]
+    public User? DriverUser { get; set; }
+
+    public ICollection<Reservation> Reservations { get; set; } = [];
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
     public DateTime? UpdatedAt { get; set; }
-
     public DateTime? CancelledAt { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }
 
-    /// <summary>Solo para <see cref="TripKind.UserBookmark"/>: veces aplicado al mapa.</summary>
     public int BookmarkUseCount { get; set; }
-
-    /// <summary>Solo para <see cref="TripKind.UserBookmark"/>.</summary>
     public DateTime? BookmarkLastUsedAt { get; set; }
 }
