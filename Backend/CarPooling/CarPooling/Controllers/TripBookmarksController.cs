@@ -126,7 +126,7 @@ public class TripBookmarksController(CarPoolingContext context) : ControllerBase
             LastUsedAt = null
         };
 
-        return CreatedAtAction(nameof(GetByIdAsync), new { userId, tripId = trip.Id }, response);
+        return CreatedAtRoute(nameof(GetByIdAsync), new { userId, tripId = trip.Id }, response);
     }
 
     [HttpGet("{tripId:guid}", Name = nameof(GetByIdAsync))]

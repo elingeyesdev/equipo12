@@ -24,7 +24,7 @@ public class ChatsController(ChatService chatService, IHubContext<TripChatHub> h
     /// Valida que el usuario sea el conductor o un pasajero confirmado/abordado.
     /// Registra automáticamente las lecturas de los mensajes para el usuario actual.
     /// </summary>
-    [HttpGet("messages")]
+    [HttpGet("messages", Name = "GetTripChatMessages")]
     public async Task<ActionResult<IEnumerable<ChatMessageResponseDto>>> GetMessagesAsync(Guid tripId)
     {
         var userId = GetCurrentUserId();
@@ -83,7 +83,7 @@ public class ChatsController(ChatService chatService, IHubContext<TripChatHub> h
         await _hubContext.Clients.Group($"trip_chat_{tripId}")
             .SendAsync("ReceiveMessage", response);
 
-        return CreatedAtAction(nameof(GetMessagesAsync), new { tripId }, response);
+        return CreatedAtRoute("GetTripChatMessages", new { tripId }, response);
     }
 
     /// <summary>

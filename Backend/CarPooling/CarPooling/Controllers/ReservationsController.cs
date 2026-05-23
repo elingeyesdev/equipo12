@@ -15,7 +15,7 @@ public class ReservationsController(ReservationService reservationService) : Con
         try
         {
             var r = await reservationService.CreateAsync(tripId, dto);
-            return CreatedAtAction(nameof(GetPending), new { tripId }, ReservationService.MapToDto(r));
+            return CreatedAtRoute("GetPendingReservations", new { tripId }, ReservationService.MapToDto(r));
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
@@ -64,7 +64,7 @@ public class ReservationsController(ReservationService reservationService) : Con
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpGet("~/api/Trips/{tripId}/Reservations/pending")]
+    [HttpGet("~/api/Trips/{tripId}/Reservations/pending", Name = "GetPendingReservations")]
     public async Task<ActionResult<IEnumerable<ReservationDto>>> GetPending(Guid tripId)
     {
         var list = await reservationService.GetPendingForTripAsync(tripId);

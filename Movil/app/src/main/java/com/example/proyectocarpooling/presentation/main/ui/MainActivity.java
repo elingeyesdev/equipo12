@@ -514,47 +514,118 @@ public class MainActivity extends AppCompatActivity {
         if (isDriverUser) {
             return;
         }
-        if (!sessionManager.hasPassengerBookedTrip()) {
+        final String userId = sessionManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
             return;
         }
-        final String bookedTripId = sessionManager.getPassengerBookedTripId();
-        if (bookedTripId.isEmpty()) {
-            return;
-        }
-        final String apiBase = ApiBaseUrlProvider.get(this);
-        final String mapboxToken = getString(R.string.mapbox_access_token);
+
+        setProgressVisible(true);
         backgroundExecutor.execute(() -> {
             try {
-                TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
-                TripResponse trip = repository.getTripByIdIfPresent(bookedTripId);
-                runOnUiThread(() -> {
-                    if (isFinishing() || isDestroyed()) {
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                org.json.JSONObject reservation = app.getUserRepository().getActiveReservation(userId);
+
+                if (reservation != null) {
+                    final String tripId = reservation.optString("tripId", "");
+                    final String boardingCode = reservation.optString("boardingCode", "");
+                    final String driverName = reservation.optString("driverName", "");
+
+                    if (!tripId.isEmpty()) {
+                        sessionManager.savePassengerBookedTrip(tripId, boardingCode, driverName);
+
+                        TripRepository repository = app.getTripRepository();
+                        TripResponse trip = repository.getTripByIdIfPresent(tripId);
+
+                        runOnUiThread(() -> {
+                            setProgressVisible(false);
+                            if (isFinishing() || isDestroyed()) {
+                                return;
+                            }
+                            if (trip != null && isTripUsableStatus(trip.statusLabel)) {
+                                hasActivePassengerReservation = true;
+                                passengerReservedTripId = trip.id;
+                                passengerBoardingCode = boardingCode;
+                                passengerReservedDriverName = trip.driverName;
+                                if (passengerReservedDriverName == null || passengerReservedDriverName.isEmpty()) {
+                                    passengerReservedDriverName = driverName;
+                                }
+                                selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
+                                selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+                                syncSelectionStateToViewModel();
+                                updateCoordinateLabels();
+                                updateMapMarkers();
+                                if (selectedOrigin != null && selectedDestination != null) {
+                                    fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
+                                }
+                                refreshForPassengerReservation();
+                                refreshButtons();
+                            } else {
+                                sessionManager.clearPassengerBookedTrip();
+                                hasActivePassengerReservation = false;
+                                passengerReservedTripId = null;
+                                refreshForPassengerReservation();
+                                refreshButtons();
+                            }
+                        });
                         return;
                     }
-                    if (trip != null && isTripUsableStatus(trip.statusLabel)) {
-                        hasActivePassengerReservation = true;
-                        passengerReservedTripId = trip.id;
-                        passengerBoardingCode = sessionManager.getPassengerBoardingCode();
-                        passengerReservedDriverName = trip.driverName;
-                        if (passengerReservedDriverName == null || passengerReservedDriverName.isEmpty()) {
-                            passengerReservedDriverName = sessionManager.getPassengerDriverName();
-                        }
-                        selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
-                        selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
-                        syncSelectionStateToViewModel();
-                        updateCoordinateLabels();
-                        updateMapMarkers();
-                        if (selectedOrigin != null && selectedDestination != null) {
-                            fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
-                        }
-                        refreshForPassengerReservation();
+                }
+
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    sessionManager.clearPassengerBookedTrip();
+                    hasActivePassengerReservation = false;
+                    passengerReservedTripId = null;
+                    refreshForPassengerReservation();
+                    refreshButtons();
+                });
+
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    if (sessionManager.hasPassengerBookedTrip()) {
+                        final String bookedTripId = sessionManager.getPassengerBookedTripId();
+                        backgroundExecutor.execute(() -> {
+                            try {
+                                TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
+                                TripResponse trip = repository.getTripByIdIfPresent(bookedTripId);
+                                runOnUiThread(() -> {
+                                    if (isFinishing() || isDestroyed()) {
+                                        return;
+                                    }
+                                    if (trip != null && isTripUsableStatus(trip.statusLabel)) {
+                                        hasActivePassengerReservation = true;
+                                        passengerReservedTripId = trip.id;
+                                        passengerBoardingCode = sessionManager.getPassengerBoardingCode();
+                                        passengerReservedDriverName = trip.driverName;
+                                        if (passengerReservedDriverName == null || passengerReservedDriverName.isEmpty()) {
+                                            passengerReservedDriverName = sessionManager.getPassengerDriverName();
+                                        }
+                                        selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
+                                        selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+                                        syncSelectionStateToViewModel();
+                                        updateCoordinateLabels();
+                                        updateMapMarkers();
+                                        if (selectedOrigin != null && selectedDestination != null) {
+                                            fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
+                                        }
+                                        refreshForPassengerReservation();
+                                        refreshButtons();
+                                    } else {
+                                        sessionManager.clearPassengerBookedTrip();
+                                        hasActivePassengerReservation = false;
+                                        passengerReservedTripId = null;
+                                        refreshForPassengerReservation();
+                                        refreshButtons();
+                                    }
+                                });
+                            } catch (IOException ignored) {}
+                        });
                     } else {
-                        sessionManager.clearPassengerBookedTrip();
-                        hasActivePassengerReservation = false;
-                        passengerReservedTripId = null;
+                        refreshForPassengerReservation();
+                        refreshButtons();
                     }
                 });
-            } catch (IOException ignored) {
             }
         });
     }

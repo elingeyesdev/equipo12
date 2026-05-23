@@ -26,6 +26,17 @@ public class ChatService(CarPoolingContext context)
             return false;
         }
 
+        // Restriccion post-viaje de 5 horas: revocar si pasaron mas de 5 horas del cierre
+        var now = DateTime.UtcNow;
+        if (trip.FinishedAt != null && (now - trip.FinishedAt.Value).TotalHours > 5)
+        {
+            return false;
+        }
+        if (trip.CancelledAt != null && (now - trip.CancelledAt.Value).TotalHours > 5)
+        {
+            return false;
+        }
+
         // El conductor está autorizado
         if (trip.DriverUserId == userId)
         {

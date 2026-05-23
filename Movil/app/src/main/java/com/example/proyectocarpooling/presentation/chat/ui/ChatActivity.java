@@ -94,6 +94,15 @@ public class ChatActivity extends AppCompatActivity {
         chatAdapter = new ChatAdapter(messageList, currentUserId);
         chatRecyclerView.setAdapter(chatAdapter);
 
+        // Intentar precargar el chat desde la cache local offline
+        List<ChatMessage> cached = com.example.proyectocarpooling.data.local.ChatLocalCache.loadCache(this, tripId);
+        if (!cached.isEmpty()) {
+            messageList.clear();
+            messageList.addAll(cached);
+            chatAdapter.notifyDataSetChanged();
+            chatRecyclerView.scrollToPosition(Math.max(0, messageList.size() - 1));
+        }
+
         // Evento Enviar
         chatSendButton.setOnClickListener(v -> performSendMessage());
 
@@ -142,6 +151,9 @@ public class ChatActivity extends AppCompatActivity {
                             messageList.addAll(result);
                             chatAdapter.notifyDataSetChanged();
                             chatRecyclerView.smoothScrollToPosition(Math.max(0, messageList.size() - 1));
+                            
+                            // Guardar en la cache local offline
+                            com.example.proyectocarpooling.data.local.ChatLocalCache.saveCache(ChatActivity.this, tripId, result);
                         }
                     }
 
@@ -175,6 +187,9 @@ public class ChatActivity extends AppCompatActivity {
                         messageList.add(result);
                         chatAdapter.notifyItemInserted(messageList.size() - 1);
                         chatRecyclerView.smoothScrollToPosition(messageList.size() - 1);
+
+                        // Guardar en la cache local offline
+                        com.example.proyectocarpooling.data.local.ChatLocalCache.saveCache(ChatActivity.this, tripId, messageList);
                     }
 
                     @Override
