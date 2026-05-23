@@ -19,14 +19,25 @@ public sealed class HeaderUserAuthenticationHandler(
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdHeader))
+        string? userIdStr = null;
+
+        if (Request.Headers.TryGetValue("X-User-Id", out var userIdHeader))
         {
-            return AuthenticateResult.Fail("Falta el encabezado X-User-Id.");
+            userIdStr = userIdHeader.ToString();
+        }
+        else if (Request.Query.TryGetValue("access_token", out var tokenQuery))
+        {
+            userIdStr = tokenQuery.ToString();
         }
 
-        if (!Guid.TryParse(userIdHeader.ToString(), out var userId))
+        if (string.IsNullOrEmpty(userIdStr))
         {
-            return AuthenticateResult.Fail("X-User-Id invalido.");
+            return AuthenticateResult.Fail("Falta el encabezado X-User-Id o el parametro access_token.");
+        }
+
+        if (!Guid.TryParse(userIdStr, out var userId))
+        {
+            return AuthenticateResult.Fail("Identificador de usuario invalido.");
         }
 
         var user = await _context.Users

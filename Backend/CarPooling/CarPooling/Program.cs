@@ -18,6 +18,7 @@ builder.Services
         _ => { });
 
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR();
 
 builder.Services.AddDbContext<CarPoolingContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -36,9 +37,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy(AdminPanelCorsPolicy, policy =>
     {
         policy
-            .AllowAnyOrigin()
+            .SetIsOriginAllowed(_ => true)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -81,5 +83,6 @@ app.Use(async (context, next) =>
 app.UseAuthorization();
 
 app.MapControllers().RequireCors(AdminPanelCorsPolicy);
+app.MapHub<CarPooling.Hubs.TripChatHub>("/hubs/tripChat").RequireCors(AdminPanelCorsPolicy);
 
 app.Run();

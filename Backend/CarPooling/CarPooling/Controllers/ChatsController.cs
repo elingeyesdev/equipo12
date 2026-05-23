@@ -6,14 +6,18 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
+using CarPooling.Hubs;
+using Microsoft.AspNetCore.SignalR;
+
 namespace CarPooling.Controllers;
 
 [ApiController]
 [Route("api/Trips/{tripId}/chat")]
 [Authorize(AuthenticationSchemes = HeaderUserAuthenticationHandler.SchemeName)]
-public class ChatsController(ChatService chatService) : ControllerBase
+public class ChatsController(ChatService chatService, IHubContext<TripChatHub> hubContext) : ControllerBase
 {
     private readonly ChatService _chatService = chatService;
+    private readonly IHubContext<TripChatHub> _hubContext = hubContext;
 
     /// <summary>
     /// Obtiene el historial de mensajes de chat de un viaje.
@@ -74,6 +78,11 @@ public class ChatsController(ChatService chatService) : ControllerBase
         }
 
         var response = await _chatService.SendMessageAsync(chat.Id, userId.Value, dto.MessageText);
+
+        // Retransmitir mensaje por SignalR en tiempo real a los suscritos al viaje
+        await _hubContext.Clients.Group($"trip_chat_{tripId}")
+            .SendAsync("ReceiveMessage", response);
+
         return CreatedAtAction(nameof(GetMessagesAsync), new { tripId }, response);
     }
 
