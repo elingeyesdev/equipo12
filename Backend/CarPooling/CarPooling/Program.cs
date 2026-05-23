@@ -30,6 +30,7 @@ builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<VehicleService>();
 builder.Services.AddScoped<DriverService>();
 builder.Services.AddScoped<GeocodingService>();
+builder.Services.AddScoped<RatingService>();
 builder.Services.AddHttpClient<GeocodingService>();
 
 builder.Services.AddCors(options =>

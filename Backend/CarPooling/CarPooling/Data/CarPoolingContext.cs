@@ -16,6 +16,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<TripChat> TripChats => Set<TripChat>();
     public DbSet<TripChatMessage> TripChatMessages => Set<TripChatMessage>();
     public DbSet<TripChatMessageRead> TripChatMessageReads => Set<TripChatMessageRead>();
+    public DbSet<TripRating> TripRatings => Set<TripRating>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,6 +31,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureTripChat(modelBuilder);
         ConfigureTripChatMessage(modelBuilder);
         ConfigureTripChatMessageRead(modelBuilder);
+        ConfigureTripRating(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -294,6 +296,41 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .IsRequired();
 
             entity.Property(r => r.ReadAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private static void ConfigureTripRating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TripRating>(entity =>
+        {
+            entity.ToTable("TripRatings");
+            entity.HasKey(r => r.Id);
+
+            entity.HasOne(r => r.Trip)
+                .WithMany()
+                .HasForeignKey(r => r.TripId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            entity.HasOne(r => r.EvaluatorUser)
+                .WithMany()
+                .HasForeignKey(r => r.EvaluatorUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.HasOne(r => r.EvaluatedUser)
+                .WithMany()
+                .HasForeignKey(r => r.EvaluatedUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.Property(r => r.Score).IsRequired();
+            entity.Property(r => r.Comment).HasMaxLength(1000);
+            entity.Property(r => r.RatingRole).HasConversion<int>().IsRequired();
+            entity.Property(r => r.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            // Unique composite index: 1 rating per evaluator->evaluated per trip
+            entity.HasIndex(r => new { r.TripId, r.EvaluatorUserId, r.EvaluatedUserId }).IsUnique();
         });
     }
 }
