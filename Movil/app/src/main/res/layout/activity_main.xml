@@ -429,6 +429,19 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/chatFloatingButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="220dp"
+            android:contentDescription="Abrir chat de viaje"
+            android:src="@android:drawable/stat_notify_chat"
+            android:visibility="gone"
+            app:backgroundTint="@color/uber_accent"
+            app:tint="@color/white" />
+
         <ProgressBar
             android:id="@+id/loadingIndicator"
             android:layout_width="wrap_content"

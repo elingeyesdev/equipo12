@@ -96,4 +96,13 @@ public class CarPoolingApplication extends Application {
     private TripHistoryRemoteDataSource createHistoryDataSource() {
         return new TripHistoryRemoteDataSource(ApiBaseUrlProvider.get(this));
     }
+
+    private com.example.proyectocarpooling.data.remote.ChatRemoteDataSource chatRemoteDataSource;
+
+    public synchronized com.example.proyectocarpooling.data.remote.ChatRemoteDataSource getChatRemoteDataSource() {
+        if (chatRemoteDataSource == null) {
+            chatRemoteDataSource = new com.example.proyectocarpooling.data.remote.ChatRemoteDataSource(ApiBaseUrlProvider.get(this));
+        }
+        return chatRemoteDataSource;
+    }
 }

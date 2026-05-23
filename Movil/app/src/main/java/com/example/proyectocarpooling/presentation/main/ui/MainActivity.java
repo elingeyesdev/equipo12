@@ -121,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
     private Button bannerAcceptButton;
     private Button bannerRejectButton;
     private TextView bottomSheetTitle;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton chatFloatingButton;
 
     private boolean isInitialPositionSet = false;
     private Point selectedOrigin;
@@ -323,6 +324,31 @@ public class MainActivity extends AppCompatActivity {
         saveFavoriteButton = findViewById(R.id.saveFavoriteButton);
 
         bottomSheetTitle = findViewById(R.id.bottomSheetTitle);
+
+        chatFloatingButton = findViewById(R.id.chatFloatingButton);
+        if (chatFloatingButton != null) {
+            chatFloatingButton.setOnClickListener(v -> {
+                String activeTripIdVal = "";
+                String chatTitleVal = "Chat de viaje";
+
+                if (isDriverUser) {
+                    activeTripIdVal = activeTripId;
+                    chatTitleVal = "Mis Pasajeros";
+                } else if (hasActivePassengerReservation) {
+                    activeTripIdVal = passengerReservedTripId;
+                    chatTitleVal = "Conductor: " + (passengerReservedDriverName != null ? passengerReservedDriverName : "Tu Conductor");
+                }
+
+                if (activeTripIdVal != null && !activeTripIdVal.isEmpty()) {
+                    Intent intent = new Intent(MainActivity.this, com.example.proyectocarpooling.presentation.chat.ui.ChatActivity.class);
+                    intent.putExtra("trip_id", activeTripIdVal);
+                    intent.putExtra("chat_title", chatTitleVal);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(MainActivity.this, "No hay chat activo para este viaje", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
 
         if (navigationView != null) {
             var header = navigationView.getHeaderView(0);
@@ -1635,6 +1661,10 @@ public class MainActivity extends AppCompatActivity {
         if (saveFavoriteButton != null) {
             boolean canSaveFavorite = selectedOrigin != null || selectedDestination != null;
             saveFavoriteButton.setEnabled(canSaveFavorite);
+        }
+        if (chatFloatingButton != null) {
+            boolean hasActiveTrip = (isDriverUser && activeTripId != null && !activeTripId.isEmpty()) || (!isDriverUser && hasActivePassengerReservation);
+            chatFloatingButton.setVisibility(hasActiveTrip ? View.VISIBLE : View.GONE);
         }
         updateDrawerDriverMenuVisibility();
     }
