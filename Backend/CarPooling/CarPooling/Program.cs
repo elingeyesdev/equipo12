@@ -24,6 +24,7 @@ builder.Services.AddDbContext<CarPoolingContext>(options =>
 
 // Services
 builder.Services.AddScoped<TripService>();
+builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<VehicleService>();
 builder.Services.AddScoped<DriverService>();

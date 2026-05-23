@@ -13,6 +13,9 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<TripStatusEntity> TripStatuses => Set<TripStatusEntity>();
     public DbSet<ReservationStatusEntity> ReservationStatuses => Set<ReservationStatusEntity>();
+    public DbSet<TripChat> TripChats => Set<TripChat>();
+    public DbSet<TripChatMessage> TripChatMessages => Set<TripChatMessage>();
+    public DbSet<TripChatMessageRead> TripChatMessageReads => Set<TripChatMessageRead>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +27,9 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureLocation(modelBuilder);
         ConfigureTripStatus(modelBuilder);
         ConfigureReservationStatus(modelBuilder);
+        ConfigureTripChat(modelBuilder);
+        ConfigureTripChatMessage(modelBuilder);
+        ConfigureTripChatMessageRead(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -222,5 +228,72 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             new ReservationStatusEntity { Id = 3, Code = "boarded", LabelEs = "Abordado" },
             new ReservationStatusEntity { Id = 4, Code = "cancelled", LabelEs = "Cancelado" }
         );
+    }
+
+    private static void ConfigureTripChat(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TripChat>(entity =>
+        {
+            entity.ToTable("TripChats");
+            entity.HasKey(c => c.Id);
+
+            entity.HasOne(c => c.Trip)
+                .WithOne()
+                .HasForeignKey<TripChat>(c => c.TripId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            entity.Property(c => c.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private static void ConfigureTripChatMessage(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TripChatMessage>(entity =>
+        {
+            entity.ToTable("TripChatMessages");
+            entity.HasKey(m => m.Id);
+
+            entity.HasOne(m => m.Chat)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(m => m.ChatId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            entity.HasOne(m => m.SenderUser)
+                .WithMany()
+                .HasForeignKey(m => m.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.Property(m => m.MessageText).IsRequired();
+            entity.Property(m => m.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(m => m.ChatId);
+            entity.HasIndex(m => m.CreatedAt);
+        });
+    }
+
+    private static void ConfigureTripChatMessageRead(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TripChatMessageRead>(entity =>
+        {
+            entity.ToTable("TripChatMessageReads");
+            entity.HasKey(r => new { r.MessageId, r.UserId });
+
+            entity.HasOne(r => r.Message)
+                .WithMany(m => m.Reads)
+                .HasForeignKey(r => r.MessageId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.Property(r => r.ReadAt).HasDefaultValueSql("GETUTCDATE()");
+        });
     }
 }
