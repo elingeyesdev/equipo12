@@ -41,13 +41,14 @@ public class RatingRemoteDataSource {
         this.apiBaseUrl = sanitized;
     }
 
-    public JSONObject createRating(String tripId, String evaluatorUserId, String evaluatedUserId, int score, String comment) throws IOException, JSONException {
+    public JSONObject createRating(String tripId, String evaluatorUserId, String evaluatedUserId, int score, String comment, String tags) throws IOException, JSONException {
         String url = String.format(Locale.US, "%s/api/Trips/%s/ratings", apiBaseUrl, tripId.trim());
 
         JSONObject body = new JSONObject();
         body.put("evaluatedUserId", evaluatedUserId);
         body.put("score", score);
         body.put("comment", comment == null ? "" : comment);
+        body.put("tags", tags == null ? "" : tags);
 
         Request request = new Request.Builder()
                 .url(url)

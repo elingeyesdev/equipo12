@@ -2413,10 +2413,15 @@ public class MainActivity extends AppCompatActivity {
         TextView titleView = dialogView.findViewById(R.id.ratingPassengerTitle);
         RatingBar ratingBar = dialogView.findViewById(R.id.ratingStars);
         EditText commentInput = dialogView.findViewById(R.id.ratingCommentInput);
+        android.widget.LinearLayout tagsContainer = dialogView.findViewById(R.id.ratingTagsContainer);
 
         if (titleView != null) {
             titleView.setText("Calificar a " + passengerName);
         }
+
+        final java.util.List<String> selectedTags = new java.util.ArrayList<>();
+        String[] passengerTags = {"Respetuoso", "Puntual", "Buen pasajero", "Amigable", "Tranquilo"};
+        setupRatingTags(tagsContainer, passengerTags, selectedTags);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setView(dialogView)
@@ -2437,7 +2442,16 @@ public class MainActivity extends AppCompatActivity {
                 }
                 String comment = commentInput != null ? commentInput.getText().toString().trim() : "";
 
-                submitDriverRatingAsync(finishedTripId, passengerId, score, comment, new MainViewModel.SimpleCallback() {
+                StringBuilder tagsBuilder = new StringBuilder();
+                for (int i = 0; i < selectedTags.size(); i++) {
+                    tagsBuilder.append(selectedTags.get(i));
+                    if (i < selectedTags.size() - 1) {
+                        tagsBuilder.append(",");
+                    }
+                }
+                String tagsString = tagsBuilder.toString();
+
+                submitDriverRatingAsync(finishedTripId, passengerId, score, comment, tagsString, new MainViewModel.SimpleCallback() {
                     @Override
                     public void onSuccess() {
                         dialog.dismiss();
@@ -2455,7 +2469,7 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void submitDriverRatingAsync(String tripId, String passengerUserId, int score, String comment, MainViewModel.SimpleCallback callback) {
+    private void submitDriverRatingAsync(String tripId, String passengerUserId, int score, String comment, String tags, MainViewModel.SimpleCallback callback) {
         final String evaluatorUserId = sessionManager.getUserId();
         if (evaluatorUserId.isEmpty()) {
             callback.onError("Sesión inválida");
@@ -2465,7 +2479,7 @@ public class MainActivity extends AppCompatActivity {
         backgroundExecutor.execute(() -> {
             try {
                 CarPoolingApplication app = (CarPoolingApplication) getApplication();
-                app.getRatingRemoteDataSource().createRating(tripId, evaluatorUserId, passengerUserId, score, comment);
+                app.getRatingRemoteDataSource().createRating(tripId, evaluatorUserId, passengerUserId, score, comment, tags);
                 runOnUiThread(callback::onSuccess);
             } catch (Exception e) {
                 runOnUiThread(() -> callback.onError(e.getMessage() != null ? e.getMessage() : "Error de red"));
@@ -2499,6 +2513,7 @@ public class MainActivity extends AppCompatActivity {
         TextView titleView = dialogView.findViewById(R.id.ratingPassengerTitle);
         RatingBar ratingBar = dialogView.findViewById(R.id.ratingStars);
         EditText commentInput = dialogView.findViewById(R.id.ratingCommentInput);
+        android.widget.LinearLayout tagsContainer = dialogView.findViewById(R.id.ratingTagsContainer);
 
         if (titleView != null) {
             titleView.setText("Calificar a " + (driverName != null && !driverName.isEmpty() ? driverName : "Conductor"));
@@ -2506,6 +2521,10 @@ public class MainActivity extends AppCompatActivity {
         if (commentInput != null) {
             commentInput.setHint("Escribe una opinión sobre el conductor (opcional)...");
         }
+
+        final java.util.List<String> selectedTags = new java.util.ArrayList<>();
+        String[] driverTags = {"Vehículo limpio", "Conducción segura", "Puntual", "Buena música", "Amigable"};
+        setupRatingTags(tagsContainer, driverTags, selectedTags);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setView(dialogView)
@@ -2524,7 +2543,16 @@ public class MainActivity extends AppCompatActivity {
                 }
                 String comment = commentInput != null ? commentInput.getText().toString().trim() : "";
 
-                submitPassengerRatingAsync(tripId, driverUserId, score, comment, new MainViewModel.SimpleCallback() {
+                StringBuilder tagsBuilder = new StringBuilder();
+                for (int i = 0; i < selectedTags.size(); i++) {
+                    tagsBuilder.append(selectedTags.get(i));
+                    if (i < selectedTags.size() - 1) {
+                        tagsBuilder.append(",");
+                    }
+                }
+                String tagsString = tagsBuilder.toString();
+
+                submitPassengerRatingAsync(tripId, driverUserId, score, comment, tagsString, new MainViewModel.SimpleCallback() {
                     @Override
                     public void onSuccess() {
                         dialog.dismiss();
@@ -2542,7 +2570,7 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void submitPassengerRatingAsync(String tripId, String driverUserId, int score, String comment, MainViewModel.SimpleCallback callback) {
+    private void submitPassengerRatingAsync(String tripId, String driverUserId, int score, String comment, String tags, MainViewModel.SimpleCallback callback) {
         final String evaluatorUserId = sessionManager.getUserId();
         if (evaluatorUserId.isEmpty()) {
             callback.onError("Sesión inválida");
@@ -2552,11 +2580,51 @@ public class MainActivity extends AppCompatActivity {
         backgroundExecutor.execute(() -> {
             try {
                 CarPoolingApplication app = (CarPoolingApplication) getApplication();
-                app.getRatingRemoteDataSource().createRating(tripId, evaluatorUserId, driverUserId, score, comment);
+                app.getRatingRemoteDataSource().createRating(tripId, evaluatorUserId, driverUserId, score, comment, tags);
                 runOnUiThread(callback::onSuccess);
             } catch (Exception e) {
                 runOnUiThread(() -> callback.onError(e.getMessage() != null ? e.getMessage() : "Error de red"));
             }
         });
+    }
+
+    private void setupRatingTags(android.widget.LinearLayout container, String[] tagsList, final java.util.List<String> selectedTagsList) {
+        if (container == null || tagsList == null) return;
+        container.removeAllViews();
+        selectedTagsList.clear();
+
+        float density = getResources().getDisplayMetrics().density;
+        int horizontalMargin = (int) (6 * density);
+        int verticalPadding = (int) (6 * density);
+        int horizontalPadding = (int) (12 * density);
+
+        for (final String tag : tagsList) {
+            final TextView chip = new TextView(this);
+            chip.setText(tag);
+            chip.setTextSize(12);
+            chip.setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding);
+
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(0, 0, horizontalMargin, 0);
+            chip.setLayoutParams(lp);
+
+            chip.setBackgroundResource(R.drawable.bg_chip_unselected);
+            chip.setTextColor(getResources().getColor(R.color.carpool_text_secondary, null));
+
+            chip.setOnClickListener(v -> {
+                if (selectedTagsList.contains(tag)) {
+                    selectedTagsList.remove(tag);
+                    chip.setBackgroundResource(R.drawable.bg_chip_unselected);
+                    chip.setTextColor(getResources().getColor(R.color.carpool_text_secondary, null));
+                } else {
+                    selectedTagsList.add(tag);
+                    chip.setBackgroundResource(R.drawable.bg_chip_selected);
+                    chip.setTextColor(getResources().getColor(R.color.white, null));
+                }
+            });
+
+            container.addView(chip);
+        }
     }
 }

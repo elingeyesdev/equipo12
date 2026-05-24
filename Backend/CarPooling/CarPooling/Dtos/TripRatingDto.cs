@@ -14,6 +14,9 @@ public class CreateTripRatingDto
 
     [MaxLength(1000, ErrorMessage = "El comentario no puede exceder los 1000 caracteres.")]
     public string? Comment { get; set; }
+
+    [MaxLength(500, ErrorMessage = "Las etiquetas no pueden exceder los 500 caracteres.")]
+    public string? Tags { get; set; }
 }
 
 public class TripRatingResponseDto
@@ -28,6 +31,7 @@ public class TripRatingResponseDto
     public string RatingRoleLabel { get; set; } = string.Empty;
     public int Score { get; set; }
     public string? Comment { get; set; }
+    public string? Tags { get; set; }
     public DateTime CreatedAt { get; set; }
 
     public static TripRatingResponseDto FromEntity(TripRating r)
@@ -44,6 +48,7 @@ public class TripRatingResponseDto
             RatingRoleLabel = r.RatingRole == RatingRole.DriverToPassenger ? "driver_to_passenger" : "passenger_to_driver",
             Score = r.Score,
             Comment = r.Comment,
+            Tags = r.Tags,
             CreatedAt = r.CreatedAt
         };
     }
@@ -53,6 +58,18 @@ public class UserRatingSummaryDto
 {
     public Guid UserId { get; set; }
     public string UserFullName { get; set; } = string.Empty;
+
+    // Resumen Global
     public double AverageScore { get; set; }
     public int TotalRatingsCount { get; set; }
+
+    // Resumen Conductor
+    public double AverageDriverScore { get; set; }
+    public int TotalDriverRatingsCount { get; set; }
+    public int[] DriverStarsDistribution { get; set; } = new int[5];
+
+    // Resumen Pasajero
+    public double AveragePassengerScore { get; set; }
+    public int TotalPassengerRatingsCount { get; set; }
+    public int[] PassengerStarsDistribution { get; set; } = new int[5];
 }

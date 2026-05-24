@@ -34,5 +34,8 @@ public class TripRating
     [MaxLength(1000)]
     public string? Comment { get; set; }
 
+    [MaxLength(500)]
+    public string? Tags { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

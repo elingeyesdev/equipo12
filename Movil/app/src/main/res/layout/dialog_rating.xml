@@ -24,8 +24,34 @@
         android:numStars="5"
         android:stepSize="1.0"
         android:rating="5.0"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="16dp"
         style="?android:attr/ratingBarStyle" />
+
+    <TextView
+        android:id="@+id/ratingTagsLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Destaca sus cualidades:"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/carpool_text_primary"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="4dp" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:id="@+id/ratingTagsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp" />
+    </HorizontalScrollView>
 
     <EditText
         android:id="@+id/ratingCommentInput"

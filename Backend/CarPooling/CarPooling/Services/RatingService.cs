@@ -101,6 +101,7 @@ public class RatingService(CarPoolingContext context)
             RatingRole = role,
             Score = dto.Score,
             Comment = dto.Comment,
+            Tags = dto.Tags,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -142,20 +143,51 @@ public class RatingService(CarPoolingContext context)
             throw new KeyNotFoundException("El usuario especificado no existe.");
         }
 
-        var scores = await _context.TripRatings
+        var ratings = await _context.TripRatings
             .Where(r => r.EvaluatedUserId == userId)
-            .Select(r => r.Score)
             .ToListAsync();
 
-        double average = scores.Any() ? scores.Average() : 0.0;
-        int count = scores.Count;
+        double average = ratings.Any() ? ratings.Average(r => r.Score) : 0.0;
+        int count = ratings.Count;
+
+        var driverRatings = ratings.Where(r => r.RatingRole == RatingRole.PassengerToDriver).ToList();
+        double driverAvg = driverRatings.Any() ? driverRatings.Average(r => r.Score) : 0.0;
+        int driverCount = driverRatings.Count;
+        int[] driverDistribution = new int[5];
+        foreach (var r in driverRatings)
+        {
+            if (r.Score >= 1 && r.Score <= 5)
+            {
+                driverDistribution[r.Score - 1]++;
+            }
+        }
+
+        var passengerRatings = ratings.Where(r => r.RatingRole == RatingRole.DriverToPassenger).ToList();
+        double passengerAvg = passengerRatings.Any() ? passengerRatings.Average(r => r.Score) : 0.0;
+        int passengerCount = passengerRatings.Count;
+        int[] passengerDistribution = new int[5];
+        foreach (var r in passengerRatings)
+        {
+            if (r.Score >= 1 && r.Score <= 5)
+            {
+                passengerDistribution[r.Score - 1]++;
+            }
+        }
 
         return new UserRatingSummaryDto
         {
             UserId = userId,
             UserFullName = user.FullName,
             AverageScore = Math.Round(average, 2),
-            TotalRatingsCount = count
+            TotalRatingsCount = count,
+
+            AverageDriverScore = Math.Round(driverAvg, 2),
+            TotalDriverRatingsCount = driverCount,
+            DriverStarsDistribution = driverDistribution,
+
+            AveragePassengerScore = Math.Round(passengerAvg, 2),
+            TotalPassengerRatingsCount = passengerCount,
+            PassengerStarsDistribution = passengerDistribution
         };
     }
 }
