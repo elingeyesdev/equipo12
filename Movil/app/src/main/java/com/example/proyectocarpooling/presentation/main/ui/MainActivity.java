@@ -958,6 +958,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void refreshDrawerUserInfo() {
         // Cargar información del usuario desde SessionManager
+        String userId = sessionManager.getUserId();
         String fullName = sessionManager.getFullName();
         String email = sessionManager.getEmail();
         
@@ -985,7 +986,29 @@ public class MainActivity extends AppCompatActivity {
         
         // Mostrar rating del usuario
         if (drawerUserRating != null) {
-            drawerUserRating.setText("4.9");
+            if (userId != null && !userId.isEmpty()) {
+                final String currentUid = userId;
+                backgroundExecutor.execute(() -> {
+                    try {
+                        CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                        org.json.JSONObject summary = app.getRatingRemoteDataSource().getUserRatingSummary(currentUid, currentUid);
+                        if (summary != null) {
+                            double avg = summary.optDouble("averageScore", 0.0);
+                            int count = summary.optInt("totalRatingsCount", 0);
+                            runOnUiThread(() -> {
+                                if (isFinishing() || isDestroyed()) return;
+                                if (count > 0) {
+                                    drawerUserRating.setText(String.format(Locale.US, "⭐ %.2f (%d)", avg, count));
+                                } else {
+                                    drawerUserRating.setText("Calificación: --");
+                                }
+                            });
+                        }
+                    } catch (Exception ignored) {}
+                });
+            } else {
+                drawerUserRating.setText("Calificación: --");
+            }
         }
 
         if (drawerReservationInfo != null) {
@@ -2271,6 +2294,17 @@ public class MainActivity extends AppCompatActivity {
                                 statusText.setText(sb.toString());
                             }
                         }
+                    } else {
+                        // El servidor retornó 404/null (la reserva ya no está activa, ej: el viaje finalizó)
+                        final String finishedTripId = passengerReservedTripId;
+                        sessionManager.clearPassengerBookedTrip();
+                        hasActivePassengerReservation = false;
+                        passengerReservedTripId = null;
+                        refreshForPassengerReservation();
+                        refreshButtons();
+                        if (finishedTripId != null && !finishedTripId.isEmpty()) {
+                            checkFinishedTripAndPromptRating(finishedTripId);
+                        }
                     }
                 });
             } catch (IOException ignored) {
@@ -2432,6 +2466,93 @@ public class MainActivity extends AppCompatActivity {
             try {
                 CarPoolingApplication app = (CarPoolingApplication) getApplication();
                 app.getRatingRemoteDataSource().createRating(tripId, evaluatorUserId, passengerUserId, score, comment);
+                runOnUiThread(callback::onSuccess);
+            } catch (Exception e) {
+                runOnUiThread(() -> callback.onError(e.getMessage() != null ? e.getMessage() : "Error de red"));
+            }
+        });
+    }
+
+    private void checkFinishedTripAndPromptRating(String tripId) {
+        backgroundExecutor.execute(() -> {
+            try {
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                TripResponse trip = app.getTripRepository().getTripByIdIfPresent(tripId);
+                if (trip != null) {
+                    String status = trip.statusLabel != null ? trip.statusLabel.trim().toLowerCase(Locale.US) : "";
+                    if (status.contains("finalizado") || status.contains("finished") || trip.statusId == 4) {
+                        runOnUiThread(() -> {
+                            promptPassengerToRateDriver(tripId, trip.driverUserId != null ? trip.driverUserId : "", trip.driverName);
+                        });
+                    }
+                }
+            } catch (IOException ignored) {}
+        });
+    }
+
+    private void promptPassengerToRateDriver(String tripId, String driverUserId, String driverName) {
+        if (isFinishing() || isDestroyed() || driverUserId == null || driverUserId.isEmpty()) {
+            return;
+        }
+
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_rating, null);
+        TextView titleView = dialogView.findViewById(R.id.ratingPassengerTitle);
+        RatingBar ratingBar = dialogView.findViewById(R.id.ratingStars);
+        EditText commentInput = dialogView.findViewById(R.id.ratingCommentInput);
+
+        if (titleView != null) {
+            titleView.setText("Calificar a " + (driverName != null && !driverName.isEmpty() ? driverName : "Conductor"));
+        }
+        if (commentInput != null) {
+            commentInput.setHint("Escribe una opinión sobre el conductor (opcional)...");
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(false)
+                .setPositiveButton("Enviar Calificación", null)
+                .setNegativeButton("Saltar", null)
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button submitButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            submitButton.setOnClickListener(v -> {
+                int score = ratingBar != null ? (int) ratingBar.getRating() : 5;
+                if (score < 1 || score > 5) {
+                    Toast.makeText(MainActivity.this, "Por favor selecciona un puntaje entre 1 y 5 estrellas", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String comment = commentInput != null ? commentInput.getText().toString().trim() : "";
+
+                submitPassengerRatingAsync(tripId, driverUserId, score, comment, new MainViewModel.SimpleCallback() {
+                    @Override
+                    public void onSuccess() {
+                        dialog.dismiss();
+                        Toast.makeText(MainActivity.this, "¡Calificación enviada con éxito!", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        Toast.makeText(MainActivity.this, "Error al calificar: " + message, Toast.LENGTH_LONG).show();
+                    }
+                });
+            });
+        });
+
+        dialog.show();
+    }
+
+    private void submitPassengerRatingAsync(String tripId, String driverUserId, int score, String comment, MainViewModel.SimpleCallback callback) {
+        final String evaluatorUserId = sessionManager.getUserId();
+        if (evaluatorUserId.isEmpty()) {
+            callback.onError("Sesión inválida");
+            return;
+        }
+
+        backgroundExecutor.execute(() -> {
+            try {
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                app.getRatingRemoteDataSource().createRating(tripId, evaluatorUserId, driverUserId, score, comment);
                 runOnUiThread(callback::onSuccess);
             } catch (Exception e) {
                 runOnUiThread(() -> callback.onError(e.getMessage() != null ? e.getMessage() : "Error de red"));

@@ -159,7 +159,9 @@ public class ReservationService(CarPoolingContext context)
             .Include(r => r.Trip).ThenInclude(t => t.Vehicle)
             .Include(r => r.StatusEntity)
             .Where(r => r.PassengerUserId == passengerUserId
-                && r.StatusId != 4) // not cancelled
+                && r.StatusId != 4
+                && r.Trip.StatusId != 4
+                && r.Trip.StatusId != 5)
             .OrderByDescending(r => r.CreatedAt)
             .FirstOrDefaultAsync();
     }
