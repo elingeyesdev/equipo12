@@ -20,6 +20,7 @@ import android.app.AlertDialog;
 import android.widget.EditText;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
+import android.widget.RatingBar;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -1642,6 +1643,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        final String finishedTripId = activeTripId; // Keep in memory!
         setProgressVisible(true);
         mainViewModel.finishTrip(activeTripId, new MainViewModel.ResultCallback<>() {
             @Override
@@ -1666,6 +1668,7 @@ public class MainActivity extends AppCompatActivity {
                 setProgressVisible(false);
                 refreshButtons();
                 Toast.makeText(MainActivity.this, R.string.toast_trip_finished, Toast.LENGTH_SHORT).show();
+                promptDriverToRatePassengers(finishedTripId);
             }
 
             @Override
@@ -2337,5 +2340,102 @@ public class MainActivity extends AppCompatActivity {
         pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
         stopPassengerPolling();
         backgroundExecutor.shutdownNow();
+    }
+
+    private void promptDriverToRatePassengers(String finishedTripId) {
+        if (finishedTripId == null || finishedTripId.isEmpty()) {
+            return;
+        }
+        mainViewModel.getBoardedPassengers(finishedTripId, new MainViewModel.ResultCallback<List<ReservationResponse>>() {
+            @Override
+            public void onSuccess(List<ReservationResponse> boarded) {
+                if (boarded == null || boarded.isEmpty()) {
+                    return;
+                }
+                showDriverRatingQueueDialog(finishedTripId, boarded, 0);
+            }
+
+            @Override
+            public void onError(String message) {
+                // Falla silenciosa
+            }
+        });
+    }
+
+    private void showDriverRatingQueueDialog(String finishedTripId, List<ReservationResponse> passengers, int index) {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+        if (index >= passengers.size()) {
+            Toast.makeText(this, "¡Todas las calificaciones han sido enviadas!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ReservationResponse passenger = passengers.get(index);
+        final String passengerId = passenger.passengerUserId;
+        final String passengerName = passenger.getPassengerName();
+
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_rating, null);
+        TextView titleView = dialogView.findViewById(R.id.ratingPassengerTitle);
+        RatingBar ratingBar = dialogView.findViewById(R.id.ratingStars);
+        EditText commentInput = dialogView.findViewById(R.id.ratingCommentInput);
+
+        if (titleView != null) {
+            titleView.setText("Calificar a " + passengerName);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(false)
+                .setPositiveButton("Enviar Calificación", null)
+                .setNegativeButton("Saltar", (d, w) -> {
+                    showDriverRatingQueueDialog(finishedTripId, passengers, index + 1);
+                })
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button submitButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            submitButton.setOnClickListener(v -> {
+                int score = ratingBar != null ? (int) ratingBar.getRating() : 5;
+                if (score < 1 || score > 5) {
+                    Toast.makeText(MainActivity.this, "Por favor selecciona un puntaje entre 1 y 5 estrellas", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String comment = commentInput != null ? commentInput.getText().toString().trim() : "";
+
+                submitDriverRatingAsync(finishedTripId, passengerId, score, comment, new MainViewModel.SimpleCallback() {
+                    @Override
+                    public void onSuccess() {
+                        dialog.dismiss();
+                        showDriverRatingQueueDialog(finishedTripId, passengers, index + 1);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        Toast.makeText(MainActivity.this, "Error al calificar: " + message, Toast.LENGTH_LONG).show();
+                    }
+                });
+            });
+        });
+
+        dialog.show();
+    }
+
+    private void submitDriverRatingAsync(String tripId, String passengerUserId, int score, String comment, MainViewModel.SimpleCallback callback) {
+        final String evaluatorUserId = sessionManager.getUserId();
+        if (evaluatorUserId.isEmpty()) {
+            callback.onError("Sesión inválida");
+            return;
+        }
+
+        backgroundExecutor.execute(() -> {
+            try {
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                app.getRatingRemoteDataSource().createRating(tripId, evaluatorUserId, passengerUserId, score, comment);
+                runOnUiThread(callback::onSuccess);
+            } catch (Exception e) {
+                runOnUiThread(() -> callback.onError(e.getMessage() != null ? e.getMessage() : "Error de red"));
+            }
+        });
     }
 }
