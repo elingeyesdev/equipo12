@@ -110,9 +110,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         if (trip.StatusId == 5) throw new InvalidOperationException("Viaje cancelado.");
         if (trip.StatusId != 2) throw new InvalidOperationException("El viaje no esta listo para iniciar.");
 
-        var boardedCount = await _context.Reservations.CountAsync(r =>
-            r.TripId == tripId && r.StatusId == 3); // boarded
-        if (boardedCount <= 0) throw new InvalidOperationException("Debe haber al menos un pasajero abordado.");
+        // Permitir iniciar viaje sin pasajeros abordados (se pueden abordar en ruta)
 
         trip.StatusId = 3; // in_progress
         trip.StartedAt ??= DateTime.UtcNow;

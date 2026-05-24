@@ -11,6 +11,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.os.Bundle;
 import android.view.View;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -561,24 +562,32 @@ public class MainActivity extends AppCompatActivity {
                                 refreshForPassengerReservation();
                                 refreshButtons();
                             } else {
+                                final String previouslyBookedTripId = sessionManager.getPassengerBookedTripId();
                                 sessionManager.clearPassengerBookedTrip();
                                 hasActivePassengerReservation = false;
                                 passengerReservedTripId = null;
                                 refreshForPassengerReservation();
                                 refreshButtons();
+                                if (previouslyBookedTripId != null && !previouslyBookedTripId.isEmpty()) {
+                                    checkFinishedTripAndPromptRating(previouslyBookedTripId);
+                                }
                             }
                         });
                         return;
                     }
                 }
 
+                final String previouslyBookedTripId = sessionManager.getPassengerBookedTripId();
+                sessionManager.clearPassengerBookedTrip();
                 runOnUiThread(() -> {
                     setProgressVisible(false);
-                    sessionManager.clearPassengerBookedTrip();
                     hasActivePassengerReservation = false;
                     passengerReservedTripId = null;
                     refreshForPassengerReservation();
                     refreshButtons();
+                    if (previouslyBookedTripId != null && !previouslyBookedTripId.isEmpty()) {
+                        checkFinishedTripAndPromptRating(previouslyBookedTripId);
+                    }
                 });
 
             } catch (IOException e) {
@@ -613,11 +622,15 @@ public class MainActivity extends AppCompatActivity {
                                         refreshForPassengerReservation();
                                         refreshButtons();
                                     } else {
+                                        final String previouslyBookedTripIdCatch = sessionManager.getPassengerBookedTripId();
                                         sessionManager.clearPassengerBookedTrip();
                                         hasActivePassengerReservation = false;
                                         passengerReservedTripId = null;
                                         refreshForPassengerReservation();
                                         refreshButtons();
+                                        if (previouslyBookedTripIdCatch != null && !previouslyBookedTripIdCatch.isEmpty()) {
+                                            checkFinishedTripAndPromptRating(previouslyBookedTripIdCatch);
+                                        }
                                     }
                                 });
                             } catch (IOException ignored) {}
@@ -840,7 +853,7 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
         String s = status.trim().toLowerCase(Locale.US);
-        if (s.equals("cancelado") || s.equals("cancelled") || s.equals("2")) {
+        if (s.equals("cancelado") || s.equals("cancelled") || s.equals("5")) {
             return false;
         }
         if (s.equals("finalizado") || s.equals("finished") || s.equals("4")) {
@@ -1648,7 +1661,6 @@ public class MainActivity extends AppCompatActivity {
                 pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
                 pollingHandler.post(pendingReservationPollingRunnable);
                 Toast.makeText(MainActivity.this, R.string.toast_trip_started, Toast.LENGTH_SHORT).show();
-                showBoardPassengerByCodeDialog();
             }
 
             @Override
@@ -2008,7 +2020,7 @@ public class MainActivity extends AppCompatActivity {
                         .setTitle("Seleccionar pasajero a abordar")
                         .setAdapter(adapter, (dialog, which) -> {
                             ReservationResponse selected = confirmed.get(which);
-                            boardPassenger(selected.id);
+                            promptForBoardingCode(selected);
                         })
                         .setNegativeButton(R.string.dialog_button_cancel, null)
                         .show();
@@ -2022,7 +2034,45 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void boardPassenger(String reservationId) {
+    private void promptForBoardingCode(final ReservationResponse selected) {
+        final EditText input = new EditText(this);
+        input.setHint("Código de 4 dígitos");
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Abordar a " + selected.getPassengerName())
+                .setMessage("Pídele al pasajero su código de abordaje de 4 dígitos:")
+                .setView(input)
+                .setPositiveButton("Confirmar", (dialog, which) -> {
+                    String code = input.getText().toString().trim();
+                    if (code.isEmpty()) {
+                        Toast.makeText(this, "Debe ingresar el código", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    verifyAndBoardPassengerByIdAndCode(selected.id, code);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void verifyAndBoardPassengerByIdAndCode(final String reservationId, final String code) {
+        setProgressVisible(true);
+        mainViewModel.verifyBoardingCode(activeTripId, reservationId, code, new MainViewModel.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                // Código correcto, proceder a abordar
+                boardPassenger(reservationId);
+            }
+
+            @Override
+            public void onError(String message) {
+                setProgressVisible(false);
+                Toast.makeText(MainActivity.this, "Código de abordaje incorrecto para este pasajero.", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void boardPassenger(final String reservationId) {
         setProgressVisible(true);
         String apiBase = ApiBaseUrlProvider.get(this);
         String mapboxToken = getString(R.string.mapbox_access_token);
@@ -2410,10 +2460,17 @@ public class MainActivity extends AppCompatActivity {
         final String passengerName = passenger.getPassengerName();
 
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_rating, null);
+        if (dialogView == null) {
+            Log.w("MainActivity", "Failed to inflate dialog_rating layout");
+            return;
+        }
         TextView titleView = dialogView.findViewById(R.id.ratingPassengerTitle);
         RatingBar ratingBar = dialogView.findViewById(R.id.ratingStars);
         EditText commentInput = dialogView.findViewById(R.id.ratingCommentInput);
         android.widget.LinearLayout tagsContainer = dialogView.findViewById(R.id.ratingTagsContainer);
+        if (ratingBar == null) Log.w("MainActivity", "ratingStars view is null in dialog_rating");
+        if (commentInput == null) Log.w("MainActivity", "ratingCommentInput view is null in dialog_rating");
+        if (tagsContainer == null) Log.w("MainActivity", "ratingTagsContainer view is null in dialog_rating");
 
         if (titleView != null) {
             titleView.setText("Calificar a " + passengerName);
@@ -2510,10 +2567,17 @@ public class MainActivity extends AppCompatActivity {
         }
 
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_rating, null);
+        if (dialogView == null) {
+            Log.w("MainActivity", "Failed to inflate dialog_rating layout (passenger)-> promptPassengerToRateDriver");
+            return;
+        }
         TextView titleView = dialogView.findViewById(R.id.ratingPassengerTitle);
         RatingBar ratingBar = dialogView.findViewById(R.id.ratingStars);
         EditText commentInput = dialogView.findViewById(R.id.ratingCommentInput);
         android.widget.LinearLayout tagsContainer = dialogView.findViewById(R.id.ratingTagsContainer);
+        if (ratingBar == null) Log.w("MainActivity", "ratingStars view is null in dialog_rating (passenger)");
+        if (commentInput == null) Log.w("MainActivity", "ratingCommentInput view is null in dialog_rating (passenger)");
+        if (tagsContainer == null) Log.w("MainActivity", "ratingTagsContainer view is null in dialog_rating (passenger)");
 
         if (titleView != null) {
             titleView.setText("Calificar a " + (driverName != null && !driverName.isEmpty() ? driverName : "Conductor"));

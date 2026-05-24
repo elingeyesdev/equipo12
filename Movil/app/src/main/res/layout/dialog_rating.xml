@@ -25,6 +25,9 @@
         android:stepSize="1.0"
         android:rating="5.0"
         android:layout_marginBottom="16dp"
+        android:progressTint="@color/rating_star_yellow"
+        android:secondaryProgressTint="@color/rating_star_yellow"
+        android:progressTintMode="src_atop"
         style="?android:attr/ratingBarStyle" />
 
     <TextView
