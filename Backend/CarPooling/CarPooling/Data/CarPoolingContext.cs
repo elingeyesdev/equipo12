@@ -17,6 +17,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<TripChatMessage> TripChatMessages => Set<TripChatMessage>();
     public DbSet<TripChatMessageRead> TripChatMessageReads => Set<TripChatMessageRead>();
     public DbSet<TripRating> TripRatings => Set<TripRating>();
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +33,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureTripChatMessage(modelBuilder);
         ConfigureTripChatMessageRead(modelBuilder);
         ConfigureTripRating(modelBuilder);
+        ConfigureSupportTicket(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -331,6 +333,37 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
 
             // Unique composite index: 1 rating per evaluator->evaluated per trip
             entity.HasIndex(r => new { r.TripId, r.EvaluatorUserId, r.EvaluatedUserId }).IsUnique();
+        });
+    }
+
+    private static void ConfigureSupportTicket(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SupportTicket>(entity =>
+        {
+            entity.ToTable("SupportTickets");
+            entity.HasKey(t => t.Id);
+
+            entity.HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.HasOne(t => t.Trip)
+                .WithMany()
+                .HasForeignKey(t => t.TripId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.Property(t => t.Category).HasConversion<int>().IsRequired();
+            entity.Property(t => t.Status).HasConversion<int>().HasDefaultValue(SupportTicketStatus.Open).IsRequired();
+            entity.Property(t => t.Subject).IsRequired().HasMaxLength(120);
+            entity.Property(t => t.Description).IsRequired().HasMaxLength(2000);
+            entity.Property(t => t.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(t => t.UpdatedAt);
+
+            entity.HasIndex(t => t.UserId);
+            entity.HasIndex(t => t.Status);
+            entity.HasIndex(t => t.CreatedAt);
         });
     }
 }

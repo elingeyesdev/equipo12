@@ -31,6 +31,7 @@ builder.Services.AddScoped<VehicleService>();
 builder.Services.AddScoped<DriverService>();
 builder.Services.AddScoped<GeocodingService>();
 builder.Services.AddScoped<RatingService>();
+builder.Services.AddScoped<SupportTicketService>();
 builder.Services.AddHttpClient<GeocodingService>();
 
 builder.Services.AddCors(options =>
@@ -69,7 +70,7 @@ app.Use(async (context, next) =>
         context.Response.Headers["Access-Control-Allow-Origin"] = origin;
         context.Response.Headers["Vary"] = "Origin";
         context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
-        context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, X-Admin-Override";
+        context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, X-Admin-Override, X-User-Id";
     }
 
     if (HttpMethods.IsOptions(context.Request.Method))
