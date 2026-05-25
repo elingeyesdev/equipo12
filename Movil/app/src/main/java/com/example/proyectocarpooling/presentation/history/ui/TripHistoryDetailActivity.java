@@ -19,6 +19,7 @@ import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.history.TripHistoryDetailItem;
 import com.example.proyectocarpooling.presentation.history.HistoryUiHelper;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
+import com.example.proyectocarpooling.presentation.support.ui.SupportActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -31,7 +32,7 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
 
     private MaterialToolbar toolbar;
     private View loadingOverlay;
-    private MaterialButton viewRouteButton, participantsButton;
+    private MaterialButton reportButton, viewRouteButton, participantsButton;
 
     private TextView routeTitle, heroSubtitle, statusBadge, categoryLabel;
     private LinearLayout rowStarted, rowFinished;
@@ -91,6 +92,7 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
         youName = findViewById(R.id.historyDetailYouName);
         youReservation = findViewById(R.id.historyDetailYouReservation);
 
+        reportButton = findViewById(R.id.historyDetailReportButton);
         viewRouteButton = findViewById(R.id.historyDetailViewRouteButton);
         participantsButton = findViewById(R.id.historyDetailParticipantsButton);
 
@@ -99,6 +101,8 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
         toolbar.setNavigationOnClickListener(v -> finish());
+
+        reportButton.setOnClickListener(v -> openSupportReport());
 
         viewRouteButton.setEnabled(false);
         viewRouteButton.setOnClickListener(v -> openMapWithRoute());
@@ -266,5 +270,28 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
         if (id == null || id.isEmpty()) return "\u2014";
         String t = id.trim();
         return t.length() <= 10 ? t : t.substring(0, 8) + "\u2026";
+    }
+
+    private void openSupportReport() {
+        TripHistoryDetailItem d = currentDetail;
+        if (d == null || d.tripId == null || d.tripId.isBlank()) {
+            return;
+        }
+        Intent intent = new Intent(this, SupportActivity.class);
+        intent.putExtra(SupportActivity.EXTRA_TRIP_ID, d.tripId);
+        intent.putExtra("extra_open_create_dialog", true);
+
+        boolean isPassenger = d.passengerReservationId != null && !d.passengerReservationId.isBlank();
+        boolean isDriver = "driver".equalsIgnoreCase(d.category);
+
+        if (isPassenger) {
+            intent.putExtra(SupportActivity.EXTRA_RESERVATION_ID, d.passengerReservationId);
+            intent.putExtra(SupportActivity.EXTRA_CATEGORY, SupportActivity.CATEGORY_RESERVATION);
+        } else if (isDriver) {
+            intent.putExtra(SupportActivity.EXTRA_CATEGORY, SupportActivity.CATEGORY_TRIP);
+        } else {
+            intent.putExtra(SupportActivity.EXTRA_CATEGORY, SupportActivity.CATEGORY_TRIP);
+        }
+        startActivity(intent);
     }
 }

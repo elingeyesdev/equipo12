@@ -139,6 +139,7 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
             BoardedCount = reservationStats?.Boarded ?? 0,
             CancelledCount = reservationStats?.Cancelled ?? 0,
             PassengerReservationStatus = viewerReservation?.StatusEntity?.LabelEs,
+            PassengerReservationId = viewerReservation?.Id,
             PassengerName = viewerReservation?.PassengerUser?.FullName,
             Participants = participants
         });

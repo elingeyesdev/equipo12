@@ -354,6 +354,11 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .HasForeignKey(t => t.TripId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(t => t.Reservation)
+                .WithMany()
+                .HasForeignKey(t => t.ReservationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.Property(t => t.Category).HasConversion<int>().IsRequired();
             entity.Property(t => t.Status).HasConversion<int>().HasDefaultValue(SupportTicketStatus.Open).IsRequired();
             entity.Property(t => t.Subject).IsRequired().HasMaxLength(120);
@@ -362,8 +367,12 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(t => t.UpdatedAt);
 
             entity.HasIndex(t => t.UserId);
+            entity.HasIndex(t => t.TripId);
+            entity.HasIndex(t => t.ReservationId);
             entity.HasIndex(t => t.Status);
             entity.HasIndex(t => t.CreatedAt);
+            entity.HasIndex(t => new { t.UserId, t.Category, t.TripId, t.Status });
+            entity.HasIndex(t => new { t.UserId, t.Category, t.ReservationId, t.Status });
         });
     }
 }

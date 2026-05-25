@@ -28,6 +28,7 @@ public class TripHistoryDetailItem {
     public final int boardedCount;
     public final int cancelledCount;
     public final String passengerReservationStatus;
+    public final String passengerReservationId;
     public final String passengerName;
     public final List<TripHistoryParticipantItem> participants;
 
@@ -53,6 +54,7 @@ public class TripHistoryDetailItem {
             int boardedCount,
             int cancelledCount,
             String passengerReservationStatus,
+            String passengerReservationId,
             String passengerName,
             List<TripHistoryParticipantItem> participants
     ) {
@@ -77,6 +79,7 @@ public class TripHistoryDetailItem {
         this.boardedCount = boardedCount;
         this.cancelledCount = cancelledCount;
         this.passengerReservationStatus = passengerReservationStatus;
+        this.passengerReservationId = passengerReservationId;
         this.passengerName = passengerName;
         this.participants = participants;
     }
@@ -121,6 +124,7 @@ public class TripHistoryDetailItem {
                 o.optInt("boardedCount", 0),
                 o.optInt("cancelledCount", 0),
                 o.optString("passengerReservationStatus", ""),
+                o.optString("passengerReservationId", ""),
                 o.optString("passengerName", ""),
                 participants
         );

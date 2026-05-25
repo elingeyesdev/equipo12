@@ -17,6 +17,8 @@ public class CreateSupportTicketDto
     public string Description { get; set; } = string.Empty;
 
     public Guid? TripId { get; set; }
+
+    public Guid? ReservationId { get; set; }
 }
 
 public class SupportTicketResponseDto
@@ -25,6 +27,7 @@ public class SupportTicketResponseDto
     public Guid UserId { get; set; }
     public string UserFullName { get; set; } = string.Empty;
     public Guid? TripId { get; set; }
+    public Guid? ReservationId { get; set; }
     public SupportTicketCategory Category { get; set; }
     public string CategoryLabel { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
@@ -42,6 +45,7 @@ public class SupportTicketResponseDto
             UserId = ticket.UserId,
             UserFullName = ticket.User?.FullName ?? string.Empty,
             TripId = ticket.TripId,
+            ReservationId = ticket.ReservationId,
             Category = ticket.Category,
             CategoryLabel = ToCategoryLabel(ticket.Category),
             Subject = ticket.Subject,

@@ -13,6 +13,9 @@ public class SupportTicket
     public Guid? TripId { get; set; }
     public Trip? Trip { get; set; }
 
+    public Guid? ReservationId { get; set; }
+    public Reservation? Reservation { get; set; }
+
     [Required]
     public SupportTicketCategory Category { get; set; }
 

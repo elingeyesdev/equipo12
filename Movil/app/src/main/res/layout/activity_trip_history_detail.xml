@@ -399,10 +399,23 @@
             android:padding="16dp">
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/historyDetailReportButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/support_report_from_history"
+                android:textAllCaps="false"
+                android:textColor="@color/uber_error"
+                app:cornerRadius="14dp"
+                app:strokeColor="@color/uber_error"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/historyDetailViewRouteButton"
                 style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:text="@string/history_detail_view_route"
                 android:textAllCaps="false"
                 app:backgroundTint="@color/uber_accent"

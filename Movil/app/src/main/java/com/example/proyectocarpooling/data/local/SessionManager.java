@@ -22,6 +22,7 @@ public class SessionManager {
     private static final String KEY_DRIVER_ACTIVE_TRIP_PREFIX = "driver_active_trip_";
     /** Viaje reservado por el pasajero en este dispositivo. */
     private static final String KEY_PASSENGER_BOOKED_TRIP_ID = "passenger_booked_trip_id";
+    private static final String KEY_PASSENGER_BOOKED_RESERVATION_ID = "passenger_booked_reservation_id";
     private static final String KEY_PASSENGER_BOOKING_CODE = "passenger_boarding_code";
     private static final String KEY_PASSENGER_DRIVER_NAME = "passenger_driver_name";
     private static final long THIRTY_DAYS_MILLIS = 30L * 24L * 60L * 60L * 1000L;
@@ -116,11 +117,25 @@ public class SessionManager {
     }
 
     public void savePassengerBookedTrip(String tripId, String boardingCode, String driverName) {
+        savePassengerBookedTrip(tripId, null, boardingCode, driverName);
+    }
+
+    public void savePassengerBookedTrip(
+            String tripId,
+            String reservationId,
+            String boardingCode,
+            String driverName
+    ) {
         preferences.edit()
                 .putString(KEY_PASSENGER_BOOKED_TRIP_ID, tripId != null ? tripId.trim() : "")
+                .putString(KEY_PASSENGER_BOOKED_RESERVATION_ID, reservationId != null ? reservationId.trim() : "")
                 .putString(KEY_PASSENGER_BOOKING_CODE, boardingCode != null ? boardingCode : "")
                 .putString(KEY_PASSENGER_DRIVER_NAME, driverName != null ? driverName : "")
                 .apply();
+    }
+
+    public String getPassengerBookedReservationId() {
+        return preferences.getString(KEY_PASSENGER_BOOKED_RESERVATION_ID, "");
     }
 
     public String getPassengerBookedTripId() {
@@ -143,6 +158,7 @@ public class SessionManager {
     public void clearPassengerBookedTrip() {
         preferences.edit()
                 .remove(KEY_PASSENGER_BOOKED_TRIP_ID)
+                .remove(KEY_PASSENGER_BOOKED_RESERVATION_ID)
                 .remove(KEY_PASSENGER_BOOKING_CODE)
                 .remove(KEY_PASSENGER_DRIVER_NAME)
                 .apply();

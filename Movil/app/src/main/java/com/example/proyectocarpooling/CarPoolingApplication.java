@@ -11,7 +11,10 @@ import com.example.proyectocarpooling.data.remote.user.UsersRemoteDataSource;
 import com.example.proyectocarpooling.data.repository.TripRepositoryImpl;
 import com.example.proyectocarpooling.data.repository.favorites.FavoritesRepositoryImpl;
 import com.example.proyectocarpooling.data.repository.history.TripHistoryRepositoryImpl;
+import com.example.proyectocarpooling.data.repository.support.SupportRepositoryImpl;
 import com.example.proyectocarpooling.data.repository.user.UserRepositoryImpl;
+import com.example.proyectocarpooling.data.remote.SupportRemoteDataSource;
+import com.example.proyectocarpooling.domain.repository.support.SupportRepository;
 import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.example.proyectocarpooling.domain.repository.favorites.FavoritesRepository;
 import com.example.proyectocarpooling.domain.repository.history.TripHistoryRepository;
@@ -30,6 +33,7 @@ public class CarPoolingApplication extends Application {
     private UserRepository userRepository;
     private FavoritesRepository favoritesRepository;
     private TripHistoryRepository tripHistoryRepository;
+    private SupportRepository supportRepository;
 
     @Override
     public void onCreate() {
@@ -77,6 +81,14 @@ public class CarPoolingApplication extends Application {
             tripHistoryRepository = new TripHistoryRepositoryImpl(createHistoryDataSource());
         }
         return tripHistoryRepository;
+    }
+
+    public synchronized SupportRepository getSupportRepository() {
+        if (supportRepository == null) {
+            supportRepository = new SupportRepositoryImpl(
+                    new SupportRemoteDataSource(ApiBaseUrlProvider.get(this)));
+        }
+        return supportRepository;
     }
 
     private TripsRemoteDataSource createTripsDataSource() {

@@ -49,6 +49,7 @@ import com.example.proyectocarpooling.presentation.account.ui.AccountOverviewAct
 import com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity;
 import com.example.proyectocarpooling.presentation.favorites.ui.FavoritePlacesActivity;
 import com.example.proyectocarpooling.presentation.help.ui.HelpActivity;
+import com.example.proyectocarpooling.presentation.support.ui.SupportActivity;
 import com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity;
 import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
 // MainViewModel now in same package
@@ -530,11 +531,12 @@ public class MainActivity extends AppCompatActivity {
 
                 if (reservation != null) {
                     final String tripId = reservation.optString("tripId", "");
+                    final String reservationId = reservation.optString("reservationId", "");
                     final String boardingCode = reservation.optString("boardingCode", "");
                     final String driverName = reservation.optString("driverName", "");
 
                     if (!tripId.isEmpty()) {
-                        sessionManager.savePassengerBookedTrip(tripId, boardingCode, driverName);
+                        sessionManager.savePassengerBookedTrip(tripId, reservationId, boardingCode, driverName);
 
                         TripRepository repository = app.getTripRepository();
                         TripResponse trip = repository.getTripByIdIfPresent(tripId);
@@ -944,10 +946,11 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(new Intent(this, TripHistoryActivity.class));
                 } else if (id == R.id.nav_help) {
                     startActivity(new Intent(this, HelpActivity.class));
+                } else if (id == R.id.nav_support) {
+                    startActivity(new Intent(this, SupportActivity.class));
                 } else if (id == R.id.nav_my_addresses
                         || id == R.id.nav_notifications
-                        || id == R.id.nav_security
-                        || id == R.id.nav_support) {
+                        || id == R.id.nav_security) {
                     Toast.makeText(this, R.string.drawer_option_coming_soon, Toast.LENGTH_SHORT).show();
                 } else if (id == R.id.nav_driver_passenger_requests) {
                     openPassengerRequestsScreen(true);

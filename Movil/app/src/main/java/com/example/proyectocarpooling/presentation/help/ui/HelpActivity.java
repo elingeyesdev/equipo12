@@ -49,6 +49,9 @@ public class HelpActivity extends AppCompatActivity implements HelpFaqAdapter.Li
         adapter.setItems(faqItems);
         recycler.setLayoutManager(new LinearLayoutManager(this));
         recycler.setAdapter(adapter);
+
+        findViewById(R.id.helpFooterHint).setOnClickListener(v ->
+                startActivity(new Intent(this, com.example.proyectocarpooling.presentation.support.ui.SupportActivity.class)));
     }
 
     @Override

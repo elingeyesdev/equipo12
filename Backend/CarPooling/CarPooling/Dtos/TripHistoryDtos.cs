@@ -33,6 +33,7 @@ public class TripHistoryDetailDto
     public int BoardedCount { get; set; }
     public int CancelledCount { get; set; }
     public string? PassengerReservationStatus { get; set; }
+    public Guid? PassengerReservationId { get; set; }
     public string? PassengerName { get; set; }
     public List<TripHistoryParticipantDto> Participants { get; set; } = [];
 }

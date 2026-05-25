@@ -9,6 +9,12 @@ public class SupportTicketService(CarPoolingContext context)
 {
     private readonly CarPoolingContext _context = context;
 
+    private static readonly SupportTicketStatus[] ActiveStatuses =
+    [
+        SupportTicketStatus.Open,
+        SupportTicketStatus.InReview
+    ];
+
     public async Task<SupportTicketResponseDto> CreateAsync(Guid userId, CreateSupportTicketDto dto)
     {
         var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
@@ -35,16 +41,49 @@ public class SupportTicketService(CarPoolingContext context)
             throw new InvalidOperationException("La descripción debe tener al menos 10 caracteres.");
         }
 
-        if (dto.TripId.HasValue)
+        Guid? tripId = dto.TripId;
+        Guid? reservationId = dto.ReservationId;
+
+        switch (dto.Category)
         {
-            await ValidateTripLinkAsync(userId, dto.TripId.Value);
+            case SupportTicketCategory.Trip:
+                if (!tripId.HasValue)
+                {
+                    throw new InvalidOperationException("Debes vincular un viaje para reportes de tipo Viaje.");
+                }
+                await ValidateTripLinkAsync(userId, tripId.Value);
+                reservationId = null;
+                break;
+
+            case SupportTicketCategory.Reservation:
+                if (!reservationId.HasValue)
+                {
+                    throw new InvalidOperationException("Debes vincular una reserva para reportes de tipo Reserva.");
+                }
+                tripId = await ValidateReservationLinkAsync(userId, reservationId.Value);
+                break;
+
+            case SupportTicketCategory.Account:
+            case SupportTicketCategory.Payment:
+            case SupportTicketCategory.Other:
+                if (tripId.HasValue || reservationId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "Los reportes de cuenta, pago u otro no deben vincularse a un viaje o reserva.");
+                }
+                tripId = null;
+                reservationId = null;
+                break;
         }
+
+        await ValidateNoDuplicateActiveAsync(userId, dto.Category, tripId, reservationId);
 
         var ticket = new SupportTicket
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            TripId = dto.TripId,
+            TripId = tripId,
+            ReservationId = reservationId,
             Category = dto.Category,
             Subject = subject,
             Description = description,
@@ -110,7 +149,76 @@ public class SupportTicketService(CarPoolingContext context)
 
         if (!isDriver && !isPassenger)
         {
-            throw new InvalidOperationException("Solo puedes vincular viajes en los que participaste como conductor o pasajero.");
+            throw new InvalidOperationException(
+                "Solo puedes vincular viajes en los que participaste como conductor o pasajero.");
+        }
+    }
+
+    private async Task<Guid> ValidateReservationLinkAsync(Guid userId, Guid reservationId)
+    {
+        var reservation = await _context.Reservations
+            .AsNoTracking()
+            .Include(r => r.Trip)
+            .FirstOrDefaultAsync(r => r.Id == reservationId);
+
+        if (reservation is null)
+        {
+            throw new KeyNotFoundException("La reserva indicada no existe.");
+        }
+
+        if (reservation.PassengerUserId != userId)
+        {
+            throw new InvalidOperationException("Solo puedes vincular reservas que te pertenecen como pasajero.");
+        }
+
+        if (reservation.Trip is null || reservation.Trip.Kind != TripKind.Regular)
+        {
+            throw new InvalidOperationException("La reserva no está asociada a un viaje válido.");
+        }
+
+        return reservation.TripId;
+    }
+
+    private async Task ValidateNoDuplicateActiveAsync(
+        Guid userId,
+        SupportTicketCategory category,
+        Guid? tripId,
+        Guid? reservationId)
+    {
+        var query = _context.SupportTickets
+            .Where(t => t.UserId == userId
+                        && t.Category == category
+                        && ActiveStatuses.Contains(t.Status));
+
+        if (category == SupportTicketCategory.Trip)
+        {
+            if (!tripId.HasValue)
+            {
+                return;
+            }
+
+            var exists = await query.AnyAsync(t => t.TripId == tripId);
+            if (exists)
+            {
+                throw new InvalidOperationException(
+                    "Ya tienes un reporte activo de tipo Viaje para este viaje.");
+            }
+            return;
+        }
+
+        if (category == SupportTicketCategory.Reservation)
+        {
+            if (!reservationId.HasValue)
+            {
+                return;
+            }
+
+            var exists = await query.AnyAsync(t => t.ReservationId == reservationId);
+            if (exists)
+            {
+                throw new InvalidOperationException(
+                    "Ya tienes un reporte activo de tipo Reserva para esta reserva.");
+            }
         }
     }
 }

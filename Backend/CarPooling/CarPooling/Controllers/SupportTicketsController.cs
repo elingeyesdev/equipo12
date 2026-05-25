@@ -27,7 +27,7 @@ public class SupportTicketsController(SupportTicketService supportTicketService)
         try
         {
             var created = await _supportTicketService.CreateAsync(userId, dto);
-            return CreatedAtAction(nameof(GetByIdAsync), new { userId, ticketId = created.Id }, created);
+            return StatusCode(StatusCodes.Status201Created, created);
         }
         catch (KeyNotFoundException ex)
         {
