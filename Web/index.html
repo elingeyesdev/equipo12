@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CarPooling Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="./node_modules/mapbox-gl/dist/mapbox-gl.css" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <main class="auth-shell" id="authShell">
+    <section class="auth-card">
+      <p class="eyebrow">Administracion</p>
+      <h1>Panel de Control CarPooling</h1>
+      <p class="subtitle">Inicia sesion como administrador para gestionar usuarios, viajes y reportes operativos.</p>
+
+      <form id="loginForm" class="stack">
+        <label class="field">
+          <span>Correo institucional</span>
+          <input type="email" id="loginEmail" placeholder="admin@univalle.edu" required />
+        </label>
+
+        <label class="field">
+          <span>Contrasena</span>
+          <input type="password" id="loginPassword" placeholder="******" required />
+        </label>
+
+        <label class="field">
+          <span>API Base URL</span>
+          <input type="url" id="apiBaseUrl" placeholder="http://localhost:5005" required />
+        </label>
+
+        <button type="submit" class="btn primary">Entrar al panel</button>
+      </form>
+
+      <p id="loginMessage" class="message" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <section class="dashboard hidden" id="dashboard">
+    <aside class="sidebar">
+      <div class="brand">
+        <p>CP</p>
+        <div>
+          <h2>Admin Hub</h2>
+          <small>CarPooling</small>
+        </div>
+      </div>
+
+      <nav class="menu" id="menuNav">
+        <button class="menu-item active" data-section="overview">Resumen</button>
+        <button class="menu-item" data-section="users">Usuarios</button>
+        <button class="menu-item" data-section="trips">Viajes</button>
+        <button class="menu-item" data-section="reservations">Reservas</button>
+        <button class="menu-item" data-section="support">Soporte</button>
+      </nav>
+
+      <button id="logoutBtn" class="btn ghost">Cerrar sesion</button>
+    </aside>
+
+    <div class="main-area">
+      <header class="topbar">
+        <div>
+          <h1 id="sectionTitle">Resumen</h1>
+          <p id="sectionDescription" class="section-description">Vista general del estado del panel.</p>
+          <p id="loggedUserInfo" class="logged-user">Sesion iniciada</p>
+          <p id="adminDataMessage" class="message" aria-live="polite"></p>
+        </div>
+        <div class="status-pill" id="apiStatus">API desconectada</div>
+      </header>
+
+      <section class="content-grid" id="section-overview">
+        <article class="card kpi">
+          <h3>Estado de sesion</h3>
+          <p id="kpiSession">Activa</p>
+        </article>
+        <article class="card kpi">
+          <h3>Seccion actual</h3>
+          <p id="kpiSection">Resumen</p>
+        </article>
+        <article class="card kpi">
+          <h3>API Base</h3>
+          <p id="kpiApiBase">-</p>
+        </article>
+
+        <article class="card span-3">
+          <h3>Acciones rapidas</h3>
+          <p class="card-help">Navega a las tareas mas comunes sin buscar en el menu lateral.</p>
+          <div class="quick-actions" id="overviewQuickActions">
+            <button type="button" class="btn secondary quick-link" data-section="users">Crear usuario</button>
+            <button type="button" class="btn secondary quick-link" data-section="trips">Crear viaje</button>
+            <button type="button" class="btn secondary quick-link" data-section="reservations">Ver reservas</button>
+            <button type="button" class="btn secondary quick-link" data-section="support">Ver quejas</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <h3>Checklist implementado</h3>
+          <ul class="checklist">
+            <li>Layout principal con sidebar, navbar y dashboard.</li>
+            <li>Navegacion funcional entre usuarios, viajes y reportes.</li>
+            <li>Autenticacion de administrador con login.</li>
+            <li>Conexion a endpoints basicos del backend.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-users">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Panel de usuarios</p>
+            <h3>Usuarios registrados</h3>
+            <p class="card-help">Consulta todos los datos de cada usuario en la tabla inferior.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button type="button" class="btn secondary" data-create-type="user">Agregar</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Filtrar usuarios</span>
+              <input type="text" id="usersFilterInput" placeholder="Nombre, correo o rol" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminUsersTable">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Telefono</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-trips">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Panel de viajes</p>
+            <h3>Viajes registrados</h3>
+            <p class="card-help">Consulta todos los viajes en la tabla y agrega uno nuevo desde el botón superior.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button type="button" class="btn secondary" data-create-type="trip">Agregar</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Filtrar viajes</span>
+              <input type="text" id="tripsFilterInput" placeholder="Conductor, estado, origen o destino" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminTripsTable">
+              <thead>
+                <tr>
+                  <th>Trip ID</th>
+                  <th>Conductor</th>
+                  <th>Origen</th>
+                  <th>Destino</th>
+                  <th>Estado</th>
+                  <th>Cupos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminTripsBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-reservations">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Panel de reservas</p>
+            <h3>Reservas registradas</h3>
+            <p class="card-help">Consulta todos los datos de reservas y crea una nueva desde el botón superior.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button type="button" class="btn secondary" data-create-type="reservation">Agregar</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Filtrar reservas</span>
+              <input type="text" id="reservationsFilterInput" placeholder="Pasajero, estado o Trip ID" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminReservationsTable">
+              <thead>
+                <tr>
+                  <th>Pasajero</th>
+                  <th>Trip ID</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminReservationsBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-support">
+        <article class="card span-3">
+          <h3>Quejas y reportes de usuarios</h3>
+          <p class="card-help">Mensajes enviados desde la app movil (menu Soporte o historial de viajes). Actualiza el estado cuando el equipo atienda cada caso.</p>
+          <p id="supportDataMessage" class="message">Cargando reportes de soporte...</p>
+        </article>
+
+        <article class="card span-3">
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Buscar</span>
+              <input type="text" id="supportFilterInput" placeholder="Usuario, asunto, categoria o referencia" />
+            </label>
+            <label class="field filter-field">
+              <span>Estado</span>
+              <select id="supportStatusFilter">
+                <option value="">Todos</option>
+                <option value="1">Abierto</option>
+                <option value="2">En revision</option>
+                <option value="3">Resuelto</option>
+                <option value="4">Cerrado</option>
+              </select>
+            </label>
+            <label class="field filter-field">
+              <span>Categoria</span>
+              <select id="supportCategoryFilter">
+                <option value="">Todas</option>
+                <option value="1">Viaje</option>
+                <option value="2">Reserva</option>
+                <option value="3">Cuenta</option>
+                <option value="4">Pago</option>
+                <option value="5">Otro</option>
+              </select>
+            </label>
+            <div class="filter-field filter-field--actions">
+              <button type="button" class="btn secondary" id="supportReloadBtn">Actualizar</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="admin-table" id="adminSupportTable">
+              <thead>
+                <tr>
+                  <th>Referencia</th>
+                  <th>Usuario</th>
+                  <th>Categoria</th>
+                  <th>Asunto</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminSupportBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </div>
+  </section>
+
+  <div class="modal-overlay hidden" id="editModalOverlay" aria-hidden="true">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+      <div class="modal-header">
+        <h3 id="editModalTitle">Editar registro</h3>
+        <button type="button" class="btn tiny" id="editModalCloseBtn">Cerrar</button>
+      </div>
+      <form id="editModalForm" class="stack compact"></form>
+      <p id="editModalMessage" class="message" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <div class="modal-overlay hidden" id="detailsModalOverlay" aria-hidden="true">
+    <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="detailsModalTitle">
+      <div class="modal-header">
+        <h3 id="detailsModalTitle">Ver detalles</h3>
+        <button type="button" class="btn tiny" id="detailsModalCloseBtn">Cerrar</button>
+      </div>
+      <div id="detailsModalBody" class="stack compact"></div>
+      <p id="detailsModalMessage" class="message" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <div class="modal-overlay hidden" id="createModalOverlay" aria-hidden="true">
+    <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="createModalTitle">
+      <div class="modal-header">
+        <h3 id="createModalTitle">Agregar dato</h3>
+        <button type="button" class="btn tiny" id="createModalCloseBtn">Cerrar</button>
+      </div>
+      <form id="createModalForm" class="stack compact">
+        <label class="field">
+          <span>Tipo de dato</span>
+          <select id="createEntityType">
+            <option value="user">Usuario</option>
+            <option value="trip">Viaje</option>
+            <option value="reservation">Reserva</option>
+          </select>
+        </label>
+        <div id="createModalFields"></div>
+        <p id="createModalMessage" class="message" aria-live="polite"></p>
+      </form>
+    </section>
+  </div>
+
+  <script src="./node_modules/mapbox-gl/dist/mapbox-gl.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>

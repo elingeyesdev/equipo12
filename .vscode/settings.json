@@ -1,0 +1,21 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "dotnet build": true,
+        "Get-NetTCPConnection": true,
+        "ForEach-Object": true,
+        "Get-Process": true,
+        "Get-CimInstance": true,
+        "/^Set-Location \"d:\\\\Tarea_5toS\\\\proyecto de sistema\\\\equipo12-main\\\\Web\"; npm install mapbox-gl@3\\.8\\.1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"cd /d C:\\\\Users\\\\T003-DOC\\\\Desktop\\\\equipo12-main\\\\Web && npm\\.cmd start\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node --check \"c:\\\\Users\\\\T003-DOC\\\\Desktop\\\\equipo12-main\\\\Web\\\\app\\.js\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

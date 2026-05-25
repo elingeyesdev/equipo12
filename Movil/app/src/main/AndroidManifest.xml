@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <application
+        android:name=".CarPoolingApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
+        android:theme="@style/Theme.ProyectoCarpooling">
+
+        <meta-data
+            android:name="com.mapbox.maps.token"
+            android:value="@string/mapbox_access_token" />
+
+        <activity
+            android:name=".presentation.splash.ui.SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".presentation.main.ui.MainActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".presentation.match.ui.DriverMatchActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.driver.ui.DriverPassengerRequestsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.auth.ui.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.auth.ui.RegisterActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.profile.ui.ProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.account.ui.AccountOverviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.favorites.ui.FavoritePlacesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.history.ui.TripHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.search.ui.SearchTripActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.history.ui.TripHistoryDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.chat.ui.ChatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.help.ui.HelpActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.support.ui.SupportActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.support.ui.SupportTicketDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+    </application>
+
+</manifest>

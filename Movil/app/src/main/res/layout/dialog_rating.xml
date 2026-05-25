@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/ratingPassengerTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Calificar a Pasajero"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/carpool_text_primary"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <RatingBar
+        android:id="@+id/ratingStars"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:numStars="5"
+        android:stepSize="1.0"
+        android:rating="5.0"
+        android:layout_marginBottom="16dp"
+        android:progressTint="@color/rating_star_yellow"
+        android:secondaryProgressTint="@color/rating_star_yellow"
+        android:progressTintMode="src_atop"
+        style="?android:attr/ratingBarStyle" />
+
+    <TextView
+        android:id="@+id/ratingTagsLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Destaca sus cualidades:"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/carpool_text_primary"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="4dp" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:id="@+id/ratingTagsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp" />
+    </HorizontalScrollView>
+
+    <EditText
+        android:id="@+id/ratingCommentInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="80dp"
+        android:gravity="top|start"
+        android:hint="Escribe una opinión sobre el pasajero (opcional)..."
+        android:inputType="textMultiLine"
+        android:padding="12dp"
+        android:textSize="14sp"
+        android:textColor="@color/carpool_text_primary"
+        android:background="@drawable/bg_chat_input"
+        android:layout_marginBottom="8dp" />
+</LinearLayout>

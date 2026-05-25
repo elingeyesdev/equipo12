@@ -1,0 +1,113 @@
+@CarPooling_HostAddress = http://localhost:5005
+
+# Reemplaza los siguientes GUIDs con datos reales de tu base de datos para probar:
+# NOTA: Para probar exitosamente, el viaje especificado (validTripId) debe estar en estado "Finalizado" (StatusId = 4)
+# y el pasajero debe haber sido confirmado (StatusId = 2 o 3) en dicho viaje.
+@validTripId = 00000000-0000-0000-0000-000000000000
+@driverUserId = 11111111-1111-1111-1111-111111111111
+@confirmedPassengerUserId = 22222222-2222-2222-2222-222222222222
+@unrelatedPassengerUserId = 33333333-3333-3333-3333-333333333333
+
+###
+# 1. ENVIAR RESEÑA - SIN CABECERA DE AUTENTICACIÓN (Retorna: 401 Unauthorized)
+POST {{CarPooling_HostAddress}}/api/Trips/{{validTripId}}/ratings
+Content-Type: application/json
+
+{
+  "evaluatedUserId": "{{driverUserId}}",
+  "score": 5,
+  "comment": "Excelente conductor, muy puntual y amable."
+}
+
+###
+
+# 2. ENVIAR RESEÑA - PASAJERO CONFIRMADO A CONDUCTOR (Retorna: 200 OK)
+# Nota: Funciona si el viaje está en estado "Finalizado" (4)
+POST {{CarPooling_HostAddress}}/api/Trips/{{validTripId}}/ratings
+Content-Type: application/json
+X-User-Id: {{confirmedPassengerUserId}}
+
+{
+  "evaluatedUserId": "{{driverUserId}}",
+  "score": 5,
+  "comment": "Un viaje super cómodo y seguro. 100% recomendado."
+}
+
+###
+
+# 3. ENVIAR RESEÑA - CONDUCTOR A PASAJERO CONFIRMADO (Retorna: 200 OK)
+POST {{CarPooling_HostAddress}}/api/Trips/{{validTripId}}/ratings
+Content-Type: application/json
+X-User-Id: {{driverUserId}}
+
+{
+  "evaluatedUserId": "{{confirmedPassengerUserId}}",
+  "score": 4,
+  "comment": "Excelente pasajero, conversador y respetuoso con el vehículo."
+}
+
+###
+
+# 4. ENVIAR RESEÑA DUPLICADA - PASAJERO CALIFICA POR SEGUNDA VEZ AL CONDUCTOR (Retorna: 400 Bad Request)
+# Evita dobles votos y spam
+POST {{CarPooling_HostAddress}}/api/Trips/{{validTripId}}/ratings
+Content-Type: application/json
+X-User-Id: {{confirmedPassengerUserId}}
+
+{
+  "evaluatedUserId": "{{driverUserId}}",
+  "score": 3,
+  "comment": "Intento de reseña duplicada."
+}
+
+###
+
+# 5. ENVIAR RESEÑA - AUTO-CALIFICACIÓN NO PERMITIDA (Retorna: 400 Bad Request)
+POST {{CarPooling_HostAddress}}/api/Trips/{{validTripId}}/ratings
+Content-Type: application/json
+X-User-Id: {{driverUserId}}
+
+{
+  "evaluatedUserId": "{{driverUserId}}",
+  "score": 5,
+  "comment": "Me califico a mi mismo con 5 estrellas."
+}
+
+###
+
+# 6. ENVIAR RESEÑA - USUARIO NO RELACIONADO AL VIAJE (Retorna: 400 Bad Request)
+# Evita que intrusos externos o no confirmados evalúen
+POST {{CarPooling_HostAddress}}/api/Trips/{{validTripId}}/ratings
+Content-Type: application/json
+X-User-Id: {{unrelatedPassengerUserId}}
+
+{
+  "evaluatedUserId": "{{driverUserId}}",
+  "score": 5,
+  "comment": "Intento calificar a un conductor de un viaje ajeno."
+}
+
+###
+
+# 7. ENVIAR RESEÑA - VALIDACIÓN DE PUNTUACIÓN FUERA DE RANGO (Retorna: 400 Bad Request)
+POST {{CarPooling_HostAddress}}/api/Trips/{{validTripId}}/ratings
+Content-Type: application/json
+X-User-Id: {{confirmedPassengerUserId}}
+
+{
+  "evaluatedUserId": "{{driverUserId}}",
+  "score": 6,
+  "comment": "Calificación inválida de 6 estrellas."
+}
+
+###
+
+# 8. OBTENER LISTA DE CALIFICACIONES DE UN USUARIO (Retorna: 200 OK con el listado)
+GET {{CarPooling_HostAddress}}/api/users/{{driverUserId}}/ratings
+X-User-Id: {{confirmedPassengerUserId}}
+
+###
+
+# 9. OBTENER RESUMEN DE PROMEDIO DE ESTRELLAS Y CANTIDAD (Retorna: 200 OK con estrellas promedio)
+GET {{CarPooling_HostAddress}}/api/users/{{driverUserId}}/ratings/summary
+X-User-Id: {{confirmedPassengerUserId}}

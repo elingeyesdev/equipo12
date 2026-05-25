@@ -1,0 +1,13 @@
+.vs/
+**/.vs/
+bin/
+obj/
+.gradle/
+build/
+.idea/workspace.xml
+.idea/caches/
+*.user
+*.suo
+.idea/
+**/build/
+local.properties

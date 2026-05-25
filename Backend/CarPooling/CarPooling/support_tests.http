@@ -1,0 +1,38 @@
+@CarPooling_HostAddress = http://localhost:5005
+
+# Reemplaza con un usuario real de CarPoolingDB2 (tabla Users):
+@userId = 00000000-0000-0000-0000-000000000000
+@ticketId = 00000000-0000-0000-0000-000000000000
+
+###
+# 1. Crear reporte sin autenticación (401)
+POST {{CarPooling_HostAddress}}/api/users/{{userId}}/support-tickets
+Content-Type: application/json
+
+{
+  "category": 2,
+  "subject": "Problema con mi reserva",
+  "description": "Reservé un viaje y el conductor no apareció en el punto de encuentro."
+}
+
+###
+# 2. Crear reporte (201 Created)
+POST {{CarPooling_HostAddress}}/api/users/{{userId}}/support-tickets
+Content-Type: application/json
+X-User-Id: {{userId}}
+
+{
+  "category": 2,
+  "subject": "Problema con mi reserva",
+  "description": "Reservé un viaje y el conductor no apareció en el punto de encuentro acordado."
+}
+
+###
+# 3. Listar mis reportes (200)
+GET {{CarPooling_HostAddress}}/api/users/{{userId}}/support-tickets
+X-User-Id: {{userId}}
+
+###
+# 4. Ver detalle de un reporte (200)
+GET {{CarPooling_HostAddress}}/api/users/{{userId}}/support-tickets/{{ticketId}}
+X-User-Id: {{userId}}
