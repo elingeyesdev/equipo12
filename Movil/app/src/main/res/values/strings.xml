@@ -154,6 +154,35 @@
     <string name="drawer_logout">Cerrar sesión</string>
     <string name="drawer_option_coming_soon">Próximamente.</string>
 
+    <string name="help_title">Centro de ayuda</string>
+    <string name="help_intro">Respuestas rápidas sobre reservas, abordaje, viajes y tu cuenta. Toca una pregunta para ver la respuesta.</string>
+    <string name="help_footer_support_hint">¿Tu problema no está aquí? Usa Soporte en el menú para enviar un reporte al equipo.</string>
+    <string name="help_expand_answer">Mostrar u ocultar respuesta</string>
+    <string name="help_section_reservations">Reservas y conductores</string>
+    <string name="help_section_boarding">Abordaje</string>
+    <string name="help_section_trip">Durante y después del viaje</string>
+    <string name="help_section_account">Cuenta y favoritos</string>
+    <string name="help_faq_find_driver_q">¿Cómo busco un conductor?</string>
+    <string name="help_faq_find_driver_a">En el mapa principal elige tu destino y pulsa Buscar conductor. Verás perfiles compatibles; desliza a la derecha para aceptar o a la izquierda para rechazar.</string>
+    <string name="help_faq_reserve_q">¿Cómo reservo plaza?</string>
+    <string name="help_faq_reserve_a">Al aceptar un conductor desde la búsqueda se registra tu reserva. El conductor la verá en Solicitudes de pasajeros y podrá confirmarla.</string>
+    <string name="help_faq_cancel_reservation_q">¿Puedo cancelar mi reserva?</string>
+    <string name="help_faq_cancel_reservation_a">Sí. Si tienes una reserva activa, usa Cancelar reserva en el menú lateral. Libera tu plaza para buscar otro viaje.</string>
+    <string name="help_faq_boarding_code_q">¿Qué es el código de abordaje?</string>
+    <string name="help_faq_boarding_code_a">Es un código numérico que aparece cuando tu reserva queda activa. Muéstraselo al conductor al subir al vehículo para validar que eres el pasajero correcto.</string>
+    <string name="help_faq_verify_boarding_q">¿Cómo valida el conductor el abordaje?</string>
+    <string name="help_faq_verify_boarding_a">El conductor puede marcar abordaje desde Solicitudes o validando el código que le muestras. Así el viaje registra que ya subiste.</string>
+    <string name="help_faq_chat_q">¿Cuándo puedo usar el chat del viaje?</string>
+    <string name="help_faq_chat_a">El chat se habilita cuando tu reserva está confirmada o ya abordaste. Permanece disponible durante el viaje y hasta unas horas después de finalizar o cancelar.</string>
+    <string name="help_faq_ratings_q">¿Cuándo puedo calificar?</string>
+    <string name="help_faq_ratings_a">Las calificaciones se habilitan cuando el viaje finalizó. Conductor y pasajeros pueden evaluarse con estrellas y comentario.</string>
+    <string name="help_faq_driver_trip_q">¿Cómo creo un viaje como conductor?</string>
+    <string name="help_faq_driver_trip_a">En el mapa selecciona origen y destino, pulsa Crear viaje y completa el trayecto. Gestiona solicitudes, inicia el viaje al recoger pasajeros y finalízalo al llegar.</string>
+    <string name="help_faq_register_q">¿Qué correo puedo usar para registrarme?</string>
+    <string name="help_faq_register_a">Debes usar tu correo institucional @univalle.edu. Si tienes vehículo, puedes habilitar el modo conductor al registrarte o desde Editar perfil.</string>
+    <string name="help_faq_favorites_q">¿Para qué sirven los favoritos?</string>
+    <string name="help_faq_favorites_a">Guardan lugares o rutas frecuentes (casa, universidad, trabajo) para aplicarlos al mapa con un toque desde Tus lugares y viajes favoritos.</string>
+
     <string name="account_overview_title">Mi cuenta</string>
     <string name="account_overview_name_label">Nombre</string>
     <string name="account_overview_email_label">Cuenta</string>

@@ -87,6 +87,11 @@
             android:exported="false"
             android:theme="@style/Theme.ProyectoCarpooling" />
 
+        <activity
+            android:name=".presentation.help.ui.HelpActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
     </application>
 
 </manifest>

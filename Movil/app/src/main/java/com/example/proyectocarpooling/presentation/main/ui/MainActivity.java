@@ -48,6 +48,7 @@ import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 import com.example.proyectocarpooling.presentation.account.ui.AccountOverviewActivity;
 import com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity;
 import com.example.proyectocarpooling.presentation.favorites.ui.FavoritePlacesActivity;
+import com.example.proyectocarpooling.presentation.help.ui.HelpActivity;
 import com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity;
 import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
 // MainViewModel now in same package
@@ -941,10 +942,11 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(fi);
                 } else if (id == R.id.nav_history) {
                     startActivity(new Intent(this, TripHistoryActivity.class));
+                } else if (id == R.id.nav_help) {
+                    startActivity(new Intent(this, HelpActivity.class));
                 } else if (id == R.id.nav_my_addresses
                         || id == R.id.nav_notifications
                         || id == R.id.nav_security
-                        || id == R.id.nav_help
                         || id == R.id.nav_support) {
                     Toast.makeText(this, R.string.drawer_option_coming_soon, Toast.LENGTH_SHORT).show();
                 } else if (id == R.id.nav_driver_passenger_requests) {
