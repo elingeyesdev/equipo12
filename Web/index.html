@@ -58,6 +58,7 @@
         <button class="menu-item" data-section="users">Usuarios</button>
         <button class="menu-item" data-section="trips">Viajes</button>
         <button class="menu-item" data-section="reports">Reportes</button>
+        <button class="menu-item" data-section="support">Soporte</button>
       </nav>
 
       <button id="logoutBtn" class="btn ghost">Cerrar sesion</button>
@@ -94,6 +95,7 @@
             <button type="button" class="btn secondary quick-link" data-section="users">Crear usuario</button>
             <button type="button" class="btn secondary quick-link" data-section="trips">Crear viaje</button>
             <button type="button" class="btn secondary quick-link" data-section="reports">Ver reportes</button>
+            <button type="button" class="btn secondary quick-link" data-section="support">Ver quejas</button>
           </div>
         </article>
 
@@ -226,7 +228,7 @@
 
         <article class="card" data-report-view="overview">
           <h3>Consolidado administrador</h3>
-          <p class="card-help">Los registros se actualizan automaticamente cada 30 segundos.</p>
+          <p class="card-help">Los registros se actualizan automaticamente cada 1 minuto.</p>
           <p id="adminDataMessage" class="message">Esperando primera carga automatica de datos administrativos...</p>
         </article>
 
@@ -321,6 +323,64 @@
         <article class="card hidden" data-report-view="trip">
           <h3>Pasajeros abordados</h3>
           <div id="boardedReservations" class="reservation-list"></div>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-support">
+        <article class="card span-3">
+          <h3>Quejas y reportes de usuarios</h3>
+          <p class="card-help">Mensajes enviados desde la app movil (menu Soporte o historial de viajes). Actualiza el estado cuando el equipo atienda cada caso.</p>
+          <p id="supportDataMessage" class="message">Cargando reportes de soporte...</p>
+        </article>
+
+        <article class="card span-3">
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Buscar</span>
+              <input type="text" id="supportFilterInput" placeholder="Usuario, asunto, categoria o referencia" />
+            </label>
+            <label class="field filter-field">
+              <span>Estado</span>
+              <select id="supportStatusFilter">
+                <option value="">Todos</option>
+                <option value="1">Abierto</option>
+                <option value="2">En revision</option>
+                <option value="3">Resuelto</option>
+                <option value="4">Cerrado</option>
+              </select>
+            </label>
+            <label class="field filter-field">
+              <span>Categoria</span>
+              <select id="supportCategoryFilter">
+                <option value="">Todas</option>
+                <option value="1">Viaje</option>
+                <option value="2">Reserva</option>
+                <option value="3">Cuenta</option>
+                <option value="4">Pago</option>
+                <option value="5">Otro</option>
+              </select>
+            </label>
+            <div class="filter-field filter-field--actions">
+              <button type="button" class="btn secondary" id="supportReloadBtn">Actualizar</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="admin-table" id="adminSupportTable">
+              <thead>
+                <tr>
+                  <th>Referencia</th>
+                  <th>Usuario</th>
+                  <th>Categoria</th>
+                  <th>Asunto</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminSupportBody"></tbody>
+            </table>
+          </div>
         </article>
       </section>
     </div>

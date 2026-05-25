@@ -132,6 +132,75 @@ public class SupportTicketService(CarPoolingContext context)
         return ticket is null ? null : SupportTicketResponseDto.FromEntity(ticket);
     }
 
+    public async Task<SupportTicketListResponseDto> ListAllForAdminAsync(
+        int? statusFilter = null,
+        int? categoryFilter = null)
+    {
+        var query = _context.SupportTickets
+            .AsNoTracking()
+            .Include(t => t.User)
+            .AsQueryable();
+
+        if (statusFilter.HasValue && Enum.IsDefined(typeof(SupportTicketStatus), statusFilter.Value))
+        {
+            var status = (SupportTicketStatus)statusFilter.Value;
+            query = query.Where(t => t.Status == status);
+        }
+
+        if (categoryFilter.HasValue && Enum.IsDefined(typeof(SupportTicketCategory), categoryFilter.Value))
+        {
+            var category = (SupportTicketCategory)categoryFilter.Value;
+            query = query.Where(t => t.Category == category);
+        }
+
+        var tickets = await query
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+
+        var items = tickets.ConvertAll(SupportTicketResponseDto.FromEntity);
+
+        return new SupportTicketListResponseDto
+        {
+            Items = items,
+            TotalCount = items.Count
+        };
+    }
+
+    public async Task<SupportTicketResponseDto?> GetByIdForAdminAsync(Guid ticketId)
+    {
+        var ticket = await _context.SupportTickets
+            .AsNoTracking()
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Id == ticketId);
+
+        return ticket is null ? null : SupportTicketResponseDto.FromEntity(ticket);
+    }
+
+    public async Task<SupportTicketResponseDto> UpdateStatusForAdminAsync(
+        Guid ticketId,
+        SupportTicketStatus status)
+    {
+        if (!Enum.IsDefined(typeof(SupportTicketStatus), status))
+        {
+            throw new InvalidOperationException("Estado de soporte no válido.");
+        }
+
+        var ticket = await _context.SupportTickets
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Id == ticketId);
+
+        if (ticket is null)
+        {
+            throw new KeyNotFoundException("Reporte de soporte no encontrado.");
+        }
+
+        ticket.Status = status;
+        ticket.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return SupportTicketResponseDto.FromEntity(ticket);
+    }
+
     private async Task ValidateTripLinkAsync(Guid userId, Guid tripId)
     {
         var trip = await _context.Trips

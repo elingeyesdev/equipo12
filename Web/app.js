@@ -1,5 +1,5 @@
 const ADMIN_ROLE_ID = 3;
-const ADMIN_DATA_REFRESH_MS = 30000;
+const ADMIN_DATA_REFRESH_MS = 60000;
 const MAPBOX_ACCESS_TOKEN = "pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw";
 const MAPBOX_SCRIPT_SRC = "./node_modules/mapbox-gl/dist/mapbox-gl.js";
 
@@ -10,8 +10,10 @@ const state = {
   adminData: {
     users: [],
     trips: [],
-    reservations: []
+    reservations: [],
+    supportTickets: []
   },
+  isLoadingSupportTickets: false,
   editContext: null,
   adminDataAutoRefreshId: null,
   isLoadingAdminData: false,
@@ -55,6 +57,12 @@ const editModalTitle = document.getElementById("editModalTitle");
 const editModalForm = document.getElementById("editModalForm");
 const editModalMessage = document.getElementById("editModalMessage");
 const editModalCloseBtn = document.getElementById("editModalCloseBtn");
+const supportDataMessage = document.getElementById("supportDataMessage");
+const adminSupportBody = document.getElementById("adminSupportBody");
+const supportFilterInput = document.getElementById("supportFilterInput");
+const supportStatusFilter = document.getElementById("supportStatusFilter");
+const supportCategoryFilter = document.getElementById("supportCategoryFilter");
+const supportReloadBtn = document.getElementById("supportReloadBtn");
 
 document.getElementById("apiBaseUrl").value = state.apiBaseUrl;
 
@@ -628,6 +636,10 @@ function openSection(section) {
     updateReportView();
     loadAdminData();
   }
+
+  if (section === "support" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+    loadSupportTickets();
+  }
 }
 
 function getSectionMeta(section) {
@@ -647,6 +659,10 @@ function getSectionMeta(section) {
     reports: {
       name: "Reportes",
       description: "Explora usuarios, viajes y reservas con filtros instantaneos." 
+    },
+    support: {
+      name: "Soporte",
+      description: "Revisa quejas de usuarios y actualiza el estado de cada reporte."
     }
   };
 
@@ -683,6 +699,39 @@ function applyAllTableFilters() {
   applyTableFilter("adminUsersBody", document.getElementById("usersFilterInput")?.value || "");
   applyTableFilter("adminTripsBody", document.getElementById("tripsFilterInput")?.value || "");
   applyTableFilter("adminReservationsBody", document.getElementById("reservationsFilterInput")?.value || "");
+  applyTableFilter("adminSupportBody", supportFilterInput?.value || "");
+}
+
+function formatSupportReference(ticketId) {
+  if (!ticketId) {
+    return "------";
+  }
+
+  const compact = String(ticketId).replace(/-/g, "");
+  return compact.length >= 8 ? compact.substring(0, 8).toUpperCase() : compact.toUpperCase();
+}
+
+function getSupportStatusKey(status) {
+  const numeric = Number(status);
+  if (numeric === 1) return "open";
+  if (numeric === 2) return "inreview";
+  if (numeric === 3) return "resolved";
+  if (numeric === 4) return "closed";
+
+  const label = String(status || "").trim().toLowerCase();
+  if (label.includes("abierto") || label === "open") return "open";
+  if (label.includes("revis") || label.includes("review")) return "inreview";
+  if (label.includes("resuelt") || label.includes("resolved")) return "resolved";
+  if (label.includes("cerrad") || label.includes("closed")) return "closed";
+  return "open";
+}
+
+function getSupportStatusValue(status) {
+  const key = getSupportStatusKey(status);
+  if (key === "inreview") return "2";
+  if (key === "resolved") return "3";
+  if (key === "closed") return "4";
+  return "1";
 }
 
 function updateReportView() {
@@ -732,7 +781,8 @@ function openEditModal(type, entity) {
   const titles = {
     user: "Editar usuario",
     trip: "Editar viaje",
-    reservation: "Editar reserva"
+    reservation: "Editar reserva",
+    support: "Detalle del reporte"
   };
 
   editModalTitle.textContent = titles[type] || "Editar registro";
@@ -785,13 +835,52 @@ function getEntityFromState(type, id) {
   const source = {
     user: state.adminData.users,
     trip: state.adminData.trips,
-    reservation: state.adminData.reservations
+    reservation: state.adminData.reservations,
+    support: state.adminData.supportTickets
   }[type] || [];
 
   return source.find((item) => String(item.id) === String(id));
 }
 
 function getEditFormMarkup(type, entity) {
+  if (type === "support") {
+    const tripLine = entity.tripId
+      ? `<div><strong>Viaje:</strong> ${escapeHtml(entity.tripId)}</div>`
+      : "";
+    const reservationLine = entity.reservationId
+      ? `<div><strong>Reserva:</strong> ${escapeHtml(entity.reservationId)}</div>`
+      : "";
+
+    return `
+      <label class="field"><span>Referencia</span><input type="text" value="#${escapeHtml(formatSupportReference(entity.id))}" disabled /></label>
+      <label class="field"><span>Usuario</span><input type="text" value="${escapeHtml(entity.userFullName || "")}" disabled /></label>
+      <label class="field"><span>Categoria</span><input type="text" value="${escapeHtml(entity.categoryLabel || "")}" disabled /></label>
+      <label class="field"><span>Asunto</span><input type="text" value="${escapeHtml(entity.subject || "")}" disabled /></label>
+      <div class="support-detail-box">
+        <strong>Descripcion del usuario</strong>
+        <p>${escapeHtml(entity.description || "")}</p>
+      </div>
+      <div class="support-detail-meta">
+        <div><strong>Creado:</strong> ${escapeHtml(formatDateTime(entity.createdAt))}</div>
+        ${entity.updatedAt ? `<div><strong>Actualizado:</strong> ${escapeHtml(formatDateTime(entity.updatedAt))}</div>` : ""}
+        ${tripLine}
+        ${reservationLine}
+      </div>
+      <label class="field"><span>Estado del reporte</span>
+        <select name="status">
+          <option value="1" ${getSupportStatusValue(entity.status) === "1" ? "selected" : ""}>Abierto</option>
+          <option value="2" ${getSupportStatusValue(entity.status) === "2" ? "selected" : ""}>En revision</option>
+          <option value="3" ${getSupportStatusValue(entity.status) === "3" ? "selected" : ""}>Resuelto</option>
+          <option value="4" ${getSupportStatusValue(entity.status) === "4" ? "selected" : ""}>Cerrado</option>
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" data-modal-action="cancel">Cerrar</button>
+        <button type="submit" class="btn primary">Guardar estado</button>
+      </div>
+    `;
+  }
+
   if (type === "user") {
     return `
       <label class="field"><span>ID</span><input type="text" value="${escapeHtml(entity.id || "")}" disabled /></label>
@@ -893,11 +982,17 @@ function startAdminAutoRefresh() {
 
   state.adminDataAutoRefreshId = window.setInterval(() => {
     const isAdmin = Number(state.currentUser?.roleId) === ADMIN_ROLE_ID;
-    if (!isAdmin || state.section !== "reports") {
+    if (!isAdmin) {
       return;
     }
 
-    loadAdminData();
+    if (state.section === "reports") {
+      loadAdminData();
+    }
+
+    if (state.section === "support") {
+      loadSupportTickets();
+    }
   }, ADMIN_DATA_REFRESH_MS);
 }
 
@@ -962,6 +1057,82 @@ async function loadAdminData() {
   } finally {
     state.isLoadingAdminData = false;
   }
+}
+
+async function loadSupportTickets() {
+  if (state.isLoadingSupportTickets) {
+    return;
+  }
+
+  state.isLoadingSupportTickets = true;
+
+  const status = supportStatusFilter?.value || "";
+  const category = supportCategoryFilter?.value || "";
+  const query = new URLSearchParams();
+  if (status) {
+    query.set("status", status);
+  }
+  if (category) {
+    query.set("category", category);
+  }
+
+  const queryString = query.toString();
+  const path = queryString ? `/api/admin/support-tickets?${queryString}` : "/api/admin/support-tickets";
+
+  try {
+    const data = await apiFetch(path, {
+      headers: getAdminHeaders()
+    });
+
+    const items = data.items || [];
+    state.adminData.supportTickets = items;
+    renderSupportTable(items);
+    applyTableFilter("adminSupportBody", supportFilterInput?.value || "");
+
+    const openCount = items.filter((ticket) => getSupportStatusKey(ticket.status) === "open").length;
+    const inReviewCount = items.filter((ticket) => getSupportStatusKey(ticket.status) === "inreview").length;
+
+    setMessage(
+      supportDataMessage,
+      `Actualizado ${new Date().toLocaleTimeString()}. Total: ${items.length} | Abiertos: ${openCount} | En revision: ${inReviewCount}`,
+      "success"
+    );
+  } catch (error) {
+    state.adminData.supportTickets = [];
+    renderSupportTable([]);
+    setMessage(supportDataMessage, `No se pudieron cargar los reportes: ${error.message}`, "error");
+  } finally {
+    state.isLoadingSupportTickets = false;
+  }
+}
+
+function renderSupportTable(tickets) {
+  if (!adminSupportBody) {
+    return;
+  }
+
+  if (!tickets.length) {
+    adminSupportBody.innerHTML = '<tr><td colspan="7">No hay reportes de soporte.</td></tr>';
+    return;
+  }
+
+  adminSupportBody.innerHTML = tickets.map((ticket) => `
+    <tr>
+      <td>#${escapeHtml(formatSupportReference(ticket.id))}</td>
+      <td>${escapeHtml(ticket.userFullName || "Usuario")}</td>
+      <td>${escapeHtml(ticket.categoryLabel || "-")}</td>
+      <td>${escapeHtml(ticket.subject || "-")}</td>
+      <td>
+        <span class="status-badge status-badge--${escapeHtml(getSupportStatusKey(ticket.status))}">
+          ${escapeHtml(ticket.statusLabel || "Abierto")}
+        </span>
+      </td>
+      <td>${escapeHtml(formatDateTime(ticket.createdAt))}</td>
+      <td>
+        <button class="btn tiny secondary admin-view-support" data-id="${escapeHtml(ticket.id)}">Ver / Atender</button>
+      </td>
+    </tr>
+  `).join("");
 }
 
 function renderUsersTable(users) {
@@ -1175,7 +1346,24 @@ editModalForm?.addEventListener("submit", async (event) => {
       });
     }
 
+    if (type === "support") {
+      await apiFetch(`/api/admin/support-tickets/${id}/status`, {
+        method: "PATCH",
+        headers: getAdminHeaders(),
+        body: JSON.stringify({
+          status: Number(formData.get("status") || 1)
+        })
+      });
+    }
+
     closeEditModal();
+
+    if (type === "support") {
+      await loadSupportTickets();
+      setMessage(supportDataMessage, "Estado del reporte actualizado correctamente.", "success");
+      return;
+    }
+
     await loadAdminData();
     setMessage(adminDataMessage, "Registro actualizado correctamente.", "success");
   } catch (error) {
@@ -1480,6 +1668,41 @@ document.getElementById("tripsFilterInput").addEventListener("input", (event) =>
 
 document.getElementById("reservationsFilterInput").addEventListener("input", (event) => {
   applyTableFilter("adminReservationsBody", event.target.value);
+});
+
+supportFilterInput?.addEventListener("input", (event) => {
+  applyTableFilter("adminSupportBody", event.target.value);
+});
+
+supportStatusFilter?.addEventListener("change", () => {
+  loadSupportTickets();
+});
+
+supportCategoryFilter?.addEventListener("change", () => {
+  loadSupportTickets();
+});
+
+supportReloadBtn?.addEventListener("click", () => {
+  loadSupportTickets();
+});
+
+document.getElementById("section-support")?.addEventListener("click", async (event) => {
+  const viewBtn = event.target.closest(".admin-view-support");
+  if (!viewBtn) {
+    return;
+  }
+
+  try {
+    const ticket = getEntityFromState("support", viewBtn.dataset.id);
+    if (!ticket) {
+      throw new Error("No se encontro el reporte seleccionado.");
+    }
+
+    openEditModal("support", ticket);
+    setMessage(supportDataMessage, "Revisa la descripcion y actualiza el estado cuando corresponda.");
+  } catch (error) {
+    setMessage(supportDataMessage, error.message, "error");
+  }
 });
 
 tripDriverSelect?.addEventListener("change", () => {

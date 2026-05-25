@@ -82,3 +82,9 @@ public class SupportTicketListResponseDto
     public IReadOnlyList<SupportTicketResponseDto> Items { get; set; } = [];
     public int TotalCount { get; set; }
 }
+
+public class AdminUpdateSupportTicketStatusDto
+{
+    [Required]
+    public SupportTicketStatus Status { get; set; }
+}

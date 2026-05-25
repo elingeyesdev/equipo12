@@ -279,7 +279,7 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
         }
         Intent intent = new Intent(this, SupportActivity.class);
         intent.putExtra(SupportActivity.EXTRA_TRIP_ID, d.tripId);
-        intent.putExtra("extra_open_create_dialog", true);
+        intent.putExtra(SupportActivity.EXTRA_OPEN_CREATE_DIALOG, true);
 
         boolean isPassenger = d.passengerReservationId != null && !d.passengerReservationId.isBlank();
         boolean isDriver = "driver".equalsIgnoreCase(d.category);

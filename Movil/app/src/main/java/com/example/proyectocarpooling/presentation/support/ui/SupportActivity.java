@@ -24,7 +24,9 @@ import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.support.SupportTicketItem;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
+import com.example.proyectocarpooling.presentation.support.SupportUiHelper;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -33,6 +35,7 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
     public static final String EXTRA_TRIP_ID = "extra_support_trip_id";
     public static final String EXTRA_RESERVATION_ID = "extra_support_reservation_id";
     public static final String EXTRA_CATEGORY = "extra_support_category";
+    public static final String EXTRA_OPEN_CREATE_DIALOG = "extra_open_create_dialog";
 
     public static final int CATEGORY_TRIP = 1;
     public static final int CATEGORY_RESERVATION = 2;
@@ -85,7 +88,7 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
         observeViewModel();
         loadTickets();
 
-        if (getIntent().getBooleanExtra("extra_open_create_dialog", false)
+        if (getIntent().getBooleanExtra(EXTRA_OPEN_CREATE_DIALOG, false)
                 || preselectedCategory == CATEGORY_TRIP
                 || preselectedCategory == CATEGORY_RESERVATION) {
             showCreateDialog();
@@ -133,11 +136,14 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
             }
         });
 
-        viewModel.getDetailTicket().observe(this, ticket -> {
-            if (ticket != null) {
-                showDetailDialog(ticket);
-            }
-        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (sessionManager != null && sessionManager.hasActiveSession()) {
+            loadTickets();
+        }
     }
 
     private void loadTickets() {
@@ -187,6 +193,16 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
                     ? subjectInput.getText().toString().trim() : "";
             String description = descriptionInput.getText() != null
                     ? descriptionInput.getText().toString().trim() : "";
+
+            if (subject.length() < 3) {
+                Toast.makeText(this, R.string.support_error_subject_min, Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (description.length() < 10) {
+                Toast.makeText(this, R.string.support_error_description_min, Toast.LENGTH_LONG).show();
+                return;
+            }
+
             int categoryIndex = categorySpinner.getSelectedItemPosition();
             int category = CATEGORY_VALUES[Math.max(0, Math.min(categoryIndex, CATEGORY_VALUES.length - 1))];
 
@@ -246,7 +262,7 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
         TextView statusView = dialogView.findViewById(R.id.supportSuccessStatus);
 
         subjectView.setText(getString(R.string.support_success_subject_line, ticket.subject));
-        String reference = formatTicketReference(ticket.id);
+        String reference = SupportUiHelper.formatReference(ticket.id);
         referenceView.setText(getString(R.string.support_success_reference, reference));
         statusView.setText(ticket.statusLabel != null && !ticket.statusLabel.isEmpty()
                 ? ticket.statusLabel
@@ -258,43 +274,19 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
                 .setPositiveButton(R.string.support_success_ok, (d, w) -> d.dismiss())
                 .show();
 
+        View anchor = findViewById(R.id.supportRoot);
+        if (anchor != null) {
+            Snackbar.make(anchor, getString(R.string.support_success_snackbar, reference), Snackbar.LENGTH_LONG).show();
+        }
+
         viewModel.clearTicketCreatedEvent();
-    }
-
-    private static String formatTicketReference(String ticketId) {
-        if (ticketId == null || ticketId.isEmpty()) {
-            return "------";
-        }
-        String compact = ticketId.replace("-", "");
-        if (compact.length() >= 8) {
-            return compact.substring(0, 8).toUpperCase();
-        }
-        return compact.toUpperCase();
-    }
-
-    private void showDetailDialog(SupportTicketItem ticket) {
-        StringBuilder body = new StringBuilder();
-        body.append(getString(R.string.support_detail_category, ticket.categoryLabel)).append("\n\n");
-        body.append(getString(R.string.support_detail_status, ticket.statusLabel)).append("\n\n");
-        if (ticket.tripId != null && !ticket.tripId.isEmpty()) {
-            body.append(getString(R.string.support_detail_trip, shortId(ticket.tripId))).append("\n\n");
-        }
-        if (ticket.reservationId != null && !ticket.reservationId.isEmpty()) {
-            body.append(getString(R.string.support_detail_reservation, shortId(ticket.reservationId))).append("\n\n");
-        }
-        body.append(ticket.description);
-
-        new AlertDialog.Builder(this)
-                .setTitle(ticket.subject)
-                .setMessage(body.toString())
-                .setPositiveButton(R.string.dialog_button_close, null)
-                .show();
-        viewModel.clearDetailTicket();
     }
 
     @Override
     public void onTicketClicked(SupportTicketItem item) {
-        viewModel.loadTicketDetail(sessionManager.getUserId(), item.id);
+        Intent intent = new Intent(this, SupportTicketDetailActivity.class);
+        intent.putExtra(SupportTicketDetailActivity.EXTRA_TICKET_ID, item.id);
+        startActivity(intent);
     }
 
     private static String shortId(String raw) {

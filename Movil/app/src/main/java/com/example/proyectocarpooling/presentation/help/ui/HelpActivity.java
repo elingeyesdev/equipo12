@@ -50,7 +50,7 @@ public class HelpActivity extends AppCompatActivity implements HelpFaqAdapter.Li
         recycler.setLayoutManager(new LinearLayoutManager(this));
         recycler.setAdapter(adapter);
 
-        findViewById(R.id.helpFooterHint).setOnClickListener(v ->
+        findViewById(R.id.helpGoToSupportButton).setOnClickListener(v ->
                 startActivity(new Intent(this, com.example.proyectocarpooling.presentation.support.ui.SupportActivity.class)));
     }
 

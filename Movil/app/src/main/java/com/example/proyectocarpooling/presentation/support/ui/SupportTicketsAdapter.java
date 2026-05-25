@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.model.support.SupportTicketItem;
+import com.example.proyectocarpooling.presentation.support.SupportUiHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,9 +84,10 @@ public class SupportTicketsAdapter extends RecyclerView.Adapter<SupportTicketsAd
                 link = " · Reserva";
             }
             meta.setText(category + link + " · " + formatDate(item.createdAt));
-            status.setText(item.statusLabel != null && !item.statusLabel.isEmpty()
+            String statusText = item.statusLabel != null && !item.statusLabel.isEmpty()
                     ? item.statusLabel
-                    : itemView.getContext().getString(R.string.support_status_open));
+                    : itemView.getContext().getString(R.string.support_status_open);
+            SupportUiHelper.applyStatusPill(status, itemView.getContext(), item.status, item.statusLabel, statusText);
         }
 
         private static String formatDate(String iso) {

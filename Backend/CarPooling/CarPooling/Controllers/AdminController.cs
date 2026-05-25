@@ -11,9 +11,10 @@ namespace CarPooling.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin")]
-public class AdminController(CarPoolingContext context) : ControllerBase
+public class AdminController(CarPoolingContext context, SupportTicketService supportTicketService) : ControllerBase
 {
     private readonly CarPoolingContext _context = context;
+    private readonly SupportTicketService _supportTicketService = supportTicketService;
 
     [HttpGet("users")]
     public async Task<ActionResult<IReadOnlyList<UserResponseDto>>> GetAllUsersAsync(
@@ -297,6 +298,47 @@ public class AdminController(CarPoolingContext context) : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpGet("support-tickets")]
+    public async Task<ActionResult<SupportTicketListResponseDto>> GetSupportTicketsAsync(
+        [FromQuery] int? status,
+        [FromQuery] int? category)
+    {
+        var list = await _supportTicketService.ListAllForAdminAsync(status, category);
+        return Ok(list);
+    }
+
+    [HttpGet("support-tickets/{id:guid}")]
+    public async Task<ActionResult<SupportTicketResponseDto>> GetSupportTicketAsync(Guid id)
+    {
+        var ticket = await _supportTicketService.GetByIdForAdminAsync(id);
+        if (ticket is null)
+        {
+            return NotFound(new { message = "Reporte de soporte no encontrado." });
+        }
+
+        return Ok(ticket);
+    }
+
+    [HttpPatch("support-tickets/{id:guid}/status")]
+    public async Task<ActionResult<SupportTicketResponseDto>> UpdateSupportTicketStatusAsync(
+        Guid id,
+        [FromBody] AdminUpdateSupportTicketStatusDto dto)
+    {
+        try
+        {
+            var updated = await _supportTicketService.UpdateStatusForAdminAsync(id, dto.Status);
+            return Ok(updated);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("all-data")]

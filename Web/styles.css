@@ -512,6 +512,54 @@ select:focus {
   color: var(--muted);
 }
 
+.status-badge--open {
+  background: #fff4e6;
+  color: #b35c00;
+}
+
+.status-badge--inreview {
+  background: #e8f0ff;
+  color: #2455b0;
+}
+
+.status-badge--resolved {
+  background: #e6fff2;
+  color: var(--ok);
+}
+
+.status-badge--closed {
+  background: #f2efe8;
+  color: var(--muted);
+}
+
+.support-detail-box {
+  border: 1px solid rgba(31, 29, 26, 0.12);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fffefb;
+  display: grid;
+  gap: 8px;
+}
+
+.support-detail-box p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.support-detail-meta {
+  display: grid;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.filter-field--actions {
+  display: flex;
+  align-items: flex-end;
+}
+
 .empty-state {
   border: 1px dashed rgba(31, 29, 26, 0.18);
   border-radius: 14px;

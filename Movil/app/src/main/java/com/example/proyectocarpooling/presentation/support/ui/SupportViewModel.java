@@ -25,6 +25,7 @@ public class SupportViewModel extends AndroidViewModel {
     private final MutableLiveData<String> errorEvent = new MutableLiveData<>();
     private final MutableLiveData<SupportTicketItem> ticketCreatedEvent = new MutableLiveData<>();
     private final MutableLiveData<SupportTicketItem> detailTicket = new MutableLiveData<>();
+    private final MutableLiveData<String> detailErrorEvent = new MutableLiveData<>();
 
     public SupportViewModel(@NonNull Application application) {
         super(application);
@@ -55,6 +56,10 @@ public class SupportViewModel extends AndroidViewModel {
 
     public LiveData<SupportTicketItem> getDetailTicket() {
         return detailTicket;
+    }
+
+    public LiveData<String> getDetailErrorEvent() {
+        return detailErrorEvent;
     }
 
     public void clearDetailTicket() {
@@ -125,7 +130,7 @@ public class SupportViewModel extends AndroidViewModel {
                     @Override
                     public void onError(String message) {
                         loading.postValue(false);
-                        errorEvent.postValue(message != null ? message : "No se pudo cargar el detalle");
+                        detailErrorEvent.postValue(message != null ? message : "No se pudo cargar el detalle");
                     }
                 });
     }

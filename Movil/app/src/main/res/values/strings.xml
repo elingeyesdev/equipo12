@@ -216,6 +216,15 @@
     <string name="support_success_reference">Referencia: #%1$s</string>
     <string name="support_success_ok">Entendido</string>
     <string name="support_success_snackbar">Reporte registrado · #%1$s</string>
+    <string name="support_detail_title">Detalle del reporte</string>
+    <string name="support_detail_hero_label">Tu solicitud de soporte</string>
+    <string name="support_detail_info_section">Información</string>
+    <string name="support_detail_description_section">Descripción del problema</string>
+    <string name="support_detail_created_at">Creado: %1$s</string>
+    <string name="support_detail_updated_at">Última actualización: %1$s</string>
+    <string name="support_error_subject_min">El asunto debe tener al menos 3 caracteres.</string>
+    <string name="support_error_description_min">La descripción debe tener al menos 10 caracteres.</string>
+    <string name="help_go_to_support">Ir a Soporte</string>
 
     <string name="account_overview_title">Mi cuenta</string>
     <string name="account_overview_name_label">Nombre</string>
