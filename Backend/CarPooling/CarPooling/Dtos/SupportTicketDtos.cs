@@ -36,6 +36,11 @@ public class SupportTicketResponseDto
     public string StatusLabel { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public DateTime? FirstAdminReplyAt { get; set; }
+    public DateTime? LastMessageAt { get; set; }
+    public Guid? AssignedAdminUserId { get; set; }
+    public DateTime? ClosedAt { get; set; }
+    public bool ChatEnabled { get; set; }
 
     public static SupportTicketResponseDto FromEntity(SupportTicket ticket)
     {
@@ -53,7 +58,12 @@ public class SupportTicketResponseDto
             Status = ticket.Status,
             StatusLabel = ToStatusLabel(ticket.Status),
             CreatedAt = ticket.CreatedAt,
-            UpdatedAt = ticket.UpdatedAt
+            UpdatedAt = ticket.UpdatedAt,
+            FirstAdminReplyAt = ticket.FirstAdminReplyAt,
+            LastMessageAt = ticket.LastMessageAt,
+            AssignedAdminUserId = ticket.AssignedAdminUserId,
+            ClosedAt = ticket.ClosedAt,
+            ChatEnabled = ticket.FirstAdminReplyAt.HasValue
         };
     }
 

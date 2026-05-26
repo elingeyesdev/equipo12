@@ -35,6 +35,7 @@ builder.Services.AddScoped<DriverService>();
 builder.Services.AddScoped<GeocodingService>();
 builder.Services.AddScoped<RatingService>();
 builder.Services.AddScoped<SupportTicketService>();
+builder.Services.AddScoped<SupportTicketMessagingService>();
 builder.Services.AddHttpClient<GeocodingService>();
 
 builder.Services.AddCors(options =>

@@ -18,6 +18,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<TripChatMessageRead> TripChatMessageReads => Set<TripChatMessageRead>();
     public DbSet<TripRating> TripRatings => Set<TripRating>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
+    public DbSet<SupportTicketMessageRead> SupportTicketMessageReads => Set<SupportTicketMessageRead>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +36,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureTripChatMessageRead(modelBuilder);
         ConfigureTripRating(modelBuilder);
         ConfigureSupportTicket(modelBuilder);
+        ConfigureSupportTicketMessage(modelBuilder);
+        ConfigureSupportTicketMessageRead(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -365,6 +369,14 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(t => t.Description).IsRequired().HasMaxLength(2000);
             entity.Property(t => t.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             entity.Property(t => t.UpdatedAt);
+            entity.Property(t => t.FirstAdminReplyAt);
+            entity.Property(t => t.LastMessageAt);
+            entity.Property(t => t.ClosedAt);
+
+            entity.HasOne(t => t.AssignedAdminUser)
+                .WithMany()
+                .HasForeignKey(t => t.AssignedAdminUserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasIndex(t => t.UserId);
             entity.HasIndex(t => t.TripId);
@@ -373,6 +385,60 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.HasIndex(t => t.CreatedAt);
             entity.HasIndex(t => new { t.UserId, t.Category, t.TripId, t.Status });
             entity.HasIndex(t => new { t.UserId, t.Category, t.ReservationId, t.Status });
+            entity.HasIndex(t => new { t.UserId, t.FirstAdminReplyAt });
+        });
+    }
+
+    private static void ConfigureSupportTicketMessage(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SupportTicketMessage>(entity =>
+        {
+            entity.ToTable("SupportTicketMessages");
+            entity.HasKey(m => m.Id);
+
+            entity.HasOne(m => m.Ticket)
+                .WithMany(t => t.Messages)
+                .HasForeignKey(m => m.TicketId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.HasOne(m => m.SenderUser)
+                .WithMany()
+                .HasForeignKey(m => m.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.Property(m => m.SenderKind).HasConversion<int>().IsRequired();
+            entity.Property(m => m.MessageText).IsRequired().HasMaxLength(2000);
+            entity.Property(m => m.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(m => m.TicketId);
+            entity.HasIndex(m => new { m.TicketId, m.CreatedAt });
+        });
+    }
+
+    private static void ConfigureSupportTicketMessageRead(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SupportTicketMessageRead>(entity =>
+        {
+            entity.ToTable("SupportTicketMessageReads");
+            entity.HasKey(r => new { r.MessageId, r.UserId });
+
+            entity.HasOne(r => r.Message)
+                .WithMany(m => m.Reads)
+                .HasForeignKey(r => r.MessageId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.Property(r => r.ReadAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(r => r.UserId);
         });
     }
 }

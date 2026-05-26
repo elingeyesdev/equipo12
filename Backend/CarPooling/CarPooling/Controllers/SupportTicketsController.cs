@@ -10,9 +10,12 @@ namespace CarPooling.Controllers;
 [ApiController]
 [Route("api/users/{userId:guid}/support-tickets")]
 [Authorize(AuthenticationSchemes = HeaderUserAuthenticationHandler.SchemeName)]
-public class SupportTicketsController(SupportTicketService supportTicketService) : ControllerBase
+public class SupportTicketsController(
+    SupportTicketService supportTicketService,
+    SupportTicketMessagingService supportTicketMessagingService) : ControllerBase
 {
     private readonly SupportTicketService _supportTicketService = supportTicketService;
+    private readonly SupportTicketMessagingService _supportTicketMessagingService = supportTicketMessagingService;
 
     [HttpPost]
     public async Task<ActionResult<SupportTicketResponseDto>> CreateAsync(
@@ -73,6 +76,57 @@ public class SupportTicketsController(SupportTicketService supportTicketService)
         }
 
         return Ok(ticket);
+    }
+
+    [HttpGet("{ticketId:guid}/messages")]
+    public async Task<ActionResult<IEnumerable<SupportTicketMessageResponseDto>>> GetMessagesAsync(
+        Guid userId,
+        Guid ticketId)
+    {
+        if (!TryAuthorizeUser(userId, out var forbidden))
+        {
+            return forbidden!;
+        }
+
+        try
+        {
+            var messages = await _supportTicketMessagingService.GetMessagesForUserAsync(userId, ticketId);
+            return Ok(messages);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{ticketId:guid}/messages")]
+    public async Task<ActionResult<SupportTicketMessageResponseDto>> SendMessageAsync(
+        Guid userId,
+        Guid ticketId,
+        [FromBody] SendSupportTicketMessageDto dto)
+    {
+        if (!TryAuthorizeUser(userId, out var forbidden))
+        {
+            return forbidden!;
+        }
+
+        try
+        {
+            var message = await _supportTicketMessagingService.SendMessageAsUserAsync(userId, ticketId, dto);
+            return StatusCode(StatusCodes.Status201Created, message);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     private bool TryAuthorizeUser(Guid routeUserId, out ActionResult? forbidden)

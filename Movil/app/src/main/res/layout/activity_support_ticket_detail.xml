@@ -185,6 +185,25 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/supportDetailChatButton"
+                    style="@style/Widget.MaterialComponents.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/support_chat_open"
+                    app:cornerRadius="16dp" />
+
+                <TextView
+                    android:id="@+id/supportDetailChatHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="@string/support_chat_waiting_admin"
+                    android:textColor="@color/carpool_text_secondary"
+                    android:textSize="13sp" />
+
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

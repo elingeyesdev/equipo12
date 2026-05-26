@@ -5,16 +5,21 @@ using CarPooling.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace CarPooling.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin")]
-public class AdminController(CarPoolingContext context, SupportTicketService supportTicketService) : ControllerBase
+public class AdminController(
+    CarPoolingContext context,
+    SupportTicketService supportTicketService,
+    SupportTicketMessagingService supportTicketMessagingService) : ControllerBase
 {
     private readonly CarPoolingContext _context = context;
     private readonly SupportTicketService _supportTicketService = supportTicketService;
+    private readonly SupportTicketMessagingService _supportTicketMessagingService = supportTicketMessagingService;
 
     [HttpGet("users")]
     public async Task<ActionResult<IReadOnlyList<UserResponseDto>>> GetAllUsersAsync(
@@ -321,6 +326,46 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
         return Ok(ticket);
     }
 
+    [HttpGet("support-tickets/{id:guid}/messages")]
+    public async Task<ActionResult<IEnumerable<SupportTicketMessageResponseDto>>> GetSupportTicketMessagesAsync(Guid id)
+    {
+        try
+        {
+            var messages = await _supportTicketMessagingService.GetMessagesForAdminAsync(id);
+            return Ok(messages);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("support-tickets/{id:guid}/messages")]
+    public async Task<ActionResult<SupportTicketMessageResponseDto>> SendSupportTicketMessageAsync(
+        Guid id,
+        [FromBody] SendSupportTicketMessageDto dto)
+    {
+        var adminUserId = GetCurrentUserId();
+        if (adminUserId is null)
+        {
+            return Unauthorized(new { message = "Usuario no autenticado." });
+        }
+
+        try
+        {
+            var message = await _supportTicketMessagingService.SendMessageAsAdminAsync(adminUserId.Value, id, dto);
+            return StatusCode(StatusCodes.Status201Created, message);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPatch("support-tickets/{id:guid}/status")]
     public async Task<ActionResult<SupportTicketResponseDto>> UpdateSupportTicketStatusAsync(
         Guid id,
@@ -432,6 +477,17 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
 
         statusId = 1;
         return false;
+    }
+
+    private Guid? GetCurrentUserId()
+    {
+        var nameIdentifier = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(nameIdentifier, out var userId))
+        {
+            return userId;
+        }
+
+        return null;
     }
 
     public sealed class AdminUpdateUserDto

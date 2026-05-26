@@ -17,6 +17,9 @@ public class SupportTicketItem {
     public final String statusLabel;
     public final String createdAt;
     public final String updatedAt;
+    public final String firstAdminReplyAt;
+    public final String lastMessageAt;
+    public final boolean chatEnabled;
 
     public SupportTicketItem(
             String id,
@@ -30,7 +33,10 @@ public class SupportTicketItem {
             int status,
             String statusLabel,
             String createdAt,
-            String updatedAt
+            String updatedAt,
+            String firstAdminReplyAt,
+            String lastMessageAt,
+            boolean chatEnabled
     ) {
         this.id = id;
         this.userId = userId;
@@ -44,6 +50,9 @@ public class SupportTicketItem {
         this.statusLabel = statusLabel;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.firstAdminReplyAt = firstAdminReplyAt;
+        this.lastMessageAt = lastMessageAt;
+        this.chatEnabled = chatEnabled;
     }
 
     public static SupportTicketItem fromJson(JSONObject o) throws JSONException {
@@ -65,6 +74,18 @@ public class SupportTicketItem {
         if (!o.isNull("updatedAt")) {
             updatedAt = o.optString("updatedAt", null);
         }
+        String firstAdminReplyAt = null;
+        if (!o.isNull("firstAdminReplyAt")) {
+            firstAdminReplyAt = o.optString("firstAdminReplyAt", null);
+        }
+        String lastMessageAt = null;
+        if (!o.isNull("lastMessageAt")) {
+            lastMessageAt = o.optString("lastMessageAt", null);
+        }
+        boolean chatEnabled = o.optBoolean("chatEnabled", false);
+        if (!chatEnabled && firstAdminReplyAt != null && !firstAdminReplyAt.isEmpty()) {
+            chatEnabled = true;
+        }
         return new SupportTicketItem(
                 o.getString("id"),
                 o.getString("userId"),
@@ -77,7 +98,10 @@ public class SupportTicketItem {
                 o.getInt("status"),
                 o.optString("statusLabel", ""),
                 o.getString("createdAt"),
-                updatedAt
+                updatedAt,
+                firstAdminReplyAt,
+                lastMessageAt,
+                chatEnabled
         );
     }
 }

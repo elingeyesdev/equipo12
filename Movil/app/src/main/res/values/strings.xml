@@ -258,6 +258,15 @@
     <string name="support_error_subject_min">El asunto debe tener al menos 3 caracteres.</string>
     <string name="support_error_description_min">La descripción debe tener al menos 10 caracteres.</string>
     <string name="help_go_to_support">Ir a Soporte</string>
+    <string name="support_chat_open">Chat con soporte</string>
+    <string name="support_chat_title">Soporte Univalle Ride</string>
+    <string name="support_chat_avatar">SR</string>
+    <string name="support_chat_waiting_admin">El chat se activará cuando el equipo envíe la primera respuesta.</string>
+    <string name="support_chat_enabled_hint">Puedes escribir al equipo de soporte sobre este reporte.</string>
+    <string name="support_chat_invalid_ticket">Reporte inválido para el chat.</string>
+    <string name="support_chat_load_error">No se pudo cargar el chat: %1$s</string>
+    <string name="support_chat_send_error">No se pudo enviar: %1$s</string>
+    <string name="support_chat_closed">Este reporte está cerrado y ya no acepta mensajes.</string>
 
     <string name="account_overview_title">Mi cuenta</string>
     <string name="account_overview_name_label">Nombre</string>

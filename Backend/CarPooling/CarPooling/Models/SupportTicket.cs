@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CarPooling.Models;
 
@@ -33,4 +34,17 @@ public class SupportTicket
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    public DateTime? FirstAdminReplyAt { get; set; }
+
+    public DateTime? LastMessageAt { get; set; }
+
+    public Guid? AssignedAdminUserId { get; set; }
+
+    [ForeignKey(nameof(AssignedAdminUserId))]
+    public User? AssignedAdminUser { get; set; }
+
+    public DateTime? ClosedAt { get; set; }
+
+    public ICollection<SupportTicketMessage> Messages { get; set; } = [];
 }

@@ -36,3 +36,33 @@ X-User-Id: {{userId}}
 # 4. Ver detalle de un reporte (200)
 GET {{CarPooling_HostAddress}}/api/users/{{userId}}/support-tickets/{{ticketId}}
 X-User-Id: {{userId}}
+
+###
+# 5. Admin: listar mensajes del ticket (200)
+GET {{CarPooling_HostAddress}}/api/admin/support-tickets/{{ticketId}}/messages
+X-User-Id: {{userId}}
+
+###
+# 6. Admin: primera respuesta (201) — habilita chat en app
+POST {{CarPooling_HostAddress}}/api/admin/support-tickets/{{ticketId}}/messages
+Content-Type: application/json
+X-User-Id: {{userId}}
+
+{
+  "messageText": "Hola, estamos revisando tu caso. ¿Puedes confirmar la hora del viaje?"
+}
+
+###
+# 7. Usuario: listar mensajes (200, requiere FirstAdminReplyAt)
+GET {{CarPooling_HostAddress}}/api/users/{{userId}}/support-tickets/{{ticketId}}/messages
+X-User-Id: {{userId}}
+
+###
+# 8. Usuario: responder en el chat (201)
+POST {{CarPooling_HostAddress}}/api/users/{{userId}}/support-tickets/{{ticketId}}/messages
+Content-Type: application/json
+X-User-Id: {{userId}}
+
+{
+  "messageText": "El viaje era a las 8:00 en la puerta principal."
+}

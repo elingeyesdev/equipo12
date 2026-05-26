@@ -14,6 +14,8 @@ const state = {
     supportTickets: []
   },
   isLoadingSupportTickets: false,
+  supportChatTicketId: null,
+  supportChatPollId: null,
   editContext: null,
   detailContext: null,
   adminDataAutoRefreshId: null,
@@ -1057,11 +1059,122 @@ function closeCreateModal() {
 }
 
 function closeEditModal() {
+  stopSupportChatPolling();
+  state.supportChatTicketId = null;
   state.editContext = null;
   editModalForm.innerHTML = "";
   setMessage(editModalMessage, "");
   editModalOverlay.classList.add("hidden");
   editModalOverlay.setAttribute("aria-hidden", "true");
+}
+
+function stopSupportChatPolling() {
+  if (state.supportChatPollId) {
+    window.clearInterval(state.supportChatPollId);
+    state.supportChatPollId = null;
+  }
+}
+
+function isSupportTicketClosed(status) {
+  const key = getSupportStatusKey(status);
+  return key === "resolved" || key === "closed";
+}
+
+function renderSupportChatMessages(messages) {
+  const container = document.getElementById("supportChatMessages");
+  if (!container) {
+    return;
+  }
+
+  const adminId = String(state.currentUser?.id || "");
+  if (!messages.length) {
+    container.innerHTML = '<p class="support-chat-empty">Aun no hay mensajes. Tu primera respuesta habilitara el chat en la app movil.</p>';
+    return;
+  }
+
+  container.innerHTML = messages.map((msg) => {
+    const isAdmin = Number(msg.senderKind) === 2 || String(msg.senderUserId) === adminId;
+    return `
+      <div class="support-chat-bubble ${isAdmin ? "support-chat-bubble--out" : "support-chat-bubble--in"}">
+        <div class="support-chat-bubble__meta">${escapeHtml(msg.senderFullName || "Usuario")} · ${escapeHtml(formatDateTime(msg.createdAt))}</div>
+        <div>${escapeHtml(msg.messageText || "")}</div>
+      </div>
+    `;
+  }).join("");
+
+  container.scrollTop = container.scrollHeight;
+}
+
+async function loadSupportChatMessages(ticketId, showError = false) {
+  const container = document.getElementById("supportChatMessages");
+  if (!container || !ticketId) {
+    return;
+  }
+
+  try {
+    const messages = await apiFetch(`/api/admin/support-tickets/${ticketId}/messages`, {
+      headers: getAdminHeaders()
+    });
+    renderSupportChatMessages(Array.isArray(messages) ? messages : []);
+  } catch (error) {
+    if (showError) {
+      container.innerHTML = `<p class="support-chat-empty support-chat-empty--error">${escapeHtml(error.message)}</p>`;
+    }
+  }
+}
+
+async function sendSupportChatMessage(ticketId) {
+  const input = document.getElementById("supportChatInput");
+  const sendBtn = document.getElementById("supportChatSendBtn");
+  if (!input || !sendBtn || !ticketId) {
+    return;
+  }
+
+  const text = String(input.value || "").trim();
+  if (!text) {
+    return;
+  }
+
+  sendBtn.disabled = true;
+  try {
+    await apiFetch(`/api/admin/support-tickets/${ticketId}/messages`, {
+      method: "POST",
+      headers: getAdminHeaders(),
+      body: JSON.stringify({ messageText: text })
+    });
+    input.value = "";
+    await loadSupportChatMessages(ticketId);
+    await loadSupportTickets();
+    setMessage(editModalMessage, "Mensaje enviado. El usuario ya puede chatear si era la primera respuesta.", "success");
+  } catch (error) {
+    setMessage(editModalMessage, error.message, "error");
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+function initializeSupportChatPanel(ticket) {
+  stopSupportChatPolling();
+  state.supportChatTicketId = ticket?.id || null;
+
+  const sendBtn = document.getElementById("supportChatSendBtn");
+  const input = document.getElementById("supportChatInput");
+  if (!sendBtn || !input || !state.supportChatTicketId) {
+    return;
+  }
+
+  const closed = isSupportTicketClosed(ticket.status);
+  input.disabled = closed;
+  sendBtn.disabled = closed;
+
+  sendBtn.onclick = () => {
+    sendSupportChatMessage(state.supportChatTicketId);
+  };
+
+  loadSupportChatMessages(state.supportChatTicketId, true);
+  state.supportChatPollId = window.setInterval(() => {
+    loadSupportChatMessages(state.supportChatTicketId);
+  }, 3000);
 }
 
 function getDetailTripMapContainer() {
@@ -1302,6 +1415,10 @@ function openEditModal(type, entity) {
   setMessage(editModalMessage, "");
   editModalOverlay.classList.remove("hidden");
   editModalOverlay.setAttribute("aria-hidden", "false");
+
+  if (type === "support") {
+    initializeSupportChatPanel(entity);
+  }
 }
 
 function getRoleIdValue(user) {
@@ -1386,6 +1503,16 @@ function getEditFormMarkup(type, entity) {
           <option value="4" ${getSupportStatusValue(entity.status) === "4" ? "selected" : ""}>Cerrado</option>
         </select>
       </label>
+      <div class="support-chat-panel">
+        <h4>Conversacion con el usuario</h4>
+        <p class="card-help">Tu primera respuesta habilita el chat en la app movil del estudiante.</p>
+        <div id="supportChatMessages" class="support-chat-messages">Cargando mensajes...</div>
+        <label class="field">
+          <span>Responder al usuario</span>
+          <textarea id="supportChatInput" rows="3" maxlength="2000" placeholder="Escribe tu mensaje de soporte..." ${isSupportTicketClosed(entity.status) ? "disabled" : ""}></textarea>
+        </label>
+        <button type="button" class="btn secondary" id="supportChatSendBtn" ${isSupportTicketClosed(entity.status) ? "disabled" : ""}>Enviar mensaje</button>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn ghost" data-modal-action="cancel">Cerrar</button>
         <button type="submit" class="btn primary">Guardar estado</button>

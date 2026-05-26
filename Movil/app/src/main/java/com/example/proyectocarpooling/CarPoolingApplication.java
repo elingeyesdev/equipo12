@@ -118,6 +118,16 @@ public class CarPoolingApplication extends Application {
         return chatRemoteDataSource;
     }
 
+    private com.example.proyectocarpooling.data.remote.SupportChatRemoteDataSource supportChatRemoteDataSource;
+
+    public synchronized com.example.proyectocarpooling.data.remote.SupportChatRemoteDataSource getSupportChatRemoteDataSource() {
+        if (supportChatRemoteDataSource == null) {
+            supportChatRemoteDataSource = new com.example.proyectocarpooling.data.remote.SupportChatRemoteDataSource(
+                    ApiBaseUrlProvider.get(this));
+        }
+        return supportChatRemoteDataSource;
+    }
+
     private com.example.proyectocarpooling.data.remote.RatingRemoteDataSource ratingRemoteDataSource;
 
     public synchronized com.example.proyectocarpooling.data.remote.RatingRemoteDataSource getRatingRemoteDataSource() {

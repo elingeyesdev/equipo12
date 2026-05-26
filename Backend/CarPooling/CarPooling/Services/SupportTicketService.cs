@@ -196,6 +196,11 @@ public class SupportTicketService(CarPoolingContext context)
 
         ticket.Status = status;
         ticket.UpdatedAt = DateTime.UtcNow;
+        if (status is SupportTicketStatus.Resolved or SupportTicketStatus.Closed)
+        {
+            ticket.ClosedAt ??= DateTime.UtcNow;
+        }
+
         await _context.SaveChangesAsync();
 
         return SupportTicketResponseDto.FromEntity(ticket);

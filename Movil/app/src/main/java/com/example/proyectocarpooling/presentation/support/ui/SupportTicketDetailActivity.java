@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.support.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -17,6 +18,7 @@ import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.support.SupportTicketItem;
 import com.example.proyectocarpooling.presentation.support.SupportUiHelper;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButton;
 
 public class SupportTicketDetailActivity extends AppCompatActivity {
 
@@ -35,13 +37,16 @@ public class SupportTicketDetailActivity extends AppCompatActivity {
     private TextView tripView;
     private TextView reservationView;
     private TextView descriptionView;
+    private MaterialButton chatButton;
+    private TextView chatHint;
+    private String ticketId;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_support_ticket_detail);
 
-        String ticketId = getIntent().getStringExtra(EXTRA_TICKET_ID);
+        ticketId = getIntent().getStringExtra(EXTRA_TICKET_ID);
         if (ticketId == null || ticketId.isBlank()) {
             finish();
             return;
@@ -78,6 +83,15 @@ public class SupportTicketDetailActivity extends AppCompatActivity {
         tripView = findViewById(R.id.supportDetailTrip);
         reservationView = findViewById(R.id.supportDetailReservation);
         descriptionView = findViewById(R.id.supportDetailDescription);
+        chatButton = findViewById(R.id.supportDetailChatButton);
+        chatHint = findViewById(R.id.supportDetailChatHint);
+
+        chatButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, SupportChatActivity.class);
+            intent.putExtra(SupportChatActivity.EXTRA_TICKET_ID, ticketId);
+            intent.putExtra(SupportChatActivity.EXTRA_CHAT_TITLE, getString(R.string.support_chat_title));
+            startActivity(intent);
+        });
     }
 
     private void observeViewModel() {
@@ -149,5 +163,17 @@ public class SupportTicketDetailActivity extends AppCompatActivity {
         }
 
         descriptionView.setText(ticket.description);
+        updateChatUi(ticket);
+    }
+
+    private void updateChatUi(SupportTicketItem ticket) {
+        boolean enabled = ticket.chatEnabled;
+        chatButton.setEnabled(enabled);
+        chatButton.setAlpha(enabled ? 1f : 0.5f);
+        if (enabled) {
+            chatHint.setText(R.string.support_chat_enabled_hint);
+        } else {
+            chatHint.setText(R.string.support_chat_waiting_admin);
+        }
     }
 }
