@@ -55,7 +55,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
         ALL,
         NEAR,
         FAR,
-        PRICE,
         RATED
     }
 
@@ -69,7 +68,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
         public final int availableSeats;
         public final double distanceKm;
         public final int etaMinutes;
-        public final double estimatedPrice;
         public final Double driverRating;
         public final String vehicleInfo;
         public final double originLatitude;
@@ -90,7 +88,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
                 int availableSeats,
                 double distanceKm,
                 int etaMinutes,
-                double estimatedPrice,
                 Double driverRating,
                 String vehicleInfo,
                 double originLatitude,
@@ -109,7 +106,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
             this.availableSeats = availableSeats;
             this.distanceKm = distanceKm;
             this.etaMinutes = etaMinutes;
-            this.estimatedPrice = estimatedPrice;
             this.driverRating = driverRating;
             this.vehicleInfo = vehicleInfo;
             this.originLatitude = originLatitude;
@@ -125,11 +121,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
     private MaterialToolbar toolbar;
-    private View priceFilterCard;
-    private TextInputLayout minPriceLayout;
-    private TextInputLayout maxPriceLayout;
-    private TextInputEditText minPriceInput;
-    private TextInputEditText maxPriceInput;
     private ChipGroup categoryGroup;
     private Button searchButton;
     private Button clearButton;
@@ -175,11 +166,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
 
     private void bindViews() {
         toolbar = findViewById(R.id.searchTripToolbar);
-        priceFilterCard = findViewById(R.id.searchTripPriceFilterCard);
-        minPriceLayout = findViewById(R.id.searchTripMinPriceLayout);
-        maxPriceLayout = findViewById(R.id.searchTripMaxPriceLayout);
-        minPriceInput = findViewById(R.id.searchTripMinPriceInput);
-        maxPriceInput = findViewById(R.id.searchTripMaxPriceInput);
         categoryGroup = findViewById(R.id.searchTripCategoryGroup);
         searchButton = findViewById(R.id.searchTripSearchButton);
         clearButton = findViewById(R.id.searchTripClearButton);
@@ -215,22 +201,7 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
     }
 
     private void setupFilterListeners() {
-        TextWatcher watcher = new SimpleTextWatcher() {
-            @Override public void afterTextChanged(Editable s) {
-                applyFilters();
-            }
-        };
-        minPriceInput.addTextChangedListener(watcher);
-        maxPriceInput.addTextChangedListener(watcher);
         categoryGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            Category category = selectedCategory();
-            if (category == Category.PRICE) {
-                priceFilterCard.setVisibility(View.VISIBLE);
-            } else {
-                priceFilterCard.setVisibility(View.GONE);
-                minPriceInput.setText("");
-                maxPriceInput.setText("");
-            }
             applyFilters();
         });
     }
@@ -325,7 +296,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
                 } catch (Exception ignored) {}
             }
 
-            double estimatedPrice = estimatePrice(candidate.distanceKm, candidate.availableSeats);
             String routeDescription = String.format(Locale.US, "%s -> %s",
                     candidate.originAddress == null || candidate.originAddress.isEmpty() ? "Origen" : candidate.originAddress,
                     candidate.destinationAddress == null || candidate.destinationAddress.isEmpty() ? "Destino" : candidate.destinationAddress);
@@ -341,7 +311,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
                     candidate.availableSeats,
                     candidate.distanceKm,
                     candidate.etaMinutes,
-                    estimatedPrice,
                     driverRating,
                     vehicleInfo,
                     candidate.originLatitude,
@@ -364,36 +333,12 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
             return;
         }
 
-        Double minPrice = parseOptionalDouble(minPriceInput.getText());
-        Double maxPrice = parseOptionalDouble(maxPriceInput.getText());
-
-        if (minPrice != null && minPrice < 0) {
-            minPriceLayout.setError(getString(R.string.search_trip_error_state));
-            return;
-        }
-        if (maxPrice != null && maxPrice < 0) {
-            maxPriceLayout.setError(getString(R.string.search_trip_error_state));
-            return;
-        }
-        if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
-            maxPriceLayout.setError(getString(R.string.search_trip_error_state));
-            return;
-        }
-
         Category category = selectedCategory();
         List<SearchTripResultItem> filtered = new ArrayList<>();
 
         for (SearchTripResultItem item : allResults) {
             if (!matchesCategory(item, category)) {
                 continue;
-            }
-            if (category == Category.PRICE) {
-                if (minPrice != null && item.estimatedPrice < minPrice) {
-                    continue;
-                }
-                if (maxPrice != null && item.estimatedPrice > maxPrice) {
-                    continue;
-                }
             }
 
             filtered.add(item);
@@ -425,7 +370,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
                 return item.distanceKm <= 5.0;
             case FAR:
                 return item.distanceKm >= 12.0;
-            case PRICE:
             case RATED:
             case ALL:
             default:
@@ -437,14 +381,11 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
         int checkedId = categoryGroup.getCheckedChipId();
         if (checkedId == R.id.searchTripChipNear) return Category.NEAR;
         if (checkedId == R.id.searchTripChipFar) return Category.FAR;
-        if (checkedId == R.id.searchTripChipPrice) return Category.PRICE;
         if (checkedId == R.id.searchTripChipRated) return Category.RATED;
         return Category.ALL;
     }
 
     private void resetAllFilters() {
-        minPriceInput.setText("");
-        maxPriceInput.setText("");
         categoryGroup.check(R.id.searchTripChipAll);
         searchTrips();
     }
@@ -476,17 +417,6 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
         statusMessage.setVisibility(View.VISIBLE);
     }
 
-    private static Double parseOptionalDouble(@Nullable CharSequence value) {
-        if (value == null) return null;
-        String text = value.toString().trim();
-        if (text.isEmpty()) return null;
-        try {
-            return Double.parseDouble(text.replace(',', '.'));
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
 
 
     private static String buildVehicleInfo(String brand, String color, String plate) {
@@ -503,12 +433,7 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
         return builder.toString();
     }
 
-    private static double estimatePrice(double distanceKm, int availableSeats) {
-        double base = 2.5;
-        double distanceComponent = Math.max(0.0, distanceKm) * 1.7;
-        double seatComponent = Math.max(0, availableSeats) * 0.15;
-        return Math.round((base + distanceComponent + seatComponent) * 100.0) / 100.0;
-    }
+
 
     private static double distanceKm(double lat1, double lon1, double lat2, double lon2) {
         final double earthRadius = 6371.0;
@@ -636,10 +561,5 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
     protected void onDestroy() {
         super.onDestroy();
         backgroundExecutor.shutdownNow();
-    }
-
-    private abstract static class SimpleTextWatcher implements TextWatcher {
-        @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-        @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
     }
 }

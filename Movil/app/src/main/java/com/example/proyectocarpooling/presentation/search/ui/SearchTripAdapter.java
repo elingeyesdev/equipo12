@@ -56,7 +56,6 @@ public class SearchTripAdapter extends RecyclerView.Adapter<SearchTripAdapter.Ho
         holder.driverText.setText(item.driverName);
         holder.statusText.setText(holder.itemView.getContext().getString(R.string.search_trip_status_format, item.statusLabel));
         holder.distanceText.setText(holder.itemView.getContext().getString(R.string.search_trip_distance_format, item.distanceKm));
-        holder.priceText.setText(holder.itemView.getContext().getString(R.string.search_trip_estimated_price_format, item.estimatedPrice));
         holder.timeText.setText(holder.itemView.getContext().getString(R.string.search_trip_estimated_time_format, formatEta(item.etaMinutes)));
         holder.seatsText.setText(String.format(Locale.getDefault(), "Cupos: %d", item.availableSeats));
 
@@ -125,7 +124,7 @@ public class SearchTripAdapter extends RecyclerView.Adapter<SearchTripAdapter.Ho
         final TextView driverText;
         final TextView statusText;
         final TextView distanceText;
-        final TextView priceText;
+
         final TextView ratingText;
         final TextView timeText;
         final TextView seatsText;
@@ -143,7 +142,6 @@ public class SearchTripAdapter extends RecyclerView.Adapter<SearchTripAdapter.Ho
             driverText = itemView.findViewById(R.id.searchTripDriverText);
             statusText = itemView.findViewById(R.id.searchTripStatusText);
             distanceText = itemView.findViewById(R.id.searchTripDistanceText);
-            priceText = itemView.findViewById(R.id.searchTripPriceText);
             ratingText = itemView.findViewById(R.id.searchTripRatingText);
             timeText = itemView.findViewById(R.id.searchTripTimeText);
             seatsText = itemView.findViewById(R.id.searchTripSeatsText);

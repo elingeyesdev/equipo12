@@ -385,19 +385,18 @@ public class MainActivity extends AppCompatActivity {
         View dismissBanner = findViewById(R.id.driverRoutePreviewBannerDismiss);
         View closeBanner = findViewById(R.id.driverRoutePreviewBannerClose);
         if (dismissBanner != null) {
-            dismissBanner.setOnClickListener(v -> hideDriverMatchRouteExplainer());
+            dismissBanner.setOnClickListener(v -> discardRoutePreview());
         }
         if (closeBanner != null) {
-            closeBanner.setOnClickListener(v -> hideDriverMatchRouteExplainer());
+            closeBanner.setOnClickListener(v -> discardRoutePreview());
         }
         if (bannerAcceptButton != null) {
             bannerAcceptButton.setOnClickListener(v -> acceptDriverRouteFromBanner());
         }
         if (bannerRejectButton != null) {
             bannerRejectButton.setOnClickListener(v -> {
-                hideDriverMatchRouteExplainer();
+                discardRoutePreview();
                 Toast.makeText(this, "Viaje rechazado", Toast.LENGTH_SHORT).show();
-                finish();
             });
         }
 
@@ -1557,6 +1556,26 @@ public class MainActivity extends AppCompatActivity {
         }
         routePreviewTripId = null;
         routePreviewDriverName = null;
+    }
+
+    private void discardRoutePreview() {
+        hideDriverMatchRouteExplainer();
+        clearRoute();
+        selectedOrigin = null;
+        selectedDestination = null;
+        syncSelectionStateToViewModel();
+        updateCoordinateLabels();
+        updateMapMarkers();
+        updateStatusText();
+        updateRouteTimeText();
+        refreshButtons();
+        
+        if (currentDriverPosition != null && mapView != null) {
+            mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
+                    .center(currentDriverPosition)
+                    .zoom(14.0)
+                    .build());
+        }
     }
 
     private void acceptDriverRouteFromBanner() {
