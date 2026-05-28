@@ -4,7 +4,7 @@ const MAPBOX_ACCESS_TOKEN = "pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJk
 const MAPBOX_SCRIPT_SRC = "./node_modules/mapbox-gl/dist/mapbox-gl.js";
 
 const state = {
-  apiBaseUrl: localStorage.getItem("cp.apiBaseUrl") || "http://localhost:5005",
+  apiBaseUrl: "http://localhost:5005",
   currentUser: JSON.parse(localStorage.getItem("cp.adminUser") || "null"),
   section: "overview",
   adminData: {
@@ -78,8 +78,6 @@ const supportReloadBtn = document.getElementById("supportReloadBtn");
 function getCreateTripMapContainer() {
   return createModalForm?.querySelector("#createTripMap") || null;
 }
-
-document.getElementById("apiBaseUrl").value = state.apiBaseUrl;
 
 function setMessage(element, text, kind = "") {
   if (!element) {
@@ -2268,14 +2266,6 @@ document.getElementById("loginForm").addEventListener("submit", async (event) =>
 
   const email = document.getElementById("loginEmail").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
-  const apiBaseUrlInput = document.getElementById("apiBaseUrl").value.trim();
-
-  if (!apiBaseUrlInput) {
-    setMessage(loginMessage, "Debes indicar la URL base del backend.", "error");
-    return;
-  }
-
-  state.apiBaseUrl = normalizeUrl(apiBaseUrlInput);
 
   try {
     const user = await apiFetch("/api/users/login", {
