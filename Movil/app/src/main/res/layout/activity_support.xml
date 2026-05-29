@@ -109,7 +109,7 @@
         android:layout_margin="16dp"
         android:text="@string/support_new_ticket"
         app:icon="@android:drawable/ic_input_add"
-        app:backgroundTint="@color/carpool_primary"
+        app:backgroundTint="?attr/colorPrimary"
         app:iconTint="@color/white"
         android:textColor="@color/white" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

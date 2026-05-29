@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.driver.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -24,7 +25,7 @@ import com.google.android.material.appbar.MaterialToolbar;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DriverPassengerRequestsActivity extends AppCompatActivity {
+public class DriverPassengerRequestsActivity extends BaseActivity {
 
     public static final String EXTRA_TRIP_ID = "extra_trip_id";
 

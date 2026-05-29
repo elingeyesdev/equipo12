@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.profile.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,7 +26,7 @@ import com.example.proyectocarpooling.data.model.user.VehicleResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProfileActivity extends AppCompatActivity {
+public class ProfileActivity extends BaseActivity {
 
     private EditText nameInput, emailInput, phoneInput, seatsInput, plateInput, brandInput, colorInput, newPasswordInput;
     private CheckBox hasVehicleCheckbox;

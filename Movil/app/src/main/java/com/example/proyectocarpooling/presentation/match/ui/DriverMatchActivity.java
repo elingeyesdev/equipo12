@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.match.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -25,7 +26,7 @@ import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
 import java.util.List;
 import java.util.Locale;
 
-public class DriverMatchActivity extends AppCompatActivity {
+public class DriverMatchActivity extends BaseActivity {
 
     public static final String EXTRA_DESTINATION_LABEL = "extra_destination_label";
     public static final String EXTRA_REF_LATITUDE = "extra_ref_latitude";

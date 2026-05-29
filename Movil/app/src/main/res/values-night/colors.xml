@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="white">#FF121212</color>
+    <color name="black">#FFFFFFFF</color>
+    
+    <color name="splash_gray">#FF333333</color>
+    <color name="carpool_dark">#FFFFFFFF</color>
+    <color name="carpool_primary">#FFFFFFFF</color>
+    <color name="carpool_primary_dark">#FFEEEEEE</color>
+    
+    <!-- Backgrounds -->
+    <color name="carpool_surface">#FF000000</color>
+    
+    <!-- Texts -->
+    <color name="carpool_text_primary">#FFFFFFFF</color>
+    <color name="carpool_text_secondary">#FFAAAAAA</color>
+    
+    <!-- Dividers and lines -->
+    <color name="match_card_stroke">#FF333333</color>
+    <color name="uber_divider">#FF222222</color>
+    <color name="uber_border">#FF333333</color>
+    
+    <!-- Surfaces -->
+    <color name="uber_chip_bg">#FF2C2C2C</color>
+    <color name="uber_stat_cell">#FF1E1E1E</color>
+    <color name="uber_handle">#FF555555</color>
+    <color name="uber_scrim">#AA000000</color>
+    
+    <!-- Others -->
+    <color name="uber_text_inverse">#FF000000</color>
+    <color name="uber_button_disabled">#FF333333</color>
+    <color name="uber_button_disabled_text">#FF777777</color>
+    <color name="uber_avatar">#FFE0E0E0</color>
+</resources>

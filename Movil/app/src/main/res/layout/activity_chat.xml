@@ -24,7 +24,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Regresar"
             android:src="@android:drawable/ic_menu_revert"
-            android:tint="@color/uber_accent" />
+            android:tint="?attr/colorPrimary" />
 
         <!-- Circular Avatar Placeholder -->
         <FrameLayout

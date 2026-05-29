@@ -497,6 +497,10 @@ function openSection(section) {
   if (section === "support" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
     loadSupportTickets();
   }
+
+  if (section === "settings" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+    loadThemeSettings();
+  }
 }
 
 function getSectionMeta(section) {
@@ -524,6 +528,10 @@ function getSectionMeta(section) {
     support: {
       name: "Soporte",
       description: "Revisa quejas de usuarios y actualiza el estado de cada reporte."
+    },
+    settings: {
+      name: "Ajustes",
+      description: "Personaliza la identidad visual y los colores corporativos de tu negocio."
     }
   };
 
@@ -2217,13 +2225,337 @@ document.getElementById("section-support")?.addEventListener("click", async (eve
   }
 });
 
-if (state.currentUser) {
-  if (Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
-    startSession(state.currentUser);
-  } else {
-    logout();
-    setMessage(loginMessage, "La sesion guardada no corresponde a un administrador.", "error");
+// --- Ajustes / Apariencia (Temas Pastel Dinámicos) ---
+const presets = {
+  Custom: {
+    primaryLight: "#e08c75",
+    secondaryLight: "#6b8f8d",
+    textLight: "#1f1d1a",
+    primaryDark: "#e27b53",
+    secondaryDark: "#85aba9",
+    textDark: "#e0e0e0"
+  },
+  Sunset: {
+    primaryLight: "#e08c75",
+    secondaryLight: "#6b8f8d",
+    textLight: "#1f1d1a",
+    primaryDark: "#e27b53",
+    secondaryDark: "#85aba9",
+    textDark: "#e0e0e0"
+  },
+  Emerald: {
+    primaryLight: "#7abfa6",
+    secondaryLight: "#5a8777",
+    textLight: "#1c2e28",
+    primaryDark: "#67b095",
+    secondaryDark: "#78ab98",
+    textDark: "#e2e9e6"
+  },
+  Ocean: {
+    primaryLight: "#7bb0db",
+    secondaryLight: "#8496ab",
+    textLight: "#18232e",
+    primaryDark: "#62a1d3",
+    secondaryDark: "#9cb1c9",
+    textDark: "#e2e8ee"
+  },
+  Orchid: {
+    primaryLight: "#a397db",
+    secondaryLight: "#9e7fa6",
+    textLight: "#231e33",
+    primaryDark: "#9485d4",
+    secondaryDark: "#bca4c4",
+    textDark: "#edeaf5"
+  },
+  Midnight: {
+    primaryLight: "#cba477",
+    secondaryLight: "#8a7b69",
+    textLight: "#26211a",
+    primaryDark: "#dcb282",
+    secondaryDark: "#a89782",
+    textDark: "#f4f1ed"
   }
-} else {
-  updateApiStatus(false);
+};
+
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 219, g: 91, b: 45 };
 }
+
+const THEME_MODES = {
+  light: {
+    bg: "#f8f4ef",
+    bgDeep: "#1c2a2f",
+    panelAlt: "#fff6ec",
+    panel: "#ffffff"
+  },
+  dark: {
+    bg: "#121212",
+    bgDeep: "#0a0a0a",
+    panelAlt: "#1e1e1e",
+    panel: "#181818"
+  }
+};
+
+function applyClientTheme(colors) {
+  if (!colors) return;
+  const root = document.documentElement;
+  
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const primary = isDarkMode ? (colors.primaryDark || "#e27b53") : (colors.primaryLight || "#db5b2d");
+  const secondary = isDarkMode ? (colors.secondaryDark || "#2ea7a0") : (colors.secondaryLight || "#1f8a86");
+  const text = isDarkMode ? (colors.textDark || "#e0e0e0") : (colors.textLight || "#1f1d1a");
+  
+  root.style.setProperty("--accent", primary);
+  root.style.setProperty("--accent-2", secondary);
+  
+  const mode = THEME_MODES[isDarkMode ? 'dark' : 'light'];
+  root.style.setProperty("--bg", mode.bg);
+  root.style.setProperty("--bg-deep", mode.bgDeep);
+  root.style.setProperty("--panel-alt", mode.panelAlt);
+  root.style.setProperty("--panel", mode.panel);
+  root.style.setProperty("--text", text);
+  
+  // Calcular y establecer el color de texto secundario (muted) al 60% de opacidad
+  const textRgb = hexToRgb(text);
+  root.style.setProperty("--muted", `rgba(${textRgb.r}, ${textRgb.g}, ${textRgb.b}, 0.6)`);
+  
+  const secondaryRgb = hexToRgb(secondary);
+  root.style.setProperty("--ring-color", `rgba(${secondaryRgb.r}, ${secondaryRgb.g}, ${secondaryRgb.b}, 0.22)`);
+  
+  // Calcular contraste para el texto del sidebar
+  const luminance = (secondaryRgb.r * 0.299 + secondaryRgb.g * 0.587 + secondaryRgb.b * 0.114) / 255;
+  root.style.setProperty("--sidebar-text", luminance > 0.6 ? "#1a1a1a" : "#ffffff");
+}
+
+function updateHexLabels() {
+  const pl = document.getElementById("themePrimaryLight")?.value;
+  const sl = document.getElementById("themeSecondaryLight")?.value;
+  const tl = document.getElementById("themeTextLight")?.value;
+  const pd = document.getElementById("themePrimaryDark")?.value;
+  const sd = document.getElementById("themeSecondaryDark")?.value;
+  const td = document.getElementById("themeTextDark")?.value;
+
+  if (pl) document.getElementById("themePrimaryLightHex").textContent = pl;
+  if (sl) document.getElementById("themeSecondaryLightHex").textContent = sl;
+  if (tl) document.getElementById("themeTextLightHex").textContent = tl;
+  if (pd) document.getElementById("themePrimaryDarkHex").textContent = pd;
+  if (sd) document.getElementById("themeSecondaryDarkHex").textContent = sd;
+  if (td) document.getElementById("themeTextDarkHex").textContent = td;
+}
+
+function updatePresetActiveState(presetName) {
+  document.querySelectorAll(".preset-card").forEach(card => {
+    card.classList.toggle("active", card.dataset.preset === presetName);
+  });
+}
+
+// Sincronizar previsualización de burbujas en la tarjeta Personalizado (Custom)
+function updateCustomPresetVisuals(colors) {
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const prim = isDarkMode ? colors.primaryDark : colors.primaryLight;
+  const sec = isDarkMode ? colors.secondaryDark : colors.secondaryLight;
+  const text = isDarkMode ? colors.textDark : colors.textLight;
+
+  const dotPrimary = document.getElementById("presetDotCustomPrimary");
+  const dotSecondary = document.getElementById("presetDotCustomSecondary");
+  const dotText = document.getElementById("presetDotCustomText");
+
+  if (dotPrimary) dotPrimary.style.backgroundColor = prim;
+  if (dotSecondary) dotSecondary.style.backgroundColor = sec;
+  if (dotText) dotText.style.backgroundColor = text;
+}
+
+document.querySelectorAll(".preset-card").forEach(card => {
+  card.addEventListener("click", () => {
+    const presetName = card.dataset.preset;
+    const colors = presets[presetName];
+    if (colors) {
+      if (document.getElementById("themePrimaryLight")) document.getElementById("themePrimaryLight").value = colors.primaryLight;
+      if (document.getElementById("themeSecondaryLight")) document.getElementById("themeSecondaryLight").value = colors.secondaryLight;
+      if (document.getElementById("themeTextLight")) document.getElementById("themeTextLight").value = colors.textLight;
+      if (document.getElementById("themePrimaryDark")) document.getElementById("themePrimaryDark").value = colors.primaryDark;
+      if (document.getElementById("themeSecondaryDark")) document.getElementById("themeSecondaryDark").value = colors.secondaryDark;
+      if (document.getElementById("themeTextDark")) document.getElementById("themeTextDark").value = colors.textDark;
+      
+      updateHexLabels();
+      updatePresetActiveState(presetName);
+      applyClientTheme(colors);
+      if (presetName === "Custom") {
+        updateCustomPresetVisuals(colors);
+      }
+    }
+  });
+});
+
+const getCurrentThemeColors = () => ({
+  primaryLight: document.getElementById("themePrimaryLight")?.value || "#db5b2d",
+  secondaryLight: document.getElementById("themeSecondaryLight")?.value || "#1f8a86",
+  textLight: document.getElementById("themeTextLight")?.value || "#1f1d1a",
+  primaryDark: document.getElementById("themePrimaryDark")?.value || "#e27b53",
+  secondaryDark: document.getElementById("themeSecondaryDark")?.value || "#2ea7a0",
+  textDark: document.getElementById("themeTextDark")?.value || "#e0e0e0"
+});
+
+["themePrimaryLight", "themeSecondaryLight", "themeTextLight", "themePrimaryDark", "themeSecondaryDark", "themeTextDark"].forEach(id => {
+  document.getElementById(id)?.addEventListener("input", () => {
+    const val = document.getElementById(id).value;
+    const hexEl = document.getElementById(id + "Hex");
+    if (hexEl) hexEl.textContent = val;
+    
+    const currentColors = getCurrentThemeColors();
+    
+    // Guardar dinámicamente en presets.Custom
+    presets.Custom = { ...currentColors };
+    updateCustomPresetVisuals(currentColors);
+    
+    applyClientTheme(currentColors);
+    updatePresetActiveState("Custom");
+  });
+});
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  const currentColors = getCurrentThemeColors();
+  updateCustomPresetVisuals(currentColors);
+  applyClientTheme(currentColors);
+});
+
+async function fetchThemeOnStartup() {
+  try {
+    const response = await fetch(`${normalizeUrl(state.apiBaseUrl)}/api/settings/theme`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    });
+    if (response.ok) {
+      const colors = await response.json();
+      applyClientTheme(colors);
+    }
+  } catch (error) {
+    console.warn("No se pudo cargar el tema dinámico del backend. Usando Sunset Orange por defecto.", error);
+    applyClientTheme(presets.Sunset);
+  }
+}
+
+async function loadThemeSettings() {
+  const messageEl = document.getElementById("settingsMessage");
+  setMessage(messageEl, "Cargando colores de tema...");
+  try {
+    const colors = await apiFetch("/api/settings/theme", {
+      method: "GET",
+      headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {}
+    });
+    
+    const primaryLight = colors.primaryLight || "#e08c75";
+    const secondaryLight = colors.secondaryLight || "#6b8f8d";
+    const textLight = colors.textLight || "#1f1d1a";
+    const primaryDark = colors.primaryDark || "#e27b53";
+    const secondaryDark = colors.secondaryDark || "#85aba9";
+    const textDark = colors.textDark || "#e0e0e0";
+
+    if (document.getElementById("themePrimaryLight")) document.getElementById("themePrimaryLight").value = primaryLight;
+    if (document.getElementById("themeSecondaryLight")) document.getElementById("themeSecondaryLight").value = secondaryLight;
+    if (document.getElementById("themeTextLight")) document.getElementById("themeTextLight").value = textLight;
+    if (document.getElementById("themePrimaryDark")) document.getElementById("themePrimaryDark").value = primaryDark;
+    if (document.getElementById("themeSecondaryDark")) document.getElementById("themeSecondaryDark").value = secondaryDark;
+    if (document.getElementById("themeTextDark")) document.getElementById("themeTextDark").value = textDark;
+    
+    updateHexLabels();
+
+    // Actualizar el preset Custom con los colores cargados de la BD
+    presets.Custom = {
+      primaryLight,
+      secondaryLight,
+      textLight,
+      primaryDark,
+      secondaryDark,
+      textDark
+    };
+    updateCustomPresetVisuals(presets.Custom);
+    
+    let matchedPreset = null;
+    for (const [name, pColors] of Object.entries(presets)) {
+      if (name === "Custom") continue;
+      if (pColors.primaryLight.toLowerCase() === primaryLight.toLowerCase() &&
+          pColors.secondaryLight.toLowerCase() === secondaryLight.toLowerCase() &&
+          pColors.textLight.toLowerCase() === textLight.toLowerCase() &&
+          pColors.primaryDark.toLowerCase() === primaryDark.toLowerCase() &&
+          pColors.secondaryDark.toLowerCase() === secondaryDark.toLowerCase() &&
+          pColors.textDark.toLowerCase() === textDark.toLowerCase()) {
+        matchedPreset = name;
+        break;
+      }
+    }
+    
+    if (!matchedPreset) {
+      matchedPreset = "Custom";
+    }
+    
+    updatePresetActiveState(matchedPreset);
+    applyClientTheme(presets[matchedPreset]);
+    setMessage(messageEl, "Configuración cargada correctamente.", "success");
+  } catch (error) {
+    setMessage(messageEl, `Error al cargar la configuración: ${error.message}`, "error");
+  }
+}
+
+document.getElementById("themeSettingsForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const messageEl = document.getElementById("settingsMessage");
+  setMessage(messageEl, "Guardando colores...");
+  
+  const colors = getCurrentThemeColors();
+  
+  try {
+    await apiFetch("/api/settings/theme", {
+      method: "PUT",
+      headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {},
+      body: JSON.stringify(colors)
+    });
+    
+    presets.Custom = { ...colors };
+    updateCustomPresetVisuals(colors);
+    applyClientTheme(colors);
+    
+    // Determinar si corresponde a algún preset predefinido o es Personalizado
+    let matchedPreset = null;
+    for (const [name, pColors] of Object.entries(presets)) {
+      if (name === "Custom") continue;
+      if (pColors.primaryLight.toLowerCase() === colors.primaryLight.toLowerCase() &&
+          pColors.secondaryLight.toLowerCase() === colors.secondaryLight.toLowerCase() &&
+          pColors.textLight.toLowerCase() === colors.textLight.toLowerCase() &&
+          pColors.primaryDark.toLowerCase() === colors.primaryDark.toLowerCase() &&
+          pColors.secondaryDark.toLowerCase() === colors.secondaryDark.toLowerCase() &&
+          pColors.textDark.toLowerCase() === colors.textDark.toLowerCase()) {
+        matchedPreset = name;
+        break;
+      }
+    }
+    
+    if (!matchedPreset) {
+      matchedPreset = "Custom";
+    }
+    
+    updatePresetActiveState(matchedPreset);
+    setMessage(messageEl, "¡Colores guardados exitosamente! Se han propagado al sistema.", "success");
+  } catch (error) {
+    setMessage(messageEl, `Error al guardar los colores: ${error.message}`, "error");
+  }
+});
+
+// Startup Execution
+fetchThemeOnStartup().finally(() => {
+  if (state.currentUser) {
+    if (Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+      startSession(state.currentUser);
+    } else {
+      logout();
+      setMessage(loginMessage, "La sesion guardada no corresponde a un administrador.", "error");
+    }
+  } else {
+    updateApiStatus(false);
+  }
+});

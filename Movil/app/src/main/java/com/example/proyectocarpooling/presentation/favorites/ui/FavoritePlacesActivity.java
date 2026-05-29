@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.favorites.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -22,7 +23,7 @@ import com.example.proyectocarpooling.data.model.user.UserFavoriteItem;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
 
-public class FavoritePlacesActivity extends AppCompatActivity implements FavoritesAdapter.Listener {
+public class FavoritePlacesActivity extends BaseActivity implements FavoritesAdapter.Listener {
 
     public static final String EXTRA_PICK_MODE = "extra_pick_mode";
 

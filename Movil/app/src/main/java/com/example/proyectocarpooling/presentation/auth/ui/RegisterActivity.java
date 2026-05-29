@@ -10,7 +10,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectocarpooling.R;
@@ -19,7 +19,7 @@ import com.example.proyectocarpooling.data.model.user.DriverProfileRequest;
 import com.example.proyectocarpooling.data.model.user.RegisterUserRequest;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
 
-public class RegisterActivity extends AppCompatActivity {
+public class RegisterActivity extends BaseActivity {
 
     private EditText nameInput;
     private EditText emailInput;

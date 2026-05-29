@@ -5,13 +5,13 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.ProgressBar;
 
-import androidx.appcompat.app.AppCompatActivity;
+import com.example.proyectocarpooling.presentation.BaseActivity;
 
 import com.example.proyectocarpooling.CarPoolingApplication;
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
 
-public class AccountOverviewActivity extends AppCompatActivity {
+public class AccountOverviewActivity extends BaseActivity {
 
     private org.json.JSONObject mSummary = null;
     private org.json.JSONArray mRatings = null;

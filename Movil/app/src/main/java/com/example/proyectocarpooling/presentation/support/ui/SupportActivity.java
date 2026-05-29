@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.support.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -30,7 +31,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 
-public class SupportActivity extends AppCompatActivity implements SupportTicketsAdapter.Listener {
+public class SupportActivity extends BaseActivity implements SupportTicketsAdapter.Listener {
 
     public static final String EXTRA_TRIP_ID = "extra_support_trip_id";
     public static final String EXTRA_RESERVATION_ID = "extra_support_reservation_id";

@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.chat.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ChatActivity extends AppCompatActivity {
+public class ChatActivity extends BaseActivity {
 
     private String tripId;
     private String currentUserId;

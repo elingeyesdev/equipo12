@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.main.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
@@ -82,7 +83,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
 
     public static boolean sReservationCompletedFromBanner = false;
     public static Intent sReservationResultData = null;

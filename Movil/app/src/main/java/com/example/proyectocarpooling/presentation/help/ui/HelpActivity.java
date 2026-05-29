@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.help.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -19,7 +20,7 @@ import com.example.proyectocarpooling.presentation.help.HelpFaqItem;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HelpActivity extends AppCompatActivity implements HelpFaqAdapter.Listener {
+public class HelpActivity extends BaseActivity implements HelpFaqAdapter.Listener {
 
     private HelpFaqAdapter adapter;
     private List<HelpFaqItem> faqItems;

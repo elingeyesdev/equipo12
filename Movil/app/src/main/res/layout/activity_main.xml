@@ -34,7 +34,7 @@
                 android:layout_height="24dp"
                 android:layout_gravity="center"
                 android:src="@android:drawable/ic_menu_sort_by_size"
-                android:tint="@color/uber_accent" />
+                android:tint="?attr/colorPrimary" />
         </FrameLayout>
 
         <com.google.android.material.card.MaterialCardView
@@ -68,7 +68,7 @@
                         android:layout_height="20dp"
                         android:layout_marginEnd="10dp"
                         android:src="@android:drawable/ic_menu_directions"
-                        android:tint="@color/uber_accent" />
+                        android:tint="?attr/colorPrimary" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -145,7 +145,7 @@
                     android:layout_gravity="end"
                     android:text="@string/main_driver_route_banner_dismiss"
                     android:textAllCaps="false"
-                    android:textColor="@color/uber_accent" />
+                    android:textColor="?attr/colorPrimary" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -439,7 +439,7 @@
             android:contentDescription="Abrir chat de viaje"
             android:src="@android:drawable/stat_notify_chat"
             android:visibility="gone"
-            app:backgroundTint="@color/uber_accent"
+            app:backgroundTint="?attr/colorPrimary"
             app:tint="@color/white" />
 
         <ProgressBar

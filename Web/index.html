@@ -59,6 +59,7 @@
         <button class="menu-item" data-section="trips">Viajes</button>
         <button class="menu-item" data-section="reservations">Reservas</button>
         <button class="menu-item" data-section="support">Soporte</button>
+        <button class="menu-item" data-section="settings">Ajustes</button>
       </nav>
 
       <button id="logoutBtn" class="btn ghost">Cerrar sesion</button>
@@ -276,6 +277,137 @@
               <tbody id="adminSupportBody"></tbody>
             </table>
           </div>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-settings">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Personalización corporativa</p>
+            <h3>Ajustes de Apariencia</h3>
+            <p class="card-help">Personaliza la identidad visual de tu negocio. Estos colores se aplicarán instantáneamente tanto al Panel Administrativo Web como a la Aplicación Móvil de tus usuarios.</p>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <h4>Temas Predefinidos (Presets)</h4>
+          <p class="card-help">Selecciona una de nuestras combinaciones de color diseñadas profesionalmente para comenzar rápido.</p>
+          <div class="presets-grid" id="presetsContainer">
+            <button type="button" class="preset-card" data-preset="Custom" id="presetCustomCard">
+              <div class="preset-preview">
+                <span class="color-dot" id="presetDotCustomPrimary" style="background-color: #e08c75;"></span>
+                <span class="color-dot" id="presetDotCustomSecondary" style="background-color: #6b8f8d;"></span>
+                <span class="color-dot" id="presetDotCustomText" style="background-color: #1f1d1a;"></span>
+              </div>
+              <span class="preset-name">Personalizado</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Sunset">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #e08c75;"></span>
+                <span class="color-dot" style="background-color: #6b8f8d;"></span>
+                <span class="color-dot" style="background-color: #1f1d1a;"></span>
+              </div>
+              <span class="preset-name">Sunset Peach</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Emerald">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #7abfa6;"></span>
+                <span class="color-dot" style="background-color: #5a8777;"></span>
+                <span class="color-dot" style="background-color: #1c2e28;"></span>
+              </div>
+              <span class="preset-name">Emerald Mint</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Ocean">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #7bb0db;"></span>
+                <span class="color-dot" style="background-color: #8496ab;"></span>
+                <span class="color-dot" style="background-color: #18232e;"></span>
+              </div>
+              <span class="preset-name">Ocean Sky</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Orchid">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #a397db;"></span>
+                <span class="color-dot" style="background-color: #9e7fa6;"></span>
+                <span class="color-dot" style="background-color: #231e33;"></span>
+              </div>
+              <span class="preset-name">Royal Orchid</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Midnight">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #cba477;"></span>
+                <span class="color-dot" style="background-color: #8a7b69;"></span>
+                <span class="color-dot" style="background-color: #26211a;"></span>
+              </div>
+              <span class="preset-name">Midnight Sand</span>
+            </button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <h4>Personalización de Colores Manual</h4>
+          <p class="card-help">Ajusta cada color a mano usando los selectores a continuación para lograr el branding perfecto de tu marca.</p>
+          <form id="themeSettingsForm" class="stack">
+            <h5 style="margin-bottom: 8px;">Colores para Modo Claro</h5>
+            <div class="color-pickers-grid">
+              <label class="field color-picker-field">
+                <span>Principal Claro (Botones, Acentos)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themePrimaryLight" required />
+                  <span class="color-hex-text" id="themePrimaryLightHex">#db5b2d</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Secundario Claro (Sidebar, Estructura)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeSecondaryLight" required />
+                  <span class="color-hex-text" id="themeSecondaryLightHex">#1f8a86</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Texto Claro (Letras, Títulos)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeTextLight" required />
+                  <span class="color-hex-text" id="themeTextLightHex">#1f1d1a</span>
+                </div>
+              </label>
+            </div>
+
+            <h5 style="margin-top: 16px; margin-bottom: 8px;">Colores para Modo Oscuro</h5>
+            <div class="color-pickers-grid">
+              <label class="field color-picker-field">
+                <span>Principal Oscuro (Botones, Acentos)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themePrimaryDark" required />
+                  <span class="color-hex-text" id="themePrimaryDarkHex">#e27b53</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Secundario Oscuro (Sidebar, Estructura)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeSecondaryDark" required />
+                  <span class="color-hex-text" id="themeSecondaryDarkHex">#2ea7a0</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Texto Oscuro (Letras, Títulos)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeTextDark" required />
+                  <span class="color-hex-text" id="themeTextDarkHex">#e0e0e0</span>
+                </div>
+              </label>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 14px;">
+              <button type="submit" class="btn primary" id="saveThemeBtn">Guardar Cambios</button>
+            </div>
+            
+            <p id="settingsMessage" class="message" aria-live="polite"></p>
+          </form>
         </article>
       </section>
     </div>

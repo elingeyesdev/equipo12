@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.history.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -27,7 +28,7 @@ import com.google.android.material.button.MaterialButton;
 
 import java.util.Locale;
 
-public class TripHistoryDetailActivity extends AppCompatActivity {
+public class TripHistoryDetailActivity extends BaseActivity {
     public static final String EXTRA_TRIP_ID = "extra_trip_id";
 
     private MaterialToolbar toolbar;

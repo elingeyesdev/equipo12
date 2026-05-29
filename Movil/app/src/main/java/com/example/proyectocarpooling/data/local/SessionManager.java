@@ -186,4 +186,51 @@ public class SessionManager {
     public void clearSession() {
         preferences.edit().clear().commit();
     }
+
+    // --- Ajustes de Colores / Temas ---
+    private static final String KEY_THEME_PRIMARY_LIGHT = "theme_primary_light";
+    private static final String KEY_THEME_SECONDARY_LIGHT = "theme_secondary_light";
+    private static final String KEY_THEME_TEXT_LIGHT = "theme_text_light";
+    private static final String KEY_THEME_PRIMARY_DARK = "theme_primary_dark";
+    private static final String KEY_THEME_SECONDARY_DARK = "theme_secondary_dark";
+    private static final String KEY_THEME_TEXT_DARK = "theme_text_dark";
+
+    public void saveThemeColors(String pl, String sl, String pd, String sd) {
+        saveThemeColors(pl, sl, "#1f1d1a", pd, sd, "#e0e0e0");
+    }
+
+    public void saveThemeColors(String pl, String sl, String tl, String pd, String sd, String td) {
+        preferences.edit()
+                .putString(KEY_THEME_PRIMARY_LIGHT, pl)
+                .putString(KEY_THEME_SECONDARY_LIGHT, sl)
+                .putString(KEY_THEME_TEXT_LIGHT, tl)
+                .putString(KEY_THEME_PRIMARY_DARK, pd)
+                .putString(KEY_THEME_SECONDARY_DARK, sd)
+                .putString(KEY_THEME_TEXT_DARK, td)
+                .apply();
+    }
+
+    public String getThemePrimaryLight() {
+        return preferences.getString(KEY_THEME_PRIMARY_LIGHT, "#db5b2d");
+    }
+
+    public String getThemeSecondaryLight() {
+        return preferences.getString(KEY_THEME_SECONDARY_LIGHT, "#1f8a86");
+    }
+
+    public String getThemeTextLight() {
+        return preferences.getString(KEY_THEME_TEXT_LIGHT, "#1f1d1a");
+    }
+
+    public String getThemePrimaryDark() {
+        return preferences.getString(KEY_THEME_PRIMARY_DARK, "#e27b53");
+    }
+
+    public String getThemeSecondaryDark() {
+        return preferences.getString(KEY_THEME_SECONDARY_DARK, "#2ea7a0");
+    }
+
+    public String getThemeTextDark() {
+        return preferences.getString(KEY_THEME_TEXT_DARK, "#e0e0e0");
+    }
 }

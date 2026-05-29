@@ -340,6 +340,16 @@ public static class DevelopmentDataSeeder
             "Duda con cobro de reserva", "Deseo saber si el cobro estimado de la reserva es fijo o si puede variar de acuerdo a la ruta final que tome el conductor.",
             SupportTicketStatus.Resolved, DateTime.UtcNow.AddDays(-2));
 
+        // Seed default theme if not present
+        if (!await context.AppSettings.AnyAsync(s => s.Key == "theme"))
+        {
+            context.AppSettings.Add(new AppSetting 
+            { 
+                Key = "theme", 
+                Value = "{\"primaryLight\":\"#e08c75\",\"secondaryLight\":\"#6b8f8d\",\"textLight\":\"#1f1d1a\",\"primaryDark\":\"#e27b53\",\"secondaryDark\":\"#85aba9\",\"textDark\":\"#e0e0e0\"}" 
+            });
+        }
+
         await context.SaveChangesAsync();
     }
 

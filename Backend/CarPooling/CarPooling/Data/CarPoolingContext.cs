@@ -18,6 +18,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<TripChatMessageRead> TripChatMessageReads => Set<TripChatMessageRead>();
     public DbSet<TripRating> TripRatings => Set<TripRating>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +35,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureTripChatMessageRead(modelBuilder);
         ConfigureTripRating(modelBuilder);
         ConfigureSupportTicket(modelBuilder);
+        ConfigureAppSetting(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -373,6 +375,17 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.HasIndex(t => t.CreatedAt);
             entity.HasIndex(t => new { t.UserId, t.Category, t.TripId, t.Status });
             entity.HasIndex(t => new { t.UserId, t.Category, t.ReservationId, t.Status });
+        });
+    }
+
+    private static void ConfigureAppSetting(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AppSetting>(entity =>
+        {
+            entity.ToTable("AppSettings");
+            entity.HasKey(s => s.Key);
+            entity.Property(s => s.Key).HasMaxLength(100);
+            entity.Property(s => s.Value).IsRequired().HasMaxLength(2000);
         });
     }
 }

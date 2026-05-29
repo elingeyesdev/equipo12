@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.search.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
@@ -49,7 +50,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SearchTripActivity extends AppCompatActivity implements SearchTripAdapter.Listener {
+public class SearchTripActivity extends BaseActivity implements SearchTripAdapter.Listener {
 
     private enum Category {
         ALL,

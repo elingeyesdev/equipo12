@@ -15,7 +15,7 @@
         android:layout_height="24dp"
         android:layout_marginEnd="14dp"
         android:src="@android:drawable/btn_star"
-        android:tint="@color/uber_accent" />
+        android:tint="?attr/colorPrimary" />
 
     <LinearLayout
         android:layout_width="0dp"

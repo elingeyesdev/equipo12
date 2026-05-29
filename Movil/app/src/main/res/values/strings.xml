@@ -2,9 +2,8 @@
     <string name="app_name">ProyectoCarpooling</string>
     <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
 
-    <string name="api_base_url_emulator">http://10.0.2.2:5005</string>
-    <!-- Celular físico + USB: adb reverse tcp:5005 tcp:5005 (el API en PC debe escuchar en 0.0.0.0:5005, pero la app usa 127.0.0.1) -->
-    <string name="api_base_url_device">http://127.0.0.1:5005/</string>
+    <string name="api_base_url_emulator">http://10.0.2.2:5000</string>
+    <string name="api_base_url_device">http://127.0.0.1:5000/</string>
 
     <string name="origin_placeholder">Recogida: sin seleccionar</string>
     <string name="destination_placeholder">Destino: a donde quieres ir</string>
