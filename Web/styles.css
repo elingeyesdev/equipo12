@@ -519,6 +519,16 @@ select:focus {
   color: var(--ok);
 }
 
+.status-badge--pending {
+  background: #fff4e6;
+  color: #b35c00;
+}
+
+.status-badge--confirmed {
+  background: #e6fff2;
+  color: var(--ok);
+}
+
 .status-badge--boarded {
   background: #e8f0ff;
   color: #2455b0;

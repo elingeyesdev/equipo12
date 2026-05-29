@@ -138,9 +138,13 @@ function isDriverUser(user) {
 function getReservationStatusKey(value) {
   const normalized = String(value ?? "").trim().toLowerCase();
 
-  if (normalized === "0" || normalized === "active") return "active";
-  if (normalized === "1" || normalized === "cancelled") return "cancelled";
-  if (normalized === "2" || normalized === "boarded") return "boarded";
+  if (normalized === "1" || normalized === "pending" || normalized === "pendiente") return "pending";
+  if (normalized === "2" || normalized === "confirmed" || normalized === "confirmado") return "confirmed";
+  if (normalized === "3" || normalized === "boarded" || normalized === "abordado") return "boarded";
+  if (normalized === "4" || normalized === "cancelled" || normalized === "cancelado") return "cancelled";
+
+  // legacy mapping if any
+  if (normalized === "active") return "confirmed";
 
   return "unknown";
 }
@@ -148,9 +152,10 @@ function getReservationStatusKey(value) {
 function formatReservationStatus(value) {
   const key = getReservationStatusKey(value);
 
-  if (key === "active") return "Activo";
-  if (key === "cancelled") return "Cancelado";
+  if (key === "pending") return "Pendiente";
+  if (key === "confirmed") return "Confirmado";
   if (key === "boarded") return "Abordado";
+  if (key === "cancelled") return "Cancelado";
 
   return "Sin estado";
 }
@@ -1336,9 +1341,11 @@ function getTripStatusValue(status) {
 
 function getReservationStatusValue(status) {
   const key = getReservationStatusKey(status);
-  if (key === "cancelled") return "1";
-  if (key === "boarded") return "2";
-  return "0";
+  if (key === "pending") return "1";
+  if (key === "confirmed") return "2";
+  if (key === "boarded") return "3";
+  if (key === "cancelled") return "4";
+  return "1";
 }
 
 function getNullableNumber(rawValue) {
@@ -1457,9 +1464,10 @@ function getEditFormMarkup(type, entity) {
     <label class="field"><span>Nombre del pasajero</span><input type="text" name="passengerName" value="${escapeHtml(entity.passengerName || "")}" required /></label>
     <label class="field"><span>Estado</span>
       <select name="status">
-        <option value="0" ${getReservationStatusValue(entity.status) === "0" ? "selected" : ""}>Activo</option>
-        <option value="1" ${getReservationStatusValue(entity.status) === "1" ? "selected" : ""}>Cancelado</option>
-        <option value="2" ${getReservationStatusValue(entity.status) === "2" ? "selected" : ""}>Abordado</option>
+        <option value="1" ${getReservationStatusValue(entity.status) === "1" ? "selected" : ""}>Pendiente</option>
+        <option value="2" ${getReservationStatusValue(entity.status) === "2" ? "selected" : ""}>Confirmado</option>
+        <option value="3" ${getReservationStatusValue(entity.status) === "3" ? "selected" : ""}>Abordado</option>
+        <option value="4" ${getReservationStatusValue(entity.status) === "4" ? "selected" : ""}>Cancelado</option>
       </select>
     </label>
     <div class="modal-actions">
