@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">ProyectoCarpooling</string>
     <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
+    <string name="main_safe_zones_legend">Zonas seguras (paradas tranquilas)</string>
+    <string name="safe_zone_marker_toast">Zona segura: %1$s</string>
 
     <string name="api_base_url_emulator">http://10.0.2.2:5000</string>
     <string name="api_base_url_device">http://127.0.0.1:5000/</string>

@@ -315,6 +315,22 @@ select:focus {
   gap: 16px;
 }
 
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-field input {
+  width: auto;
+}
+
 .panel-header-actions {
   display: flex;
   justify-content: flex-end;
@@ -654,6 +670,34 @@ select:focus {
 .trip-map-actions .btn.active {
   background: var(--accent-2);
   color: #fff;
+}
+
+.trip-map--tall {
+  min-height: 360px;
+}
+
+.safe-zone-pin {
+  width: 34px;
+  height: 34px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: linear-gradient(145deg, #66bb6a, #2e7d32);
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.safe-zone-pin--inactive {
+  background: linear-gradient(145deg, #b0bec5, #78909c);
+  box-shadow: 0 4px 10px rgba(55, 71, 79, 0.35);
+}
+
+.safe-zone-pin__icon {
+  transform: rotate(45deg);
+  font-size: 16px;
+  line-height: 1;
 }
 
 .trip-map {

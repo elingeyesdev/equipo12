@@ -31,7 +31,18 @@ const state = {
   detailTripOriginMarker: null,
   detailTripDestinationMarker: null,
   tripDrivers: [],
-  isLoadingTripDrivers: false
+  isLoadingTripDrivers: false,
+  safeZones: [],
+  publicSafeZones: [],
+  safeZoneOverviewMap: null,
+  safeZoneOverviewMapReady: false,
+  safeZoneOverviewMarkers: [],
+  safeZoneEditMap: null,
+  safeZoneEditMapReady: false,
+  safeZoneDraftPoint: null,
+  safeZoneEditMarker: null,
+  createTripSafeZoneMarkers: [],
+  detailTripSafeZoneMarkers: []
 };
 
 const authShell = document.getElementById("authShell");
@@ -72,6 +83,17 @@ const supportFilterInput = document.getElementById("supportFilterInput");
 const supportStatusFilter = document.getElementById("supportStatusFilter");
 const supportCategoryFilter = document.getElementById("supportCategoryFilter");
 const supportReloadBtn = document.getElementById("supportReloadBtn");
+const adminSafeZonesBody = document.getElementById("adminSafeZonesBody");
+const safeZonesDataMessage = document.getElementById("safeZonesDataMessage");
+const safeZonesFilterInput = document.getElementById("safeZonesFilterInput");
+const safeZonesReloadBtn = document.getElementById("safeZonesReloadBtn");
+const safeZoneCreateBtn = document.getElementById("safeZoneCreateBtn");
+const safeZoneModalOverlay = document.getElementById("safeZoneModalOverlay");
+const safeZoneModalForm = document.getElementById("safeZoneModalForm");
+const safeZoneModalTitle = document.getElementById("safeZoneModalTitle");
+const safeZoneModalCloseBtn = document.getElementById("safeZoneModalCloseBtn");
+const safeZoneModalMessage = document.getElementById("safeZoneModalMessage");
+const safeZoneCoordsHint = document.getElementById("safeZoneCoordsHint");
 
 function getCreateTripMapContainer() {
   return createModalForm?.querySelector("#createTripMap") || null;
@@ -506,6 +528,10 @@ function openSection(section) {
   if (section === "settings" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
     loadThemeSettings();
   }
+
+  if (section === "safe-zones" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+    loadSafeZonesAdmin();
+  }
 }
 
 function getSectionMeta(section) {
@@ -537,6 +563,10 @@ function getSectionMeta(section) {
     settings: {
       name: "Ajustes",
       description: "Personaliza la identidad visual y los colores corporativos de tu negocio."
+    },
+    "safe-zones": {
+      name: "Zonas seguras",
+      description: "Administra paradas tranquilas visibles en el mapa de la app movil."
     }
   };
 
@@ -779,6 +809,8 @@ function destroyCreateTripMap() {
     state.tripDestinationMarker = null;
   }
 
+  clearSafeZoneMarkers(state.createTripSafeZoneMarkers);
+
   if (state.tripMap) {
     state.tripMap.remove();
     state.tripMap = null;
@@ -965,6 +997,7 @@ function initializeCreateTripMap() {
     state.tripMapReady = true;
     updateCreateTripMapPanels();
     updateCreateTripMapLayers();
+    void refreshPublicSafeZoneMarkersOnMap(state.tripMap, "createTripSafeZoneMarkers");
 
     if (navigator.geolocation && !state.tripOrigin && !state.tripDestination) {
       navigator.geolocation.getCurrentPosition((position) => {
@@ -1091,6 +1124,8 @@ function destroyDetailTripMap() {
     state.detailTripDestinationMarker.remove();
     state.detailTripDestinationMarker = null;
   }
+
+  clearSafeZoneMarkers(state.detailTripSafeZoneMarkers);
 
   if (state.detailTripMap) {
     state.detailTripMap.remove();
@@ -1240,6 +1275,7 @@ function initializeDetailTripMap(trip) {
   state.detailTripMap.on("load", () => {
     state.detailTripMapReady = true;
     updateDetailTripMapLayers(trip);
+    void refreshPublicSafeZoneMarkersOnMap(state.detailTripMap, "detailTripSafeZoneMarkers");
   });
 }
 
@@ -2551,6 +2587,436 @@ document.getElementById("themeSettingsForm")?.addEventListener("submit", async (
     setMessage(messageEl, "¡Colores guardados exitosamente! Se han propagado al sistema.", "success");
   } catch (error) {
     setMessage(messageEl, `Error al guardar los colores: ${error.message}`, "error");
+  }
+});
+
+function createSafeZoneMarkerElement(isActive = true) {
+  const element = document.createElement("div");
+  element.className = isActive ? "safe-zone-pin" : "safe-zone-pin safe-zone-pin--inactive";
+  element.innerHTML = '<span class="safe-zone-pin__icon">🛡️</span>';
+  return element;
+}
+
+function clearSafeZoneMarkers(markers) {
+  markers.forEach((marker) => marker.remove());
+  markers.length = 0;
+}
+
+async function ensurePublicSafeZonesLoaded() {
+  if (state.publicSafeZones.length) {
+    return state.publicSafeZones;
+  }
+
+  const zones = await apiFetch("/api/safe-zones");
+  state.publicSafeZones = Array.isArray(zones) ? zones : [];
+  return state.publicSafeZones;
+}
+
+async function refreshPublicSafeZoneMarkersOnMap(map, markersKey) {
+  if (!map || typeof mapboxgl === "undefined") {
+    return;
+  }
+
+  const markers = state[markersKey];
+  if (!markers) {
+    return;
+  }
+
+  clearSafeZoneMarkers(markers);
+
+  try {
+    const zones = await ensurePublicSafeZonesLoaded();
+    zones.filter((zone) => zone.isActive !== false).forEach((zone) => {
+      const marker = new mapboxgl.Marker({
+        element: createSafeZoneMarkerElement(true),
+        anchor: "bottom"
+      })
+        .setLngLat([zone.longitude, zone.latitude])
+        .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(
+          `<strong>${escapeHtml(zone.name)}</strong><br/><small>${escapeHtml(zone.purposeLabel || "")}</small>`
+        ))
+        .addTo(map);
+      markers.push(marker);
+    });
+  } catch (error) {
+    console.warn("No se pudieron cargar zonas seguras en el mapa:", error.message);
+  }
+}
+
+function getSafeZonePurposeLabel(purpose) {
+  const value = Number(purpose);
+  if (value === 1) {
+    return "Solo recogida";
+  }
+  if (value === 2) {
+    return "Solo destino";
+  }
+  return "Recogida y destino";
+}
+
+function renderSafeZonesTable(zones) {
+  if (!adminSafeZonesBody) {
+    return;
+  }
+
+  if (!zones.length) {
+    adminSafeZonesBody.innerHTML = `<tr><td colspan="6">No hay zonas seguras registradas.</td></tr>`;
+    return;
+  }
+
+  adminSafeZonesBody.innerHTML = zones.map((zone) => `
+    <tr data-search="${escapeHtml(`${zone.name} ${zone.campusArea || ""} ${zone.addressLabel || ""}`.toLowerCase())}">
+      <td>${escapeHtml(zone.name)}</td>
+      <td>${escapeHtml(zone.campusArea || "-")}</td>
+      <td>${escapeHtml(zone.purposeLabel || getSafeZonePurposeLabel(zone.purpose))}</td>
+      <td>${zone.isActive ? "Activa" : "Inactiva"}</td>
+      <td>${zone.latitude?.toFixed?.(5) ?? zone.latitude}, ${zone.longitude?.toFixed?.(5) ?? zone.longitude}</td>
+      <td class="table-actions">
+        <button type="button" class="btn tiny" data-safe-zone-action="edit" data-id="${zone.id}">Editar</button>
+        <button type="button" class="btn tiny danger" data-safe-zone-action="delete" data-id="${zone.id}">Eliminar</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function applySafeZonesTableFilter() {
+  applyTableFilter("adminSafeZonesBody", safeZonesFilterInput?.value || "");
+}
+
+async function loadSafeZonesAdmin() {
+  if (!safeZonesDataMessage) {
+    return;
+  }
+
+  setMessage(safeZonesDataMessage, "Cargando zonas seguras...", "");
+
+  try {
+    const zones = await apiFetch("/api/admin/safe-zones", {
+      headers: getAdminHeaders()
+    });
+    state.safeZones = Array.isArray(zones) ? zones : [];
+    state.publicSafeZones = state.safeZones.filter((zone) => zone.isActive);
+    renderSafeZonesTable(state.safeZones);
+    applySafeZonesTableFilter();
+    setMessage(safeZonesDataMessage, `${state.safeZones.length} zona(s) cargada(s).`, "success");
+    window.requestAnimationFrame(() => initializeSafeZonesOverviewMap());
+  } catch (error) {
+    state.safeZones = [];
+    renderSafeZonesTable([]);
+    setMessage(safeZonesDataMessage, error.message, "error");
+  }
+}
+
+function destroySafeZonesOverviewMap() {
+  clearSafeZoneMarkers(state.safeZoneOverviewMarkers);
+  if (state.safeZoneOverviewMap) {
+    state.safeZoneOverviewMap.remove();
+    state.safeZoneOverviewMap = null;
+  }
+  state.safeZoneOverviewMapReady = false;
+}
+
+function renderSafeZonesOnOverviewMap() {
+  if (!state.safeZoneOverviewMap || !state.safeZoneOverviewMapReady) {
+    return;
+  }
+
+  clearSafeZoneMarkers(state.safeZoneOverviewMarkers);
+
+  state.safeZones.forEach((zone) => {
+    const marker = new mapboxgl.Marker({
+      element: createSafeZoneMarkerElement(zone.isActive),
+      anchor: "bottom"
+    })
+      .setLngLat([zone.longitude, zone.latitude])
+      .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(
+        `<strong>${escapeHtml(zone.name)}</strong><br/><small>${escapeHtml(zone.purposeLabel || getSafeZonePurposeLabel(zone.purpose))}</small>`
+      ))
+      .addTo(state.safeZoneOverviewMap);
+    state.safeZoneOverviewMarkers.push(marker);
+  });
+
+  if (state.safeZones.length) {
+    const bounds = new mapboxgl.LngLatBounds();
+    state.safeZones.forEach((zone) => bounds.extend([zone.longitude, zone.latitude]));
+    state.safeZoneOverviewMap.fitBounds(bounds, { padding: 48, maxZoom: 14 });
+  }
+}
+
+function initializeSafeZonesOverviewMap() {
+  const container = document.getElementById("safeZonesOverviewMap");
+  if (!container || typeof mapboxgl === "undefined") {
+    return;
+  }
+
+  if (state.safeZoneOverviewMap) {
+    renderSafeZonesOnOverviewMap();
+    return;
+  }
+
+  mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+  const fallbackCenter = state.safeZones[0]
+    ? [state.safeZones[0].longitude, state.safeZones[0].latitude]
+    : [-74.0721, 4.7110];
+
+  state.safeZoneOverviewMap = new mapboxgl.Map({
+    container,
+    style: "mapbox://styles/mapbox/streets-v12",
+    center: fallbackCenter,
+    zoom: 12
+  });
+
+  state.safeZoneOverviewMap.addControl(new mapboxgl.NavigationControl(), "top-right");
+  state.safeZoneOverviewMap.on("load", () => {
+    state.safeZoneOverviewMapReady = true;
+    renderSafeZonesOnOverviewMap();
+  });
+}
+
+function destroySafeZoneEditMap() {
+  if (state.safeZoneEditMarker) {
+    state.safeZoneEditMarker.remove();
+    state.safeZoneEditMarker = null;
+  }
+
+  if (state.safeZoneEditMap) {
+    state.safeZoneEditMap.remove();
+    state.safeZoneEditMap = null;
+  }
+
+  state.safeZoneEditMapReady = false;
+  state.safeZoneDraftPoint = null;
+}
+
+function updateSafeZoneCoordsHint() {
+  if (!safeZoneCoordsHint) {
+    return;
+  }
+
+  if (!state.safeZoneDraftPoint) {
+    safeZoneCoordsHint.textContent = "Coordenadas: sin definir";
+    return;
+  }
+
+  safeZoneCoordsHint.textContent = `Coordenadas: ${state.safeZoneDraftPoint.lat.toFixed(6)}, ${state.safeZoneDraftPoint.lng.toFixed(6)}`;
+}
+
+function updateSafeZoneEditMapMarker() {
+  if (!state.safeZoneEditMap || !state.safeZoneDraftPoint) {
+    return;
+  }
+
+  const coordinates = [state.safeZoneDraftPoint.lng, state.safeZoneDraftPoint.lat];
+  if (!state.safeZoneEditMarker) {
+    state.safeZoneEditMarker = new mapboxgl.Marker({
+      element: createSafeZoneMarkerElement(true),
+      anchor: "bottom",
+      draggable: true
+    })
+      .setLngLat(coordinates)
+      .addTo(state.safeZoneEditMap);
+
+    state.safeZoneEditMarker.on("dragend", () => {
+      const lngLat = state.safeZoneEditMarker.getLngLat();
+      state.safeZoneDraftPoint = {
+        lng: Number(lngLat.lng.toFixed(6)),
+        lat: Number(lngLat.lat.toFixed(6))
+      };
+      updateSafeZoneCoordsHint();
+    });
+  } else {
+    state.safeZoneEditMarker.setLngLat(coordinates);
+  }
+}
+
+function initializeSafeZoneEditMap() {
+  const container = document.getElementById("safeZoneEditMap");
+  if (!container || typeof mapboxgl === "undefined") {
+    setMessage(safeZoneModalMessage, "El mapa no pudo inicializarse.", "error");
+    return;
+  }
+
+  destroySafeZoneEditMap();
+  mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+
+  const fallbackCenter = state.safeZoneDraftPoint
+    ? [state.safeZoneDraftPoint.lng, state.safeZoneDraftPoint.lat]
+    : [-74.0721, 4.7110];
+
+  state.safeZoneEditMap = new mapboxgl.Map({
+    container,
+    style: "mapbox://styles/mapbox/streets-v12",
+    center: fallbackCenter,
+    zoom: 13
+  });
+
+  state.safeZoneEditMap.addControl(new mapboxgl.NavigationControl(), "top-right");
+  state.safeZoneEditMap.on("load", () => {
+    state.safeZoneEditMapReady = true;
+    updateSafeZoneEditMapMarker();
+  });
+
+  state.safeZoneEditMap.on("click", (event) => {
+    state.safeZoneDraftPoint = {
+      lng: Number(event.lngLat.lng.toFixed(6)),
+      lat: Number(event.lngLat.lat.toFixed(6))
+    };
+    updateSafeZoneCoordsHint();
+    updateSafeZoneEditMapMarker();
+  });
+}
+
+function openSafeZoneModal(zone = null) {
+  if (!safeZoneModalOverlay || !safeZoneModalForm) {
+    return;
+  }
+
+  destroySafeZoneEditMap();
+  setMessage(safeZoneModalMessage, "");
+
+  const isEdit = Boolean(zone);
+  safeZoneModalTitle.textContent = isEdit ? "Editar zona segura" : "Nueva zona segura";
+  document.getElementById("safeZoneEditId").value = isEdit ? zone.id : "";
+  document.getElementById("safeZoneName").value = zone?.name || "";
+  document.getElementById("safeZoneCampusArea").value = zone?.campusArea || "";
+  document.getElementById("safeZoneDescription").value = zone?.description || "";
+  document.getElementById("safeZonePurpose").value = String(zone?.purpose ?? 0);
+  document.getElementById("safeZoneDisplayOrder").value = String(zone?.displayOrder ?? 0);
+  document.getElementById("safeZoneIsActive").checked = zone?.isActive !== false;
+
+  state.safeZoneDraftPoint = zone
+    ? { lat: zone.latitude, lng: zone.longitude }
+    : null;
+  updateSafeZoneCoordsHint();
+
+  safeZoneModalOverlay.classList.remove("hidden");
+  safeZoneModalOverlay.setAttribute("aria-hidden", "false");
+
+  window.requestAnimationFrame(() => initializeSafeZoneEditMap());
+}
+
+function closeSafeZoneModal() {
+  destroySafeZoneEditMap();
+  if (safeZoneModalOverlay) {
+    safeZoneModalOverlay.classList.add("hidden");
+    safeZoneModalOverlay.setAttribute("aria-hidden", "true");
+  }
+  setMessage(safeZoneModalMessage, "");
+}
+
+async function deleteSafeZone(id) {
+  const confirmed = confirm("Eliminar esta zona segura? Los usuarios dejaran de verla en el mapa.");
+  if (!confirmed) {
+    return;
+  }
+
+  await apiFetch(`/api/admin/safe-zones/${id}`, {
+    method: "DELETE",
+    headers: getAdminHeaders()
+  });
+
+  state.publicSafeZones = [];
+  await loadSafeZonesAdmin();
+}
+
+safeZonesReloadBtn?.addEventListener("click", () => loadSafeZonesAdmin());
+safeZoneCreateBtn?.addEventListener("click", () => openSafeZoneModal());
+safeZonesFilterInput?.addEventListener("input", applySafeZonesTableFilter);
+safeZoneModalCloseBtn?.addEventListener("click", closeSafeZoneModal);
+
+safeZoneModalOverlay?.addEventListener("click", (event) => {
+  if (event.target === safeZoneModalOverlay) {
+    closeSafeZoneModal();
+  }
+});
+
+safeZoneModalForm?.addEventListener("click", (event) => {
+  const action = event.target.closest("[data-safe-zone-action]")?.dataset.safeZoneAction;
+  if (action === "cancel") {
+    closeSafeZoneModal();
+  }
+  if (action === "clear-point") {
+    state.safeZoneDraftPoint = null;
+    if (state.safeZoneEditMarker) {
+      state.safeZoneEditMarker.remove();
+      state.safeZoneEditMarker = null;
+    }
+    updateSafeZoneCoordsHint();
+  }
+});
+
+safeZoneModalForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const id = document.getElementById("safeZoneEditId")?.value.trim() || "";
+  const name = document.getElementById("safeZoneName")?.value.trim() || "";
+  const campusArea = document.getElementById("safeZoneCampusArea")?.value.trim() || null;
+  const description = document.getElementById("safeZoneDescription")?.value.trim() || null;
+  const purpose = Number(document.getElementById("safeZonePurpose")?.value || 0);
+  const displayOrder = Number(document.getElementById("safeZoneDisplayOrder")?.value || 0);
+  const isActive = document.getElementById("safeZoneIsActive")?.checked ?? true;
+
+  if (!name) {
+    setMessage(safeZoneModalMessage, "El nombre es obligatorio.", "error");
+    return;
+  }
+
+  if (!state.safeZoneDraftPoint) {
+    setMessage(safeZoneModalMessage, "Marca la ubicacion en el mapa.", "error");
+    return;
+  }
+
+  const payload = {
+    name,
+    description,
+    campusArea,
+    purpose,
+    displayOrder,
+    isActive,
+    latitude: state.safeZoneDraftPoint.lat,
+    longitude: state.safeZoneDraftPoint.lng
+  };
+
+  try {
+    if (id) {
+      await apiFetch(`/api/admin/safe-zones/${id}`, {
+        method: "PUT",
+        headers: getAdminHeaders(),
+        body: JSON.stringify(payload)
+      });
+    } else {
+      await apiFetch("/api/admin/safe-zones", {
+        method: "POST",
+        headers: getAdminHeaders(),
+        body: JSON.stringify(payload)
+      });
+    }
+
+    state.publicSafeZones = [];
+    closeSafeZoneModal();
+    await loadSafeZonesAdmin();
+  } catch (error) {
+    setMessage(safeZoneModalMessage, error.message, "error");
+  }
+});
+
+document.addEventListener("click", (event) => {
+  const safeZoneButton = event.target.closest("[data-safe-zone-action]");
+  if (!safeZoneButton || !safeZoneButton.dataset.id) {
+    return;
+  }
+
+  const zone = state.safeZones.find((item) => String(item.id) === String(safeZoneButton.dataset.id));
+  if (!zone) {
+    return;
+  }
+
+  if (safeZoneButton.dataset.safeZoneAction === "edit") {
+    openSafeZoneModal(zone);
+  }
+
+  if (safeZoneButton.dataset.safeZoneAction === "delete") {
+    deleteSafeZone(zone.id).catch((error) => setMessage(safeZonesDataMessage, error.message, "error"));
   }
 });
 

@@ -19,6 +19,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<TripRating> TripRatings => Set<TripRating>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    public DbSet<SafeZone> SafeZones => Set<SafeZone>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureTripRating(modelBuilder);
         ConfigureSupportTicket(modelBuilder);
         ConfigureAppSetting(modelBuilder);
+        ConfigureSafeZone(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -386,6 +388,28 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.HasKey(s => s.Key);
             entity.Property(s => s.Key).HasMaxLength(100);
             entity.Property(s => s.Value).IsRequired().HasMaxLength(2000);
+        });
+    }
+
+    private static void ConfigureSafeZone(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SafeZone>(entity =>
+        {
+            entity.ToTable("SafeZones");
+            entity.HasKey(z => z.Id);
+            entity.Property(z => z.Name).IsRequired().HasMaxLength(120);
+            entity.Property(z => z.Description).HasMaxLength(400);
+            entity.Property(z => z.Latitude).IsRequired();
+            entity.Property(z => z.Longitude).IsRequired();
+            entity.Property(z => z.AddressLabel).HasMaxLength(200);
+            entity.Property(z => z.Purpose).HasConversion<int>().HasDefaultValue(SafeZonePurpose.Both).IsRequired();
+            entity.Property(z => z.IsActive).HasDefaultValue(true).IsRequired();
+            entity.Property(z => z.DisplayOrder).HasDefaultValue(0);
+            entity.Property(z => z.CampusArea).HasMaxLength(80);
+            entity.Property(z => z.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(z => z.UpdatedAt);
+            entity.HasIndex(z => z.IsActive);
+            entity.HasIndex(z => z.DisplayOrder);
         });
     }
 }
