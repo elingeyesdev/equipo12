@@ -154,7 +154,7 @@ public class MainActivity extends BaseActivity {
     private Bitmap destinationMarkerBitmap;
     private Bitmap safeZoneMarkerBitmap;
     private final List<PointAnnotation> safeZoneAnnotations = new ArrayList<>();
-    private final Map<Long, SafeZoneItem> safeZoneByAnnotationId = new HashMap<>();
+    private final Map<String, SafeZoneItem> safeZoneByAnnotationId = new HashMap<>();
     private boolean safeZonesLoaded;
     private boolean safeZoneClickListenerRegistered;
     private DrawerLayout drawerLayout;

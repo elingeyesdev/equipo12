@@ -2,6 +2,7 @@ package com.example.proyectocarpooling.data.remote;
 
 import com.example.proyectocarpooling.data.model.SafeZoneItem;
 
+import org.json.JSONException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -52,22 +53,26 @@ public class SafeZonesRemoteDataSource {
             }
 
             String body = response.body().string();
-            JSONArray array = new JSONArray(body);
-            List<SafeZoneItem> zones = new ArrayList<>(array.length());
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject item = array.getJSONObject(i);
-                zones.add(new SafeZoneItem(
-                        item.optString("id", ""),
-                        item.optString("name", "Zona segura"),
-                        item.optString("description", null),
-                        item.optDouble("latitude", 0d),
-                        item.optDouble("longitude", 0d),
-                        item.optString("addressLabel", null),
-                        item.optInt("purpose", 0),
-                        item.optString("purposeLabel", "")
-                ));
+            try {
+                JSONArray array = new JSONArray(body);
+                List<SafeZoneItem> zones = new ArrayList<>(array.length());
+                for (int i = 0; i < array.length(); i++) {
+                    JSONObject item = array.getJSONObject(i);
+                    zones.add(new SafeZoneItem(
+                            item.optString("id", ""),
+                            item.optString("name", "Zona segura"),
+                            item.optString("description", null),
+                            item.optDouble("latitude", 0d),
+                            item.optDouble("longitude", 0d),
+                            item.optString("addressLabel", null),
+                            item.optInt("purpose", 0),
+                            item.optString("purposeLabel", "")
+                    ));
+                }
+                return zones;
+            } catch (JSONException exception) {
+                throw new IOException("La respuesta de zonas seguras no tiene un formato JSON válido", exception);
             }
-            return zones;
         }
     }
 }

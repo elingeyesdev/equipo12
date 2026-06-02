@@ -20,6 +20,10 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<SafeZone> SafeZones => Set<SafeZone>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +42,10 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureSupportTicket(modelBuilder);
         ConfigureAppSetting(modelBuilder);
         ConfigureSafeZone(modelBuilder);
+        ConfigureRole(modelBuilder);
+        ConfigurePermission(modelBuilder);
+        ConfigureUserRole(modelBuilder);
+        ConfigureRolePermission(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -132,8 +140,12 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(u => u.Email).IsRequired().HasMaxLength(120);
             entity.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256);
             entity.Property(u => u.PhoneNumber).HasMaxLength(25);
-            entity.Property(u => u.Role).HasConversion<int>().HasDefaultValue(UserRole.Student).IsRequired();
             entity.Property(u => u.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasMany(u => u.UserRoles)
+                .WithOne(ur => ur.User)
+                .HasForeignKey(ur => ur.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(u => u.DriverProfile)
                 .WithOne(p => p.User)
@@ -410,6 +422,66 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(z => z.UpdatedAt);
             entity.HasIndex(z => z.IsActive);
             entity.HasIndex(z => z.DisplayOrder);
+        });
+    }
+    private static void ConfigureRole(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("Roles");
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Name).IsRequired().HasMaxLength(100);
+            entity.Property(r => r.Description).HasMaxLength(500);
+            entity.Property(r => r.IsSystemRole).HasDefaultValue(false);
+        });
+    }
+
+    private static void ConfigurePermission(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.ToTable("Permissions");
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Name).IsRequired().HasMaxLength(120);
+            entity.Property(p => p.GroupName).IsRequired().HasMaxLength(120);
+        });
+    }
+
+    private static void ConfigureUserRole(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserRole>(entity =>
+        {
+            entity.ToTable("UserRoles");
+            entity.HasKey(ur => new { ur.UserId, ur.RoleId });
+
+            entity.HasOne(ur => ur.User)
+                .WithMany(u => u.UserRoles)
+                .HasForeignKey(ur => ur.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(ur => ur.Role)
+                .WithMany(r => r.UserRoles)
+                .HasForeignKey(ur => ur.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
+
+    private static void ConfigureRolePermission(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.ToTable("RolePermissions");
+            entity.HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+            entity.HasOne(rp => rp.Role)
+                .WithMany(r => r.RolePermissions)
+                .HasForeignKey(rp => rp.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rp => rp.Permission)
+                .WithMany(p => p.RolePermissions)
+                .HasForeignKey(rp => rp.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

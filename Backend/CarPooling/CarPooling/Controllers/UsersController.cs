@@ -24,8 +24,14 @@ public class UsersController(CarPoolingContext context,
     public async Task<ActionResult<UserResponseDto>> RegisterAsync([FromBody] RegisterUserDto dto)
     {
         var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-        if (!TryParseUserRole(dto.Role, out var parsedRole))
-            return BadRequest("Rol invalido.");
+        
+        string dynamicRoleName = dto.Role?.Trim().ToLowerInvariant() == "driver" ? "Driver" : "Student";
+        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == dynamicRoleName);
+        if (role == null)
+        {
+            return BadRequest("El rol especificado no existe en el sistema.");
+        }
+
         if (!normalizedEmail.EndsWith(AllowedDomain, StringComparison.OrdinalIgnoreCase))
             return BadRequest("Solo correos @univalle.edu");
         if (await _context.Users.AnyAsync(u => u.Email == normalizedEmail))
@@ -37,13 +43,14 @@ public class UsersController(CarPoolingContext context,
             FullName = dto.FullName.Trim(),
             Email = normalizedEmail,
             PasswordHash = HashPassword(dto.Password),
-            PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim(),
-            Role = parsedRole
+            PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim()
         };
 
         _context.Users.Add(user);
+        
+        _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
 
-        if (parsedRole == UserRole.Driver)
+        if (dynamicRoleName == "Driver")
         {
             if (dto.DriverProfile is null)
                 return BadRequest("Chofer debe enviar datos de vehiculo.");
@@ -53,6 +60,9 @@ public class UsersController(CarPoolingContext context,
         await _context.SaveChangesAsync();
         user.DriverProfile = await _context.DriverProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
         user.Vehicles = await _vehicleService.GetAllForDriverAsync(user.Id);
+        
+        // Load UserRoles and Roles for mapper
+        await _context.Entry(user).Collection(u => u.UserRoles).Query().Include(ur => ur.Role).LoadAsync();
 
         return CreatedAtRoute("GetUserById", new { id = user.Id }, UserResponseDto.FromEntity(user));
     }
@@ -68,6 +78,8 @@ public class UsersController(CarPoolingContext context,
         var user = await _context.Users
             .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == normalizedEmail && u.PasswordHash == incomingHash);
 
@@ -81,6 +93,8 @@ public class UsersController(CarPoolingContext context,
         var user = await _context.Users
             .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null) return NotFound();
 
@@ -94,15 +108,36 @@ public class UsersController(CarPoolingContext context,
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
 
-        if (!string.IsNullOrWhiteSpace(dto.Role) && TryParseUserRole(dto.Role, out var pr))
+        bool isCurrentlyDriver = user.DriverProfile != null;
+        bool wantsToBeDriver = !string.IsNullOrWhiteSpace(dto.Role) 
+            ? (dto.Role.Trim().ToLowerInvariant() == "driver") 
+            : isCurrentlyDriver;
+
+        if (!string.IsNullOrWhiteSpace(dto.Role))
         {
-            var changing = pr != user.Role;
+            bool changing = wantsToBeDriver != isCurrentlyDriver;
             if (changing && !dto.RoleChangeRequested && !IsAdminOverride())
                 return BadRequest("Cambio de rol requiere confirmacion.");
-            if (changing) user.Role = pr;
+
+            if (changing)
+            {
+                var newRoleName = wantsToBeDriver ? "Driver" : "Student";
+                var newRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == newRoleName);
+                if (newRole != null)
+                {
+                    var rolesToRemove = user.UserRoles
+                        .Where(ur => ur.Role != null && (ur.Role.Name == "Student" || ur.Role.Name == "Driver"))
+                        .ToList();
+                    foreach (var r in rolesToRemove)
+                    {
+                        _context.UserRoles.Remove(r);
+                    }
+                    _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = newRole.Id });
+                }
+            }
         }
 
-        if (user.Role == UserRole.Driver)
+        if (wantsToBeDriver)
         {
             if (dto.DriverProfile is not null)
                 await _driverService.UpsertProfileAsync(user.Id, dto.DriverProfile);
@@ -131,7 +166,10 @@ public class UsersController(CarPoolingContext context,
     public async Task<ActionResult<UserResponseDto>> GetByIdAsync(Guid id)
     {
         var user = await _context.Users
-            .Include(u => u.DriverProfile).Include(u => u.Vehicles)
+            .Include(u => u.DriverProfile)
+            .Include(u => u.Vehicles)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
             .AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
         if (user is null) return NotFound();
         return Ok(UserResponseDto.FromEntity(user));
@@ -141,7 +179,10 @@ public class UsersController(CarPoolingContext context,
     public async Task<ActionResult<UserResponseDto>> GetByEmailAsync(string email)
     {
         var user = await _context.Users
-            .Include(u => u.DriverProfile).Include(u => u.Vehicles)
+            .Include(u => u.DriverProfile)
+            .Include(u => u.Vehicles)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
             .AsNoTracking().FirstOrDefaultAsync(u => u.Email == email.Trim().ToLowerInvariant());
         if (user is null) return NotFound();
         return Ok(UserResponseDto.FromEntity(user));
@@ -156,14 +197,5 @@ public class UsersController(CarPoolingContext context,
     private bool IsAdminOverride() =>
         Request.Headers.TryGetValue("X-Admin-Override", out var v) && v.ToString().Trim().ToLowerInvariant() is "true" or "1" or "yes";
 
-    private static bool TryParseUserRole(string? r, out UserRole role)
-    {
-        role = (r?.Trim().ToLowerInvariant()) switch
-        {
-            "driver" or "chofer" or "2" => UserRole.Driver,
-            "admin" or "administrador" or "3" => UserRole.Admin,
-            _ => UserRole.Student
-        };
-        return true;
-    }
+
 }

@@ -103,6 +103,27 @@ namespace CarPooling.Migrations
                     b.ToTable("Locations", (string)null);
                 });
 
+            modelBuilder.Entity("CarPooling.Models.Permission", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("GroupName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Permissions", (string)null);
+                });
+
             modelBuilder.Entity("CarPooling.Models.Reservation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -190,6 +211,48 @@ namespace CarPooling.Migrations
                             Code = "cancelled",
                             LabelEs = "Cancelado"
                         });
+                });
+
+            modelBuilder.Entity("CarPooling.Models.Role", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsSystemRole")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Roles", (string)null);
+                });
+
+            modelBuilder.Entity("CarPooling.Models.RolePermission", b =>
+                {
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PermissionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("RoleId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("RolePermissions", (string)null);
                 });
 
             modelBuilder.Entity("CarPooling.Models.SafeZone", b =>
@@ -607,17 +670,27 @@ namespace CarPooling.Migrations
                         .HasMaxLength(25)
                         .HasColumnType("nvarchar(25)");
 
-                    b.Property<int>("Role")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
-
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
                         .IsUnique();
 
                     b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("CarPooling.Models.UserRole", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("CarPooling.Models.Vehicle", b =>
@@ -715,6 +788,25 @@ namespace CarPooling.Migrations
                     b.Navigation("StatusEntity");
 
                     b.Navigation("Trip");
+                });
+
+            modelBuilder.Entity("CarPooling.Models.RolePermission", b =>
+                {
+                    b.HasOne("CarPooling.Models.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarPooling.Models.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("CarPooling.Models.SupportTicket", b =>
@@ -859,6 +951,25 @@ namespace CarPooling.Migrations
                     b.Navigation("Trip");
                 });
 
+            modelBuilder.Entity("CarPooling.Models.UserRole", b =>
+                {
+                    b.HasOne("CarPooling.Models.Role", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarPooling.Models.User", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CarPooling.Models.Vehicle", b =>
                 {
                     b.HasOne("CarPooling.Models.User", "OwnerUser")
@@ -870,9 +981,21 @@ namespace CarPooling.Migrations
                     b.Navigation("OwnerUser");
                 });
 
+            modelBuilder.Entity("CarPooling.Models.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
             modelBuilder.Entity("CarPooling.Models.ReservationStatusEntity", b =>
                 {
                     b.Navigation("Reservations");
+                });
+
+            modelBuilder.Entity("CarPooling.Models.Role", b =>
+                {
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("CarPooling.Models.Trip", b =>
@@ -900,6 +1023,8 @@ namespace CarPooling.Migrations
                     b.Navigation("DriverProfile");
 
                     b.Navigation("Trips");
+
+                    b.Navigation("UserRoles");
 
                     b.Navigation("Vehicles");
                 });

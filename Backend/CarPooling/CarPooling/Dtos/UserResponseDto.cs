@@ -18,18 +18,28 @@ public class UserResponseDto
     {
         Vehicle? activeVehicle = user.Vehicles?.FirstOrDefault(v => v.IsActive);
 
+        string mappedRole = "student";
+        int mappedRoleId = 1;
+
+        if (user.DriverProfile is not null)
+        {
+            mappedRole = "driver";
+            mappedRoleId = 2;
+        }
+        else if (user.UserRoles != null && user.UserRoles.Any(ur => ur.Role != null && (ur.Role.Name == "SuperAdmin" || ur.Role.Name == "Admin" || ur.Role.Name == "Analyst" || ur.Role.RolePermissions.Any())))
+        {
+            mappedRole = "admin";
+            mappedRoleId = 3;
+        }
+
         return new UserResponseDto
         {
             Id = user.Id,
             FullName = user.FullName,
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
-            Role = user.Role == UserRole.Driver
-                ? "driver"
-                : user.Role == UserRole.Admin
-                    ? "admin"
-                    : "student",
-            RoleId = (int)user.Role,
+            Role = mappedRole,
+            RoleId = mappedRoleId,
             DriverProfile = user.DriverProfile is null
                 ? null
                 : DriverProfileDto.FromEntity(user.DriverProfile, activeVehicle),

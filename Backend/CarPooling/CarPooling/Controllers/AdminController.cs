@@ -2,6 +2,7 @@ using CarPooling.Data;
 using CarPooling.Dtos;
 using CarPooling.Models;
 using CarPooling.Services;
+using CarPooling.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,13 +11,14 @@ namespace CarPooling.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class AdminController(CarPoolingContext context, SupportTicketService supportTicketService) : ControllerBase
 {
     private readonly CarPoolingContext _context = context;
     private readonly SupportTicketService _supportTicketService = supportTicketService;
 
     [HttpGet("users")]
+    [RequirePermission(AppPermissions.ReadUsers)]
     public async Task<ActionResult<IReadOnlyList<UserResponseDto>>> GetAllUsersAsync(
         [FromQuery] string? name,
         [FromQuery] string? email)
@@ -24,6 +26,8 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
         var usersQuery = _context.Users
             .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
             .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(name))
@@ -46,10 +50,13 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpPut("users/{id:guid}")]
+    [RequirePermission(AppPermissions.WriteUsers)]
     public async Task<ActionResult<UserResponseDto>> UpdateUserAsync(Guid id, [FromBody] AdminUpdateUserDto dto)
     {
         var user = await _context.Users
             .Include(u => u.DriverProfile)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null)
         {
@@ -68,17 +75,41 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
             return Conflict("El email ingresado ya esta en uso por otro usuario.");
         }
 
-        if (!TryParseAdminRoleId(dto.RoleId, out var role))
+        Role? targetRole = null;
+        if (dto.CustomRoleId.HasValue && dto.CustomRoleId.Value != Guid.Empty)
         {
-            return BadRequest("RoleId invalido. Usa 1 (student), 2 (driver) o 3 (admin).");
+            targetRole = await _context.Roles.FirstOrDefaultAsync(r => r.Id == dto.CustomRoleId.Value);
+        }
+        else
+        {
+            string roleName = dto.RoleId switch
+            {
+                1 => "Student",
+                2 => "Driver",
+                3 => "SuperAdmin",
+                _ => "Student"
+            };
+            targetRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
+        }
+
+        if (targetRole == null)
+        {
+            return BadRequest("El Rol especificado no existe.");
         }
 
         user.FullName = dto.FullName.Trim();
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
-        user.Role = role;
 
-        if (role == UserRole.Driver)
+        // Clear existing and assign new role
+        var oldUserRoles = user.UserRoles.ToList();
+        foreach (var ur in oldUserRoles)
+        {
+            _context.UserRoles.Remove(ur);
+        }
+        _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = targetRole.Id });
+
+        if (targetRole.Name == "Driver")
         {
             if (user.DriverProfile is null)
             {
@@ -107,10 +138,14 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
 
         await _context.SaveChangesAsync();
 
+        // Force load vehicles for UserResponseDto
+        await _context.Entry(user).Collection(u => u.Vehicles).LoadAsync();
+
         return Ok(UserResponseDto.FromEntity(user));
     }
 
     [HttpDelete("users/{id:guid}")]
+    [RequirePermission(AppPermissions.DeleteUsers)]
     public async Task<IActionResult> DeleteUserAsync(Guid id)
     {
         var user = await _context.Users
@@ -128,6 +163,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpGet("trips")]
+    [RequirePermission(AppPermissions.ReadTrips)]
     public async Task<ActionResult<IReadOnlyList<TripResponse>>> GetAllTripsAsync()
     {
         var trips = await _context.Trips
@@ -142,6 +178,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpPut("trips/{id:guid}")]
+    [RequirePermission(AppPermissions.WriteTrips)]
     public async Task<ActionResult<TripResponse>> UpdateTripAsync(Guid id, [FromBody] AdminUpdateTripDto dto)
     {
         var trip = await _context.Trips
@@ -214,6 +251,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpDelete("trips/{id:guid}")]
+    [RequirePermission(AppPermissions.DeleteTrips)]
     public async Task<IActionResult> DeleteTripAsync(Guid id)
     {
         var trip = await _context.Trips.FirstOrDefaultAsync(t => t.Id == id);
@@ -235,6 +273,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpGet("reservations")]
+    [RequirePermission(AppPermissions.ReadReservations)]
     public async Task<ActionResult<IReadOnlyList<ReservationDto>>> GetAllReservationsAsync()
     {
         var reservations = await _context.Reservations
@@ -248,6 +287,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpPut("reservations/{id:guid}")]
+    [RequirePermission(AppPermissions.WriteReservations)]
     public async Task<ActionResult<ReservationDto>> UpdateReservationAsync(Guid id, [FromBody] AdminUpdateReservationDto dto)
     {
         var reservation = await _context.Reservations
@@ -286,6 +326,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpDelete("reservations/{id:guid}")]
+    [RequirePermission(AppPermissions.DeleteReservations)]
     public async Task<IActionResult> DeleteReservationAsync(Guid id)
     {
         var reservation = await _context.Reservations.FirstOrDefaultAsync(r => r.Id == id);
@@ -301,6 +342,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpGet("support-tickets")]
+    [RequirePermission(AppPermissions.ReadSupport)]
     public async Task<ActionResult<SupportTicketListResponseDto>> GetSupportTicketsAsync(
         [FromQuery] int? status,
         [FromQuery] int? category)
@@ -310,6 +352,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpGet("support-tickets/{id:guid}")]
+    [RequirePermission(AppPermissions.ReadSupport)]
     public async Task<ActionResult<SupportTicketResponseDto>> GetSupportTicketAsync(Guid id)
     {
         var ticket = await _supportTicketService.GetByIdForAdminAsync(id);
@@ -322,6 +365,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpPatch("support-tickets/{id:guid}/status")]
+    [RequirePermission(AppPermissions.WriteSupport)]
     public async Task<ActionResult<SupportTicketResponseDto>> UpdateSupportTicketStatusAsync(
         Guid id,
         [FromBody] AdminUpdateSupportTicketStatusDto dto)
@@ -342,11 +386,14 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
     }
 
     [HttpGet("all-data")]
+    [RequirePermission(AppPermissions.ViewMetrics)]
     public async Task<ActionResult<object>> GetAllDataAsync()
     {
         var users = await _context.Users
             .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
             .AsNoTracking()
             .OrderByDescending(u => u.CreatedAt)
             .ToListAsync();
@@ -379,18 +426,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
         return email.EndsWith("@univalle.edu", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool TryParseAdminRoleId(int roleId, out UserRole role)
-    {
-        role = roleId switch
-        {
-            1 => UserRole.Student,
-            2 => UserRole.Driver,
-            3 => UserRole.Admin,
-            _ => UserRole.Student
-        };
 
-        return roleId is 1 or 2 or 3;
-    }
 
     private static bool TryParseTripStatusId(string value, out int statusId)
     {
@@ -440,6 +476,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
         public string Email { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
         public int RoleId { get; set; }
+        public Guid? CustomRoleId { get; set; }
     }
 
     public sealed class AdminUpdateTripDto
