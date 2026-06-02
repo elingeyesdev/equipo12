@@ -56,6 +56,7 @@ import com.example.proyectocarpooling.presentation.support.ui.SupportActivity;
 import com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity;
 import com.example.proyectocarpooling.presentation.search.ui.SearchTripActivity;
 import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
+import com.example.proyectocarpooling.data.remote.search.MapboxGeocodingRemoteDataSource;
 // MainViewModel now in same package
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
 
@@ -136,6 +137,8 @@ public class MainActivity extends BaseActivity {
     private boolean isInitialPositionSet = false;
     private Point selectedOrigin;
     private Point selectedDestination;
+    private String selectedOriginAddress;
+    private String selectedDestinationAddress;
     private SelectionMode selectionMode = SelectionMode.NONE;
     private String activeTripId;
     private String lastTripStatusLabel;
@@ -296,6 +299,8 @@ public class MainActivity extends BaseActivity {
     private void restoreStateFromViewModel() {
         selectedOrigin = mainViewModel.getSelectedOrigin();
         selectedDestination = mainViewModel.getSelectedDestination();
+        selectedOriginAddress = mainViewModel.getSelectedOriginAddress();
+        selectedDestinationAddress = mainViewModel.getSelectedDestinationAddress();
         activeTripId = mainViewModel.getActiveTripId();
         lastTripStatusLabel = mainViewModel.getLastTripStatusLabel();
         activeTripAvailableSeats = mainViewModel.getActiveTripAvailableSeats();
@@ -305,6 +310,8 @@ public class MainActivity extends BaseActivity {
     private void syncSelectionStateToViewModel() {
         mainViewModel.setSelectedOrigin(selectedOrigin);
         mainViewModel.setSelectedDestination(selectedDestination);
+        mainViewModel.setSelectedOriginAddress(selectedOriginAddress);
+        mainViewModel.setSelectedDestinationAddress(selectedDestinationAddress);
     }
 
     private void syncTripStateToViewModel() {
@@ -565,8 +572,8 @@ public class MainActivity extends BaseActivity {
                                 if (passengerReservedDriverName == null || passengerReservedDriverName.isEmpty()) {
                                     passengerReservedDriverName = driverName;
                                 }
-                                selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
-                                selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+                                setSelectedOrigin(Point.fromLngLat(trip.originLongitude, trip.originLatitude), trip.originAddress);
+                                setSelectedDestination(Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude), trip.destinationAddress);
                                 syncSelectionStateToViewModel();
                                 updateCoordinateLabels();
                                 updateMapMarkers();
@@ -625,8 +632,8 @@ public class MainActivity extends BaseActivity {
                                         if (passengerReservedDriverName == null || passengerReservedDriverName.isEmpty()) {
                                             passengerReservedDriverName = sessionManager.getPassengerDriverName();
                                         }
-                                        selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
-                                        selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+                                        setSelectedOrigin(Point.fromLngLat(trip.originLongitude, trip.originLatitude), trip.originAddress);
+                                        setSelectedDestination(Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude), trip.destinationAddress);
                                         syncSelectionStateToViewModel();
                                         updateCoordinateLabels();
                                         updateMapMarkers();
@@ -721,8 +728,8 @@ public class MainActivity extends BaseActivity {
                                 passengerBoardingCode = null;
                                 passengerReservedDriverName = null;
                                 stopPassengerPolling();
-                                selectedOrigin = null;
-                                selectedDestination = null;
+                                setSelectedOrigin(null, null);
+                                setSelectedDestination(null, null);
                                 syncSelectionStateToViewModel();
                                 clearRoute();
                                 updateCoordinateLabels();
@@ -845,8 +852,8 @@ public class MainActivity extends BaseActivity {
                         activeTripAvailableSeats = 0;
                         lastRouteTimeLabel = null;
                         syncTripStateToViewModel();
-                        selectedOrigin = null;
-                        selectedDestination = null;
+                        setSelectedOrigin(null, null);
+                        setSelectedDestination(null, null);
                         syncSelectionStateToViewModel();
                         clearRoute();
                         setSelectionMode(SelectionMode.NONE);
@@ -884,8 +891,8 @@ public class MainActivity extends BaseActivity {
         sessionManager.saveDriverActiveTripId(trip.id);
         syncTripStateToViewModel();
 
-        selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
-        selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+        setSelectedOrigin(Point.fromLngLat(trip.originLongitude, trip.originLatitude), trip.originAddress);
+        setSelectedDestination(Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude), trip.destinationAddress);
         syncSelectionStateToViewModel();
 
         setSelectionMode(SelectionMode.NONE);
@@ -1385,10 +1392,10 @@ public class MainActivity extends BaseActivity {
         }
 
         if (selectionMode == SelectionMode.ORIGIN) {
-            selectedOrigin = point;
+            setSelectedOrigin(point, null);
             Toast.makeText(this, R.string.button_select_origin, Toast.LENGTH_SHORT).show();
         } else if (selectionMode == SelectionMode.DESTINATION) {
-            selectedDestination = point;
+            setSelectedDestination(point, null);
             Toast.makeText(this, R.string.button_select_destination, Toast.LENGTH_SHORT).show();
         }
 
@@ -1502,8 +1509,8 @@ public class MainActivity extends BaseActivity {
                 syncTripStateToViewModel();
                 pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
                 Toast.makeText(MainActivity.this, R.string.toast_trip_cancelled, Toast.LENGTH_SHORT).show();
-                selectedOrigin = null;
-                selectedDestination = null;
+                setSelectedOrigin(null, null);
+                setSelectedDestination(null, null);
                 syncSelectionStateToViewModel();
                 clearRoute();
                 setSelectionMode(SelectionMode.NONE);
@@ -1616,17 +1623,69 @@ public class MainActivity extends BaseActivity {
         selectionInstruction.setText(messageRes);
     }
 
+    private void setSelectedOrigin(Point point, String address) {
+        selectedOrigin = point;
+        selectedOriginAddress = address;
+        if (point != null && (address == null || address.isEmpty())) {
+            reverseGeocodePoint(point, true);
+        }
+    }
+
+    private void setSelectedDestination(Point point, String address) {
+        selectedDestination = point;
+        selectedDestinationAddress = address;
+        if (point != null && (address == null || address.isEmpty())) {
+            reverseGeocodePoint(point, false);
+        }
+    }
+
+    private void reverseGeocodePoint(final Point point, final boolean isOrigin) {
+        if (point == null) return;
+        final String token = getString(R.string.mapbox_access_token);
+        backgroundExecutor.execute(() -> {
+            try {
+                MapboxGeocodingRemoteDataSource geocoder = new MapboxGeocodingRemoteDataSource(token);
+                final String address = geocoder.reverseGeocode(point.latitude(), point.longitude());
+                runOnUiThread(() -> {
+                    if (isOrigin) {
+                        if (point.equals(selectedOrigin)) {
+                            selectedOriginAddress = address;
+                            updateCoordinateLabels();
+                            syncSelectionStateToViewModel();
+                        }
+                    } else {
+                        if (point.equals(selectedDestination)) {
+                            selectedDestinationAddress = address;
+                            updateCoordinateLabels();
+                            syncSelectionStateToViewModel();
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     private void updateCoordinateLabels() {
         if (selectedOrigin == null) {
             originText.setText(R.string.origin_placeholder);
         } else {
-            originText.setText(formatCoordinate(selectedOrigin));
+            if (selectedOriginAddress != null && !selectedOriginAddress.isEmpty()) {
+                originText.setText(selectedOriginAddress);
+            } else {
+                originText.setText(formatCoordinate(selectedOrigin));
+            }
         }
 
         if (selectedDestination == null) {
             destinationText.setText(R.string.destination_placeholder);
         } else {
-            destinationText.setText(formatCoordinate(selectedDestination));
+            if (selectedDestinationAddress != null && !selectedDestinationAddress.isEmpty()) {
+                destinationText.setText(selectedDestinationAddress);
+            } else {
+                destinationText.setText(formatCoordinate(selectedDestination));
+            }
         }
     }
 
@@ -1947,8 +2006,8 @@ public class MainActivity extends BaseActivity {
                 syncTripStateToViewModel();
                 pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
                 clearRoute();
-                selectedOrigin = null;
-                selectedDestination = null;
+                setSelectedOrigin(null, null);
+                setSelectedDestination(null, null);
                 syncSelectionStateToViewModel();
                 updateCoordinateLabels();
                 updateMapMarkers();
@@ -2064,17 +2123,17 @@ public class MainActivity extends BaseActivity {
             double dLat = intent.getDoubleExtra(EXTRA_APPLY_DEST_LAT, Double.NaN);
             double dLng = intent.getDoubleExtra(EXTRA_APPLY_DEST_LNG, Double.NaN);
             if (!Double.isNaN(dLat) && !Double.isNaN(dLng)) {
-                selectedOrigin = Point.fromLngLat(oLng, oLat);
-                selectedDestination = Point.fromLngLat(dLng, dLat);
+                setSelectedOrigin(Point.fromLngLat(oLng, oLat), null);
+                setSelectedDestination(Point.fromLngLat(dLng, dLat), null);
                 shouldPreviewRoute = true;
             }
         } else {
             boolean asOrigin = intent.getBooleanExtra(EXTRA_APPLY_PLACE_AS_ORIGIN, false);
             Point p = Point.fromLngLat(oLng, oLat);
             if (asOrigin) {
-                selectedOrigin = p;
+                setSelectedOrigin(p, null);
             } else {
-                selectedDestination = p;
+                setSelectedDestination(p, null);
             }
         }
 
@@ -2442,7 +2501,10 @@ public class MainActivity extends BaseActivity {
         }
 
         Intent intent = new Intent(this, DriverMatchActivity.class);
-        intent.putExtra(DriverMatchActivity.EXTRA_DESTINATION_LABEL, formatCoordinate(selectedDestination));
+        String destinationLabel = selectedDestinationAddress != null && !selectedDestinationAddress.isEmpty()
+                ? selectedDestinationAddress
+                : formatCoordinate(selectedDestination);
+        intent.putExtra(DriverMatchActivity.EXTRA_DESTINATION_LABEL, destinationLabel);
         intent.putExtra(DriverMatchActivity.EXTRA_REF_LATITUDE, selectedDestination.latitude());
         intent.putExtra(DriverMatchActivity.EXTRA_REF_LONGITUDE, selectedDestination.longitude());
         driverMatchLauncher.launch(intent);

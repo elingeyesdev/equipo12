@@ -44,6 +44,8 @@ public class MainViewModel extends AndroidViewModel {
 
     private Point selectedOrigin;
     private Point selectedDestination;
+    private String selectedOriginAddress;
+    private String selectedDestinationAddress;
     private String activeTripId;
     private String lastTripStatusLabel;
     private int activeTripAvailableSeats;
@@ -66,8 +68,12 @@ public class MainViewModel extends AndroidViewModel {
 
     public Point getSelectedOrigin() { return selectedOrigin; }
     public void setSelectedOrigin(Point p) { this.selectedOrigin = p; }
+    public String getSelectedOriginAddress() { return selectedOriginAddress; }
+    public void setSelectedOriginAddress(String s) { this.selectedOriginAddress = s; }
     public Point getSelectedDestination() { return selectedDestination; }
     public void setSelectedDestination(Point p) { this.selectedDestination = p; }
+    public String getSelectedDestinationAddress() { return selectedDestinationAddress; }
+    public void setSelectedDestinationAddress(String s) { this.selectedDestinationAddress = s; }
     public String getActiveTripId() { return activeTripId; }
     public void setActiveTripId(String id) { this.activeTripId = id; }
     public String getLastTripStatusLabel() { return lastTripStatusLabel; }
