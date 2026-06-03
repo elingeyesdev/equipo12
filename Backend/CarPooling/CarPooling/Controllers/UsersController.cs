@@ -80,6 +80,7 @@ public class UsersController(CarPoolingContext context,
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == normalizedEmail && u.PasswordHash == incomingHash);
 
@@ -95,6 +96,7 @@ public class UsersController(CarPoolingContext context,
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null) return NotFound();
 
@@ -170,6 +172,7 @@ public class UsersController(CarPoolingContext context,
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
         if (user is null) return NotFound();
         return Ok(UserResponseDto.FromEntity(user));
@@ -183,12 +186,13 @@ public class UsersController(CarPoolingContext context,
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .AsNoTracking().FirstOrDefaultAsync(u => u.Email == email.Trim().ToLowerInvariant());
         if (user is null) return NotFound();
         return Ok(UserResponseDto.FromEntity(user));
     }
 
-    private static string HashPassword(string p)
+    public static string HashPassword(string p)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(p));
         return Convert.ToHexString(bytes);

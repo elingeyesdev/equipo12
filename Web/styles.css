@@ -1042,3 +1042,33 @@ select:focus {
   text-transform: uppercase;
   color: var(--text);
 }
+
+/* --- Admins & Role Permissions Section --- */
+.permissions-groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.permission-group-card {
+  background: var(--panel-alt);
+  border: 1px solid rgba(31, 29, 26, 0.08);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.permission-group-card h4 {
+  font-family: "Sora", sans-serif;
+  font-size: 0.94rem;
+  color: var(--accent-2);
+  border-bottom: 1px solid rgba(31, 29, 26, 0.08);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+.permission-group-card .checkbox-field {
+  margin-bottom: 2px;
+}

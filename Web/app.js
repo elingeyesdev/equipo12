@@ -517,7 +517,7 @@ function openSection(section) {
 
   document.getElementById(`section-${section}`).classList.remove("hidden");
 
-  if (["users", "trips", "reservations", "reports"].includes(section) && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+  if (["users", "trips", "reservations", "reports", "admins"].includes(section) && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
     loadAdminData();
   }
 
@@ -560,13 +560,17 @@ function getSectionMeta(section) {
       name: "Soporte",
       description: "Revisa quejas de usuarios y actualiza el estado de cada reporte."
     },
-    settings: {
-      name: "Ajustes",
-      description: "Personaliza la identidad visual y los colores corporativos de tu negocio."
-    },
     "safe-zones": {
       name: "Zonas seguras",
       description: "Administra paradas tranquilas visibles en el mapa de la app movil."
+    },
+    admins: {
+      name: "Admins",
+      description: "Gestiona las cuentas administrativas y define sus roles y permisos."
+    },
+    settings: {
+      name: "Ajustes",
+      description: "Personaliza la identidad visual y los colores corporativos de tu negocio."
     }
   };
 
@@ -1513,6 +1517,92 @@ function getEditFormMarkup(type, entity) {
   `;
 }
 
+function hasPermission(permissionId) {
+  if (!state.currentUser) return false;
+  if (state.currentUser.rawRoles && state.currentUser.rawRoles.includes("SuperAdmin")) {
+    return true;
+  }
+  return state.currentUser.permissions && state.currentUser.permissions.includes(permissionId);
+}
+
+function updateNavVisibility() {
+  const menuNav = document.getElementById("menuNav");
+  if (!menuNav) return;
+
+  const mapping = {
+    overview: "metrics:view",
+    users: "users:read",
+    trips: "trips:read",
+    reservations: "reservations:read",
+    support: "support:read",
+    "safe-zones": "trips:read",
+    admins: "roles:manage",
+    settings: "roles:manage"
+  };
+
+  for (const [section, permission] of Object.entries(mapping)) {
+    const btn = menuNav.querySelector(`[data-section="${section}"]`);
+    if (btn) {
+      if (hasPermission(permission)) {
+        btn.classList.remove("hidden");
+      } else {
+        btn.classList.add("hidden");
+      }
+    }
+  }
+}
+
+function updateOverviewQuickActionsVisibility() {
+  const quickActionsContainer = document.getElementById("overviewQuickActions");
+  if (!quickActionsContainer) return;
+
+  const btnUser = quickActionsContainer.querySelector('[data-section="users"]');
+  if (btnUser) {
+    btnUser.classList.toggle("hidden", !hasPermission("users:write"));
+  }
+
+  const btnTrip = quickActionsContainer.querySelector('[data-section="trips"]');
+  if (btnTrip) {
+    btnTrip.classList.toggle("hidden", !hasPermission("trips:write"));
+  }
+
+  const btnRes = quickActionsContainer.querySelector('[data-section="reservations"]');
+  if (btnRes) {
+    btnRes.classList.toggle("hidden", !hasPermission("reservations:read"));
+  }
+
+  const btnSup = quickActionsContainer.querySelector('[data-section="support"]');
+  if (btnSup) {
+    btnSup.classList.toggle("hidden", !hasPermission("support:read"));
+  }
+
+  // Hide the entire Quick Actions card if user has none of the permissions
+  const hasAnyAction = hasPermission("users:write") || hasPermission("trips:write") || hasPermission("reservations:read") || hasPermission("support:read");
+  const quickActionsCard = document.getElementById("quickActionsCard");
+  if (quickActionsCard) {
+    quickActionsCard.classList.toggle("hidden", !hasAnyAction);
+  }
+}
+
+function updateActionButtonsVisibility() {
+  document.querySelectorAll('[data-create-type="user"]').forEach(btn => {
+    btn.classList.toggle("hidden", !hasPermission("users:write"));
+  });
+  document.querySelectorAll('[data-create-type="trip"]').forEach(btn => {
+    btn.classList.toggle("hidden", !hasPermission("trips:write"));
+  });
+  document.querySelectorAll('[data-create-type="reservation"]').forEach(btn => {
+    btn.classList.toggle("hidden", !hasPermission("reservations:write"));
+  });
+  
+  const safeZoneCreateBtn = document.getElementById("safeZoneCreateBtn");
+  if (safeZoneCreateBtn) {
+    safeZoneCreateBtn.classList.toggle("hidden", !hasPermission("trips:write"));
+  }
+
+  updateOverviewQuickActionsVisibility();
+}
+
 function startSession(user) {
   state.currentUser = user;
   localStorage.setItem("cp.adminUser", JSON.stringify(user));
@@ -1525,7 +1615,27 @@ function startSession(user) {
   kpiSession.textContent = "Activa";
   updateApiStatus(true, "login exitoso");
   startAdminAutoRefresh();
-  openSection("overview");
+
+  updateNavVisibility();
+  updateActionButtonsVisibility();
+
+  // Find first allowed section based on permissions
+  const order = ["overview", "users", "trips", "reservations", "support", "safe-zones", "admins", "settings"];
+  const allowed = order.find(sec => {
+    const mapping = {
+      overview: "metrics:view",
+      users: "users:read",
+      trips: "trips:read",
+      reservations: "reservations:read",
+      support: "support:read",
+      "safe-zones": "trips:read",
+      admins: "roles:manage",
+      settings: "roles:manage"
+    };
+    return hasPermission(mapping[sec]);
+  });
+  
+  openSection(allowed || "overview");
 }
 
 function logout() {
@@ -1613,6 +1723,7 @@ async function loadAdminData() {
     renderUsersTable(users);
     renderTripsTable(trips);
     renderReservationsTable(reservations);
+    renderAdminsTable(users);
     applyAllTableFilters();
 
     const issueMessages = [];
@@ -1727,7 +1838,7 @@ function renderSupportTable(tickets) {
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="support" data-id="${escapeHtml(ticket.id)}">Ver detalles</button>
-          <button class="btn tiny secondary admin-view-support" data-id="${escapeHtml(ticket.id)}">Ver / Atender</button>
+          ${hasPermission('support:write') ? `<button class="btn tiny secondary admin-view-support" data-id="${escapeHtml(ticket.id)}">Ver / Atender</button>` : ''}
         </div>
       </td>
     </tr>
@@ -1749,8 +1860,8 @@ function renderUsersTable(users) {
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="user" data-id="${escapeHtml(user.id)}">Ver detalles</button>
-          <button class="btn tiny secondary admin-edit" data-type="user" data-id="${escapeHtml(user.id)}">Editar</button>
-          <button class="btn tiny danger admin-delete" data-type="user" data-id="${escapeHtml(user.id)}">Eliminar</button>
+          ${hasPermission('users:write') ? `<button class="btn tiny secondary admin-edit" data-type="user" data-id="${escapeHtml(user.id)}">Editar</button>` : ''}
+          ${hasPermission('users:delete') ? `<button class="btn tiny danger admin-delete" data-type="user" data-id="${escapeHtml(user.id)}">Eliminar</button>` : ''}
         </div>
       </td>
     </tr>
@@ -1780,8 +1891,8 @@ function renderTripsTable(trips) {
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="trip" data-id="${escapeHtml(trip.id)}">Ver detalles</button>
-          <button class="btn tiny secondary admin-edit" data-type="trip" data-id="${escapeHtml(trip.id)}">Editar</button>
-          <button class="btn tiny danger admin-delete" data-type="trip" data-id="${escapeHtml(trip.id)}">Eliminar</button>
+          ${hasPermission('trips:write') ? `<button class="btn tiny secondary admin-edit" data-type="trip" data-id="${escapeHtml(trip.id)}">Editar</button>` : ''}
+          ${hasPermission('trips:delete') ? `<button class="btn tiny danger admin-delete" data-type="trip" data-id="${escapeHtml(trip.id)}">Eliminar</button>` : ''}
         </div>
       </td>
     </tr>
@@ -1805,8 +1916,8 @@ function renderReservationsTable(reservations) {
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Ver detalles</button>
-          <button class="btn tiny secondary admin-edit" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Editar</button>
-          <button class="btn tiny danger admin-delete" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Eliminar</button>
+          ${hasPermission('reservations:write') ? `<button class="btn tiny secondary admin-edit" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Editar</button>` : ''}
+          ${hasPermission('reservations:delete') ? `<button class="btn tiny danger admin-delete" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Eliminar</button>` : ''}
         </div>
       </td>
     </tr>
@@ -2672,8 +2783,10 @@ function renderSafeZonesTable(zones) {
       <td>${zone.isActive ? "Activa" : "Inactiva"}</td>
       <td>${zone.latitude?.toFixed?.(5) ?? zone.latitude}, ${zone.longitude?.toFixed?.(5) ?? zone.longitude}</td>
       <td class="table-actions">
-        <button type="button" class="btn tiny" data-safe-zone-action="edit" data-id="${zone.id}">Editar</button>
-        <button type="button" class="btn tiny danger" data-safe-zone-action="delete" data-id="${zone.id}">Eliminar</button>
+        ${hasPermission('trips:write') ? `
+          <button type="button" class="btn tiny" data-safe-zone-action="edit" data-id="${zone.id}">Editar</button>
+          <button type="button" class="btn tiny danger" data-safe-zone-action="delete" data-id="${zone.id}">Eliminar</button>
+        ` : ''}
       </td>
     </tr>
   `).join("");
@@ -3018,6 +3131,182 @@ document.addEventListener("click", (event) => {
   if (safeZoneButton.dataset.safeZoneAction === "delete") {
     deleteSafeZone(zone.id).catch((error) => setMessage(safeZonesDataMessage, error.message, "error"));
   }
+});
+
+// --- Admins Management & Modal logic ---
+const adminCreateBtn = document.getElementById("adminCreateBtn");
+const adminModalOverlay = document.getElementById("adminModalOverlay");
+const adminModalCloseBtn = document.getElementById("adminModalCloseBtn");
+const adminModalCancelBtn = document.getElementById("adminModalCancelBtn");
+const adminModalForm = document.getElementById("adminModalForm");
+const adminModalMessage = document.getElementById("adminModalMessage");
+const adminRolePreset = document.getElementById("adminRolePreset");
+const adminCustomRoleNameContainer = document.getElementById("adminCustomRoleNameContainer");
+const adminCustomRoleName = document.getElementById("adminCustomRoleName");
+const permissionCheckboxes = document.querySelectorAll('#adminModalForm input[name="permissions"]');
+
+function formatRoleNameCleanly(roleName) {
+  if (!roleName) return "Admin";
+  if (roleName === "SuperAdmin") return "Super Administrador";
+  
+  const match = roleName.match(/^Admin\s*-\s*(.+?)\s*\([^\)]+\)$/);
+  if (match) {
+    return match[1];
+  }
+  
+  if (roleName.startsWith("Admin - ")) {
+    return roleName.substring(8);
+  }
+  
+  return roleName;
+}
+
+function renderAdminsTable(users) {
+  const adminAdminsBody = document.getElementById("adminAdminsBody");
+  if (!adminAdminsBody) {
+    return;
+  }
+
+  const admins = users.filter(u => u.role === "admin");
+
+  if (!admins.length) {
+    adminAdminsBody.innerHTML = '<tr><td colspan="5">Sin administradores.</td></tr>';
+    return;
+  }
+
+  adminAdminsBody.innerHTML = admins.map((user) => {
+    const cleanRoles = (user.rawRoles && user.rawRoles.length > 0) 
+      ? user.rawRoles.map(formatRoleNameCleanly).join(", ") 
+      : "Admin";
+    const permsText = (user.permissions && user.permissions.length > 0) 
+      ? user.permissions.join(", ") 
+      : "Ninguno";
+
+    return `
+      <tr>
+        <td>${escapeHtml(user.fullName)}</td>
+        <td>${escapeHtml(user.email)}</td>
+        <td>${escapeHtml(cleanRoles)}</td>
+        <td><small style="color: var(--muted);">${escapeHtml(permsText)}</small></td>
+        <td>${escapeHtml(formatDateTime(user.createdAt))}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function handlePresetChange() {
+  const preset = adminRolePreset.value;
+  const adminPresets = {
+    Soporte: ["support:read", "support:write", "users:read", "metrics:view"],
+    Analista: ["metrics:view", "users:read", "trips:read", "reservations:read"],
+    Secretariado: ["users:read", "users:write", "trips:read", "reservations:read"],
+    Personalizado: []
+  };
+
+  if (preset === "Personalizado") {
+    adminCustomRoleNameContainer.classList.remove("hidden");
+    adminCustomRoleName.required = true;
+    permissionCheckboxes.forEach(cb => {
+      cb.disabled = false;
+    });
+  } else {
+    adminCustomRoleNameContainer.classList.add("hidden");
+    adminCustomRoleName.required = false;
+    adminCustomRoleName.value = "";
+    const allowedPerms = adminPresets[preset] || [];
+    permissionCheckboxes.forEach(cb => {
+      cb.checked = allowedPerms.includes(cb.value);
+      cb.disabled = true;
+    });
+  }
+}
+
+adminRolePreset?.addEventListener("change", handlePresetChange);
+
+adminCreateBtn?.addEventListener("click", () => {
+  if (adminModalForm) {
+    adminModalForm.reset();
+  }
+  if (adminModalMessage) {
+    setMessage(adminModalMessage, "");
+  }
+  
+  if (adminRolePreset) {
+    adminRolePreset.value = "Soporte";
+    handlePresetChange();
+  }
+
+  adminModalOverlay?.classList.remove("hidden");
+  adminModalOverlay?.setAttribute("aria-hidden", "false");
+});
+
+function closeAdminModal() {
+  adminModalOverlay?.classList.add("hidden");
+  adminModalOverlay?.setAttribute("aria-hidden", "true");
+  if (adminModalMessage) {
+    setMessage(adminModalMessage, "");
+  }
+}
+
+adminModalCloseBtn?.addEventListener("click", closeAdminModal);
+adminModalCancelBtn?.addEventListener("click", closeAdminModal);
+
+adminModalForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const fullName = document.getElementById("adminFullName").value.trim();
+  const email = document.getElementById("adminEmail").value.trim().toLowerCase();
+  const password = document.getElementById("adminPassword").value;
+  const preset = adminRolePreset.value;
+  
+  let roleName = "";
+  if (preset === "Personalizado") {
+    roleName = adminCustomRoleName.value.trim();
+  } else {
+    roleName = preset;
+  }
+
+  const permissions = Array.from(permissionCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+
+  if (!fullName || !email || !password) {
+    setMessage(adminModalMessage, "Todos los campos son obligatorios.", "error");
+    return;
+  }
+
+  if (!email.endsWith("@univalle.edu")) {
+    setMessage(adminModalMessage, "Solo se permiten correos institucionales @univalle.edu", "error");
+    return;
+  }
+
+  setMessage(adminModalMessage, "Creando cuenta de administrador...", "");
+
+  try {
+    const payload = {
+      fullName,
+      email,
+      password,
+      roleName,
+      permissions
+    };
+
+    await apiFetch("/api/admin/users/create-web-admin", {
+      method: "POST",
+      headers: getAdminHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    setMessage(adminModalMessage, "Administrador creado correctamente.", "success");
+    setTimeout(() => {
+      closeAdminModal();
+      loadAdminData();
+    }, 1500);
+  } catch (error) {
+    setMessage(adminModalMessage, error.message, "error");
+  }
+});
+
+document.getElementById("adminsFilterInput")?.addEventListener("input", (event) => {
+  applyTableFilter("adminAdminsBody", event.target.value);
 });
 
 // Startup Execution

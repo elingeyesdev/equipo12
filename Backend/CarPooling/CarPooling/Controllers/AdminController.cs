@@ -28,6 +28,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(name))
@@ -57,6 +58,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
             .Include(u => u.DriverProfile)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null)
         {
@@ -394,6 +396,7 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .AsNoTracking()
             .OrderByDescending(u => u.CreatedAt)
             .ToListAsync();
@@ -419,6 +422,94 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
             trips = trips.Select(TripService.MapToDto).ToList(),
             reservations = reservations.Select(ReservationService.MapToDto).ToList()
         });
+    }
+
+    [HttpPost("users/create-web-admin")]
+    [RequirePermission(AppPermissions.ManageRoles)]
+    public async Task<ActionResult<UserResponseDto>> CreateWebAdminAsync([FromBody] CreateWebAdminDto dto)
+    {
+        var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+        if (!IsUniversityEmail(normalizedEmail))
+        {
+            return BadRequest("Solo se permiten correos institucionales @univalle.edu");
+        }
+
+        var emailExists = await _context.Users.AnyAsync(u => u.Email == normalizedEmail);
+        if (emailExists)
+        {
+            return Conflict("El email ingresado ya esta en uso.");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.FullName))
+        {
+            return BadRequest("El nombre completo es obligatorio.");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
+        {
+            return BadRequest("La contraseña es obligatoria y debe tener al menos 6 caracteres.");
+        }
+
+        // 1. Create a custom Role for this admin user
+        var cleanRoleName = string.IsNullOrWhiteSpace(dto.RoleName) ? dto.FullName.Trim() : dto.RoleName.Trim();
+        var roleName = $"Admin - {cleanRoleName} ({normalizedEmail})";
+        if (roleName.Length > 100)
+        {
+            roleName = roleName.Substring(0, 100);
+        }
+
+        var customRole = new Role
+        {
+            Id = Guid.NewGuid(),
+            Name = roleName,
+            Description = $"Rol administrativo personalizado para {dto.FullName}",
+            IsSystemRole = false
+        };
+
+        _context.Roles.Add(customRole);
+
+        // 2. Add selected permissions
+        if (dto.Permissions != null && dto.Permissions.Count > 0)
+        {
+            foreach (var permissionId in dto.Permissions)
+            {
+                var permExists = await _context.Permissions.AnyAsync(p => p.Id == permissionId);
+                if (permExists)
+                {
+                    _context.RolePermissions.Add(new RolePermission
+                    {
+                        RoleId = customRole.Id,
+                        PermissionId = permissionId
+                    });
+                }
+            }
+        }
+
+        // 3. Create the User with hashed password
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = dto.FullName.Trim(),
+            Email = normalizedEmail,
+            PasswordHash = UsersController.HashPassword(dto.Password),
+            PhoneNumber = null
+        };
+
+        _context.Users.Add(user);
+
+        // 4. Link User to Custom Role
+        _context.UserRoles.Add(new UserRole
+        {
+            UserId = user.Id,
+            RoleId = customRole.Id
+        });
+
+        await _context.SaveChangesAsync();
+
+        // Load relations for mapper
+        await _context.Entry(user).Collection(u => u.UserRoles).Query().Include(ur => ur.Role).LoadAsync();
+
+        return Ok(UserResponseDto.FromEntity(user));
     }
 
     private static bool IsUniversityEmail(string email)
@@ -496,5 +587,14 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
         public Guid TripId { get; set; }
         public Guid PassengerUserId { get; set; }
         public string Status { get; set; } = string.Empty;
+    }
+
+    public sealed class CreateWebAdminDto
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string? RoleName { get; set; }
+        public List<string> Permissions { get; set; } = [];
     }
 }

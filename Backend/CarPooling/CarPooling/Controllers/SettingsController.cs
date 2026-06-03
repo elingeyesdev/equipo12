@@ -1,5 +1,6 @@
 using CarPooling.Data;
 using CarPooling.Models;
+using CarPooling.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -47,7 +48,7 @@ public class SettingsController(CarPoolingContext context) : ControllerBase
     }
 
     [HttpPut("theme")]
-    [Authorize(Roles = "Admin")]
+    [RequirePermission(AppPermissions.ManageRoles)]
     public async Task<IActionResult> UpdateThemeAsync([FromBody] Dictionary<string, string> themeColors)
     {
         if (themeColors is null || (!themeColors.ContainsKey("primary") && !themeColors.ContainsKey("primaryLight")))

@@ -69,7 +69,7 @@ public sealed class HeaderUserAuthenticationHandler(
         {
             mappedRole = "Driver";
         }
-        else if (user.Roles.Contains("SuperAdmin") || user.Roles.Contains("Admin"))
+        else if (user.Roles.Contains("SuperAdmin") || user.Roles.Contains("Admin") || user.Roles.Any(r => r.Contains("Admin") || r.Contains("Analyst")))
         {
             mappedRole = "Admin";
         }

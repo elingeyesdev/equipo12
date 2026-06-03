@@ -6,9 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Security;
 
-public class PermissionFilter(CarPoolingContext context) : IAsyncAuthorizationFilter
+public class PermissionFilter(CarPoolingContext context, string requiredPermission) : IAsyncAuthorizationFilter
 {
     private readonly CarPoolingContext _context = context;
+    private readonly string _requiredPermission = requiredPermission;
 
     public async Task OnAuthorizationAsync(AuthorizationFilterContext filterContext)
     {
@@ -20,14 +21,7 @@ public class PermissionFilter(CarPoolingContext context) : IAsyncAuthorizationFi
             return;
         }
 
-        // 2. Obtener el permiso requerido
-        var attribute = filterContext.ActionDescriptor.EndpointMetadata
-            .OfType<RequirePermissionAttribute>()
-            .FirstOrDefault();
-
-        var requiredPermission = attribute?.Arguments?[0] as string;
-
-        if (string.IsNullOrEmpty(requiredPermission))
+        if (string.IsNullOrEmpty(_requiredPermission))
         {
             return;
         }
@@ -38,7 +32,7 @@ public class PermissionFilter(CarPoolingContext context) : IAsyncAuthorizationFi
             .SelectMany(u => u.UserRoles)
             .Select(ur => ur.Role)
             .SelectMany(r => r.RolePermissions)
-            .AnyAsync(rp => rp.PermissionId == requiredPermission);
+            .AnyAsync(rp => rp.PermissionId == _requiredPermission);
 
         if (!hasPermission)
         {

@@ -60,6 +60,7 @@
         <button class="menu-item" data-section="reservations">Reservas</button>
         <button class="menu-item" data-section="support">Soporte</button>
         <button class="menu-item" data-section="safe-zones">Zonas seguras</button>
+        <button class="menu-item hidden" id="nav-admins" data-section="admins">Admins</button>
         <button class="menu-item" data-section="settings">Ajustes</button>
       </nav>
 
@@ -91,7 +92,7 @@
           <p id="kpiApiBase">-</p>
         </article>
 
-        <article class="card span-3">
+        <article class="card span-3" id="quickActionsCard">
           <h3>Acciones rapidas</h3>
           <p class="card-help">Navega a las tareas mas comunes sin buscar en el menu lateral.</p>
           <div class="quick-actions" id="overviewQuickActions">
@@ -456,6 +457,42 @@
           </form>
         </article>
       </section>
+
+      <section class="content-grid hidden" id="section-admins">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Seguridad y Roles</p>
+            <h3>Cuentas de Administradores</h3>
+            <p class="card-help">Gestiona los accesos administrativos del personal web, define sus permisos y asocia sus roles.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button type="button" class="btn secondary" id="adminCreateBtn">Agregar Administrador</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Filtrar administradores</span>
+              <input type="text" id="adminsFilterInput" placeholder="Nombre, email o rol" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminAdminsTable">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol / Descripcion</th>
+                  <th>Permisos asignados</th>
+                  <th>Fecha de Registro</th>
+                </tr>
+              </thead>
+              <tbody id="adminAdminsBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
     </div>
   </section>
 
@@ -555,6 +592,142 @@
         </label>
         <div id="createModalFields"></div>
         <p id="createModalMessage" class="message" aria-live="polite"></p>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-overlay hidden" id="adminModalOverlay" aria-hidden="true">
+    <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+      <div class="modal-header">
+        <h3 id="adminModalTitle">Crear Cuenta de Administrador</h3>
+        <button type="button" class="btn tiny" id="adminModalCloseBtn">Cerrar</button>
+      </div>
+      <form id="adminModalForm" class="stack compact">
+        <div class="form-grid-2">
+          <label class="field">
+            <span>Nombre completo</span>
+            <input type="text" id="adminFullName" required placeholder="Ej. Juan Perez" />
+          </label>
+          <label class="field">
+            <span>Correo institucional</span>
+            <input type="email" id="adminEmail" required placeholder="ejemplo@univalle.edu" />
+          </label>
+        </div>
+        <div class="form-grid-2">
+          <label class="field">
+            <span>Contrasena</span>
+            <input type="password" id="adminPassword" required placeholder="Minimo 6 caracteres" minlength="6" />
+          </label>
+          <label class="field">
+            <span>Tipo de Rol</span>
+            <select id="adminRolePreset" required>
+              <option value="Soporte">Soporte</option>
+              <option value="Analista">Analista</option>
+              <option value="Secretariado">Secretariado</option>
+              <option value="Personalizado">Personalizado</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="field hidden" id="adminCustomRoleNameContainer">
+          <span>Nombre del Rol Personalizado</span>
+          <input type="text" id="adminCustomRoleName" placeholder="Ej. Supervisor de Soporte" />
+        </div>
+
+        <div class="field">
+          <span>Permisos del Rol</span>
+          <p class="hint-box">Selecciona los modulos y operaciones permitidas para esta cuenta.</p>
+          
+          <div class="permissions-groups-grid">
+            <!-- Metrics -->
+            <div class="permission-group-card">
+              <h4>Metricas</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="metrics:view" />
+                <span>Ver resumen / Dashboard</span>
+              </label>
+            </div>
+
+            <!-- Users -->
+            <div class="permission-group-card">
+              <h4>Usuarios</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="users:read" />
+                <span>Ver usuarios</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="users:write" />
+                <span>Modificar usuarios</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="users:delete" />
+                <span>Eliminar usuarios</span>
+              </label>
+            </div>
+
+            <!-- Trips -->
+            <div class="permission-group-card">
+              <h4>Viajes</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="trips:read" />
+                <span>Ver viajes</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="trips:write" />
+                <span>Modificar viajes</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="trips:delete" />
+                <span>Eliminar viajes</span>
+              </label>
+            </div>
+
+            <!-- Reservations -->
+            <div class="permission-group-card">
+              <h4>Reservas</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="reservations:read" />
+                <span>Ver reservas</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="reservations:write" />
+                <span>Modificar reservas</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="reservations:delete" />
+                <span>Eliminar reservas</span>
+              </label>
+            </div>
+
+            <!-- Support -->
+            <div class="permission-group-card">
+              <h4>Soporte</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="support:read" />
+                <span>Ver reportes</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="support:write" />
+                <span>Responder reportes</span>
+              </label>
+            </div>
+
+            <!-- Security -->
+            <div class="permission-group-card">
+              <h4>Seguridad</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="roles:manage" />
+                <span>Gestionar roles y permisos</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" id="adminModalCancelBtn">Cancelar</button>
+          <button type="submit" class="btn primary">Crear Administrador</button>
+        </div>
+        <p id="adminModalMessage" class="message" aria-live="polite"></p>
       </form>
     </section>
   </div>
