@@ -419,7 +419,7 @@ public static class DevelopmentDataSeeder
             context.AppSettings.Add(new AppSetting 
             { 
                 Key = "theme", 
-                Value = "{\"primaryLight\":\"#e08c75\",\"secondaryLight\":\"#6b8f8d\",\"textLight\":\"#1f1d1a\",\"primaryDark\":\"#e27b53\",\"secondaryDark\":\"#85aba9\",\"textDark\":\"#e0e0e0\"}" 
+                Value = "{\"primaryLight\":\"#5f7f6c\",\"secondaryLight\":\"#b67a52\",\"textLight\":\"#24302b\",\"primaryDark\":\"#8fac98\",\"secondaryDark\":\"#d0a27d\",\"textDark\":\"#edf2ee\"}" 
             });
         }
 

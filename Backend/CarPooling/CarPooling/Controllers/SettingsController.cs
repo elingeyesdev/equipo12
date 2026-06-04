@@ -24,15 +24,15 @@ public class SettingsController(CarPoolingContext context) : ControllerBase
 
         if (setting is null)
         {
-            // Fallback to default Sunset Orange theme with custom text colors
+            // Fallback to default natural theme with custom text colors
             return Ok(new
             {
-                primaryLight = "#e08c75",
-                secondaryLight = "#6b8f8d",
-                textLight = "#1f1d1a",
-                primaryDark = "#e27b53",
-                secondaryDark = "#85aba9",
-                textDark = "#e0e0e0"
+                primaryLight = "#5f7f6c",
+                secondaryLight = "#b67a52",
+                textLight = "#24302b",
+                primaryDark = "#8fac98",
+                secondaryDark = "#d0a27d",
+                textDark = "#edf2ee"
             });
         }
 

@@ -202,7 +202,7 @@ public class SessionManager {
     private static final String KEY_THEME_TEXT_DARK = "theme_text_dark";
 
     public void saveThemeColors(String pl, String sl, String pd, String sd) {
-        saveThemeColors(pl, sl, "#1f1d1a", pd, sd, "#e0e0e0");
+        saveThemeColors(pl, sl, "#24302b", pd, sd, "#edf2ee");
     }
 
     public void saveThemeColors(String pl, String sl, String tl, String pd, String sd, String td) {
@@ -217,26 +217,26 @@ public class SessionManager {
     }
 
     public String getThemePrimaryLight() {
-        return preferences.getString(KEY_THEME_PRIMARY_LIGHT, "#db5b2d");
+        return preferences.getString(KEY_THEME_PRIMARY_LIGHT, "#5f7f6c");
     }
 
     public String getThemeSecondaryLight() {
-        return preferences.getString(KEY_THEME_SECONDARY_LIGHT, "#1f8a86");
+        return preferences.getString(KEY_THEME_SECONDARY_LIGHT, "#b67a52");
     }
 
     public String getThemeTextLight() {
-        return preferences.getString(KEY_THEME_TEXT_LIGHT, "#1f1d1a");
+        return preferences.getString(KEY_THEME_TEXT_LIGHT, "#24302b");
     }
 
     public String getThemePrimaryDark() {
-        return preferences.getString(KEY_THEME_PRIMARY_DARK, "#e27b53");
+        return preferences.getString(KEY_THEME_PRIMARY_DARK, "#8fac98");
     }
 
     public String getThemeSecondaryDark() {
-        return preferences.getString(KEY_THEME_SECONDARY_DARK, "#2ea7a0");
+        return preferences.getString(KEY_THEME_SECONDARY_DARK, "#d0a27d");
     }
 
     public String getThemeTextDark() {
-        return preferences.getString(KEY_THEME_TEXT_DARK, "#e0e0e0");
+        return preferences.getString(KEY_THEME_TEXT_DARK, "#edf2ee");
     }
 }

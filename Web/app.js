@@ -912,7 +912,7 @@ async function updateCreateTripMapLayers() {
       source: "create-trip-route",
       layout: { "line-join": "round", "line-cap": "round" },
       paint: {
-        "line-color": "#1f8a86",
+        "line-color": "#5f7f6c",
         "line-width": 4
       }
     });
@@ -968,7 +968,7 @@ async function updateCreateTripMapLayers() {
 
   if (state.tripOrigin) {
     if (!state.tripOriginMarker) {
-      state.tripOriginMarker = new mapboxgl.Marker({ color: "#f29d55" })
+      state.tripOriginMarker = new mapboxgl.Marker({ color: "#b67a52" })
         .setLngLat(originCoordinates)
         .addTo(state.tripMap);
     } else {
@@ -981,7 +981,7 @@ async function updateCreateTripMapLayers() {
 
   if (state.tripDestination) {
     if (!state.tripDestinationMarker) {
-      state.tripDestinationMarker = new mapboxgl.Marker({ color: "#2ea7a0" })
+      state.tripDestinationMarker = new mapboxgl.Marker({ color: "#5f7f6c" })
         .setLngLat(destinationCoordinates)
         .addTo(state.tripMap);
     } else {
@@ -1210,7 +1210,7 @@ async function updateDetailTripMapLayers(trip) {
       source: "detail-trip-route",
       layout: { "line-join": "round", "line-cap": "round" },
       paint: {
-        "line-color": "#1f8a86",
+        "line-color": "#5f7f6c",
         "line-width": 4
       }
     });
@@ -1266,7 +1266,7 @@ async function updateDetailTripMapLayers(trip) {
 
   if (hasTripCoordinates(origin)) {
     if (!state.detailTripOriginMarker) {
-      state.detailTripOriginMarker = new mapboxgl.Marker({ color: "#f29d55" })
+      state.detailTripOriginMarker = new mapboxgl.Marker({ color: "#b67a52" })
         .setLngLat(originCoordinates)
         .addTo(state.detailTripMap);
     } else {
@@ -1279,7 +1279,7 @@ async function updateDetailTripMapLayers(trip) {
 
   if (hasTripCoordinates(destination)) {
     if (!state.detailTripDestinationMarker) {
-      state.detailTripDestinationMarker = new mapboxgl.Marker({ color: "#2ea7a0" })
+      state.detailTripDestinationMarker = new mapboxgl.Marker({ color: "#5f7f6c" })
         .setLngLat(destinationCoordinates)
         .addTo(state.detailTripMap);
     } else {
@@ -2435,20 +2435,20 @@ document.getElementById("section-support")?.addEventListener("click", async (eve
 // --- Ajustes / Apariencia (Temas Pastel Dinámicos) ---
 const presets = {
   Custom: {
-    primaryLight: "#e08c75",
-    secondaryLight: "#6b8f8d",
-    textLight: "#1f1d1a",
-    primaryDark: "#e27b53",
-    secondaryDark: "#85aba9",
-    textDark: "#e0e0e0"
+    primaryLight: "#5f7f6c",
+    secondaryLight: "#b67a52",
+    textLight: "#24302b",
+    primaryDark: "#8fac98",
+    secondaryDark: "#d0a27d",
+    textDark: "#edf2ee"
   },
-  Sunset: {
-    primaryLight: "#e08c75",
-    secondaryLight: "#6b8f8d",
-    textLight: "#1f1d1a",
-    primaryDark: "#e27b53",
-    secondaryDark: "#85aba9",
-    textDark: "#e0e0e0"
+  Natural: {
+    primaryLight: "#5f7f6c",
+    secondaryLight: "#b67a52",
+    textLight: "#24302b",
+    primaryDark: "#8fac98",
+    secondaryDark: "#d0a27d",
+    textDark: "#edf2ee"
   },
   Emerald: {
     primaryLight: "#7abfa6",
@@ -2490,21 +2490,21 @@ function hexToRgb(hex) {
     r: parseInt(result[1], 16),
     g: parseInt(result[2], 16),
     b: parseInt(result[3], 16)
-  } : { r: 219, g: 91, b: 45 };
+  } : { r: 95, g: 127, b: 108 };
 }
 
 const THEME_MODES = {
   light: {
-    bg: "#f8f4ef",
-    bgDeep: "#1c2a2f",
-    panelAlt: "#fff6ec",
+    bg: "#f7f5ef",
+    bgDeep: "#24302b",
+    panelAlt: "#eff3ed",
     panel: "#ffffff"
   },
   dark: {
-    bg: "#121212",
-    bgDeep: "#0a0a0a",
-    panelAlt: "#1e1e1e",
-    panel: "#181818"
+    bg: "#0f1412",
+    bgDeep: "#121815",
+    panelAlt: "#1c2621",
+    panel: "#151c19"
   }
 };
 
@@ -2513,9 +2513,9 @@ function applyClientTheme(colors) {
   const root = document.documentElement;
   
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const primary = isDarkMode ? (colors.primaryDark || "#e27b53") : (colors.primaryLight || "#db5b2d");
-  const secondary = isDarkMode ? (colors.secondaryDark || "#2ea7a0") : (colors.secondaryLight || "#1f8a86");
-  const text = isDarkMode ? (colors.textDark || "#e0e0e0") : (colors.textLight || "#1f1d1a");
+  const primary = isDarkMode ? (colors.primaryDark || "#8fac98") : (colors.primaryLight || "#5f7f6c");
+  const secondary = isDarkMode ? (colors.secondaryDark || "#d0a27d") : (colors.secondaryLight || "#b67a52");
+  const text = isDarkMode ? (colors.textDark || "#edf2ee") : (colors.textLight || "#24302b");
   
   root.style.setProperty("--accent", primary);
   root.style.setProperty("--accent-2", secondary);
@@ -2600,12 +2600,12 @@ document.querySelectorAll(".preset-card").forEach(card => {
 });
 
 const getCurrentThemeColors = () => ({
-  primaryLight: document.getElementById("themePrimaryLight")?.value || "#db5b2d",
-  secondaryLight: document.getElementById("themeSecondaryLight")?.value || "#1f8a86",
-  textLight: document.getElementById("themeTextLight")?.value || "#1f1d1a",
-  primaryDark: document.getElementById("themePrimaryDark")?.value || "#e27b53",
-  secondaryDark: document.getElementById("themeSecondaryDark")?.value || "#2ea7a0",
-  textDark: document.getElementById("themeTextDark")?.value || "#e0e0e0"
+  primaryLight: document.getElementById("themePrimaryLight")?.value || "#5f7f6c",
+  secondaryLight: document.getElementById("themeSecondaryLight")?.value || "#b67a52",
+  textLight: document.getElementById("themeTextLight")?.value || "#24302b",
+  primaryDark: document.getElementById("themePrimaryDark")?.value || "#8fac98",
+  secondaryDark: document.getElementById("themeSecondaryDark")?.value || "#d0a27d",
+  textDark: document.getElementById("themeTextDark")?.value || "#edf2ee"
 });
 
 ["themePrimaryLight", "themeSecondaryLight", "themeTextLight", "themePrimaryDark", "themeSecondaryDark", "themeTextDark"].forEach(id => {
@@ -2642,8 +2642,8 @@ async function fetchThemeOnStartup() {
       applyClientTheme(colors);
     }
   } catch (error) {
-    console.warn("No se pudo cargar el tema dinámico del backend. Usando Sunset Orange por defecto.", error);
-    applyClientTheme(presets.Sunset);
+    console.warn("No se pudo cargar el tema dinámico del backend. Usando tema natural por defecto.", error);
+    applyClientTheme(presets.Natural);
   }
 }
 
@@ -2656,12 +2656,12 @@ async function loadThemeSettings() {
       headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {}
     });
     
-    const primaryLight = colors.primaryLight || "#e08c75";
-    const secondaryLight = colors.secondaryLight || "#6b8f8d";
-    const textLight = colors.textLight || "#1f1d1a";
-    const primaryDark = colors.primaryDark || "#e27b53";
-    const secondaryDark = colors.secondaryDark || "#85aba9";
-    const textDark = colors.textDark || "#e0e0e0";
+    const primaryLight = colors.primaryLight || "#5f7f6c";
+    const secondaryLight = colors.secondaryLight || "#b67a52";
+    const textLight = colors.textLight || "#24302b";
+    const primaryDark = colors.primaryDark || "#8fac98";
+    const secondaryDark = colors.secondaryDark || "#d0a27d";
+    const textDark = colors.textDark || "#edf2ee";
 
     if (document.getElementById("themePrimaryLight")) document.getElementById("themePrimaryLight").value = primaryLight;
     if (document.getElementById("themeSecondaryLight")) document.getElementById("themeSecondaryLight").value = secondaryLight;

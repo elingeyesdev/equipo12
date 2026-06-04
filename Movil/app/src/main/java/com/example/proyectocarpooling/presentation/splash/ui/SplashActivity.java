@@ -41,12 +41,12 @@ public class SplashActivity extends BaseActivity {
                         if (response.isSuccessful() && response.body() != null) {
                             String body = response.body().string();
                             org.json.JSONObject colorsJson = new org.json.JSONObject(body);
-                            String pl = colorsJson.optString("primaryLight", "#db5b2d");
-                            String sl = colorsJson.optString("secondaryLight", "#1f8a86");
-                            String tl = colorsJson.optString("textLight", "#1f1d1a");
-                            String pd = colorsJson.optString("primaryDark", "#e27b53");
-                            String sd = colorsJson.optString("secondaryDark", "#2ea7a0");
-                            String td = colorsJson.optString("textDark", "#e0e0e0");
+                            String pl = colorsJson.optString("primaryLight", "#5f7f6c");
+                            String sl = colorsJson.optString("secondaryLight", "#b67a52");
+                            String tl = colorsJson.optString("textLight", "#24302b");
+                            String pd = colorsJson.optString("primaryDark", "#8fac98");
+                            String sd = colorsJson.optString("secondaryDark", "#d0a27d");
+                            String td = colorsJson.optString("textDark", "#edf2ee");
                             
                             sessionManager.saveThemeColors(pl, sl, tl, pd, sd, td);
                         }

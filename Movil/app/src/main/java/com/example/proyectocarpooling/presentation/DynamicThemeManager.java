@@ -33,25 +33,34 @@ public final class DynamicThemeManager {
             // Tint view hierarchy with the selected primary color
             View root = activity.findViewById(android.R.id.content);
             if (root != null) {
-                tintViewHierarchy(root, primaryHex, secondaryHex, textHex);
+                tintViewHierarchy(root, primaryHex, secondaryHex, textHex, isDarkMode);
             }
         } catch (Exception e) {
             android.util.Log.e("DynamicTheme", "Error al aplicar el tema dinámico: " + e.getMessage(), e);
         }
     }
 
-    private static void tintViewHierarchy(View view, String primaryHex, String secondaryHex, String textHex) {
+    private static void tintViewHierarchy(View view, String primaryHex, String secondaryHex, String textHex, boolean isDarkMode) {
         if (view == null) return;
 
         try {
             int primaryColor = Color.parseColor(primaryHex);
             int textColor = Color.parseColor(textHex);
             int secColor = Color.parseColor(secondaryHex);
+            int buttonColor = secColor;
+            int panelColor = isDarkMode
+                    ? androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#121815"), primaryColor, 0.12f)
+                    : androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#fbfaf5"), primaryColor, 0.06f);
+            int navColor = isDarkMode
+                    ? androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#101614"), primaryColor, 0.18f)
+                    : androidx.core.graphics.ColorUtils.blendARGB(primaryColor, Color.BLACK, 0.24f);
+            int buttonTextColor = contrastFor(buttonColor);
 
             // 1. Tint standard and Material Buttons (excluding back button in account overview to keep it transparent)
             if (view instanceof Button && view.getId() != com.example.proyectocarpooling.R.id.accountBackButton) {
                 Button btn = (Button) view;
-                btn.setBackgroundTintList(ColorStateList.valueOf(primaryColor));
+                btn.setBackgroundTintList(ColorStateList.valueOf(buttonColor));
+                btn.setTextColor(buttonTextColor);
             }
             // 2. Tint Floating Action Buttons (FABs) with Secondary
             else if (view instanceof FloatingActionButton) {
@@ -74,9 +83,9 @@ public final class DynamicThemeManager {
             else if (view instanceof com.google.android.material.navigation.NavigationView) {
                 com.google.android.material.navigation.NavigationView navView = (com.google.android.material.navigation.NavigationView) view;
                 
-                navView.setBackgroundColor(primaryColor);
+                navView.setBackgroundColor(navColor);
                 
-                boolean isPrimaryDark = androidx.core.graphics.ColorUtils.calculateLuminance(primaryColor) < 0.5;
+                boolean isPrimaryDark = androidx.core.graphics.ColorUtils.calculateLuminance(navColor) < 0.5;
                 int contrastColor = isPrimaryDark ? Color.WHITE : Color.BLACK;
                 int inactiveColor = isPrimaryDark ? Color.parseColor("#B3FFFFFF") : Color.parseColor("#888888");
                 
@@ -95,7 +104,7 @@ public final class DynamicThemeManager {
                 for (int h = 0; h < headerCount; h++) {
                     View headerView = navView.getHeaderView(h);
                     if (headerView != null) {
-                        tintViewHierarchy(headerView, primaryHex, secondaryHex, textHex);
+                        tintViewHierarchy(headerView, primaryHex, secondaryHex, textHex, isDarkMode);
                     }
                 }
             }
@@ -172,7 +181,7 @@ public final class DynamicThemeManager {
             // Reservation Badge parent container (drawn with primary color matching sidebar)
             else if (view.getId() == com.example.proyectocarpooling.R.id.drawerReservationInfo) {
                 if (view.getBackground() != null) {
-                    view.getBackground().mutate().setTint(primaryColor);
+                    view.getBackground().mutate().setTint(navColor);
                 }
             }
             // Text views inside the reservation info badge
@@ -193,7 +202,15 @@ public final class DynamicThemeManager {
             // 9. Tint Bottom Bar (controlPanel) background with Primary (matching sidebar)
             if (view.getId() == com.example.proyectocarpooling.R.id.controlPanel) {
                 if (view.getBackground() != null) {
-                    view.getBackground().mutate().setTint(primaryColor);
+                    view.getBackground().mutate().setTint(panelColor);
+                } else {
+                    view.setBackgroundColor(panelColor);
+                }
+            }
+
+            if (view.getId() == com.example.proyectocarpooling.R.id.menuToggleButton) {
+                if (view.getBackground() != null) {
+                    view.getBackground().mutate().setTint(panelColor);
                 }
             }
         } catch (Exception e) {
@@ -204,8 +221,12 @@ public final class DynamicThemeManager {
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {
-                tintViewHierarchy(group.getChildAt(i), primaryHex, secondaryHex, textHex);
+                tintViewHierarchy(group.getChildAt(i), primaryHex, secondaryHex, textHex, isDarkMode);
             }
         }
+    }
+
+    private static int contrastFor(int color) {
+        return androidx.core.graphics.ColorUtils.calculateLuminance(color) < 0.48 ? Color.WHITE : Color.parseColor("#24302b");
     }
 }
