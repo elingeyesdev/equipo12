@@ -66,6 +66,30 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
             holder.receivedSenderName.setText(message.senderFullName);
             holder.receivedText.setText(message.messageText);
             holder.receivedTime.setText(formatTime(message.createdAt));
+
+            String initials = generateInitials(message.senderFullName);
+            holder.receivedAvatarInitials.setText(initials);
+
+            android.content.Context ctx = holder.itemView.getContext();
+            com.example.proyectocarpooling.presentation.BaseActivity activity = null;
+            while (ctx instanceof android.content.ContextWrapper) {
+                if (ctx instanceof com.example.proyectocarpooling.presentation.BaseActivity) {
+                    activity = (com.example.proyectocarpooling.presentation.BaseActivity) ctx;
+                    break;
+                }
+                ctx = ((android.content.ContextWrapper) ctx).getBaseContext();
+            }
+
+            if (activity != null) {
+                activity.loadBase64Image(
+                        message.senderProfilePicture,
+                        holder.receivedAvatarImage,
+                        holder.receivedAvatarPlaceholder
+                );
+            } else {
+                holder.receivedAvatarImage.setVisibility(View.GONE);
+                holder.receivedAvatarPlaceholder.setVisibility(View.VISIBLE);
+            }
         }
     }
 
@@ -105,6 +129,9 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
         final TextView receivedSenderName;
         final TextView receivedText;
         final TextView receivedTime;
+        final ImageView receivedAvatarImage;
+        final View receivedAvatarPlaceholder;
+        final TextView receivedAvatarInitials;
 
         MessageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -117,6 +144,19 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
             receivedSenderName = itemView.findViewById(R.id.receivedSenderName);
             receivedText = itemView.findViewById(R.id.receivedText);
             receivedTime = itemView.findViewById(R.id.receivedTime);
+            receivedAvatarImage = itemView.findViewById(R.id.receivedAvatarImage);
+            receivedAvatarPlaceholder = itemView.findViewById(R.id.receivedAvatarPlaceholder);
+            receivedAvatarInitials = itemView.findViewById(R.id.receivedAvatarInitials);
         }
+    }
+
+    private static String generateInitials(String fullName) {
+        if (fullName == null || fullName.isEmpty()) return "U";
+        String[] parts = fullName.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+        for (int i = 0; i < Math.min(2, parts.length); i++) {
+            if (parts[i].length() > 0) initials.append(parts[i].charAt(0));
+        }
+        return initials.length() > 0 ? initials.toString().toUpperCase() : "U";
     }
 }

@@ -14,15 +14,17 @@ public class ChatMessage {
     public final String senderFullName;
     public final String messageText;
     public final String createdAt;
+    public final String senderProfilePicture;
     public final List<String> readByUserIds;
 
     public ChatMessage(String id, String senderUserId, String senderFullName, String messageText,
-                       String createdAt, List<String> readByUserIds) {
+                       String createdAt, String senderProfilePicture, List<String> readByUserIds) {
         this.id = id;
         this.senderUserId = senderUserId;
         this.senderFullName = senderFullName;
         this.messageText = messageText;
         this.createdAt = createdAt;
+        this.senderProfilePicture = senderProfilePicture;
         this.readByUserIds = readByUserIds;
     }
 
@@ -41,6 +43,7 @@ public class ChatMessage {
                 obj.getString("senderFullName"),
                 obj.getString("messageText"),
                 obj.getString("createdAt"),
+                obj.optString("senderProfilePicture", ""),
                 reads
         );
     }

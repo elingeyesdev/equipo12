@@ -27,6 +27,8 @@ public class AccountOverviewActivity extends BaseActivity {
         TextView nameValue = findViewById(R.id.accountNameValue);
         TextView emailValue = findViewById(R.id.accountEmailValue);
         TextView userInitials = findViewById(R.id.accountUserInitials);
+        android.widget.ImageView accountUserImage = findViewById(R.id.accountUserImage);
+        android.view.View accountUserPlaceholder = findViewById(R.id.accountUserPlaceholder);
         TextView userRole = findViewById(R.id.accountRoleValue);
         Button backButton = findViewById(R.id.accountBackButton);
         Button closeButton = findViewById(R.id.accountCloseButton);
@@ -48,6 +50,9 @@ public class AccountOverviewActivity extends BaseActivity {
         nameValue.setText(fullName);
         emailValue.setText(email);
         userInitials.setText(generateInitials(fullName));
+        if (accountUserImage != null) {
+            loadBase64Image(sessionManager.getProfilePicture(), accountUserImage, accountUserPlaceholder);
+        }
         String roleText = isDriver ? getString(R.string.user_role_driver) : getString(R.string.user_role_passenger);
         userRole.setText(roleText);
 

@@ -43,7 +43,8 @@ public class UsersController(CarPoolingContext context,
             FullName = dto.FullName.Trim(),
             Email = normalizedEmail,
             PasswordHash = HashPassword(dto.Password),
-            PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim()
+            PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim(),
+            ProfilePicture = dto.ProfilePicture
         };
 
         _context.Users.Add(user);
@@ -109,6 +110,7 @@ public class UsersController(CarPoolingContext context,
         user.FullName = dto.FullName.Trim();
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
+        user.ProfilePicture = dto.ProfilePicture;
 
         bool isCurrentlyDriver = user.DriverProfile != null;
         bool wantsToBeDriver = !string.IsNullOrWhiteSpace(dto.Role) 

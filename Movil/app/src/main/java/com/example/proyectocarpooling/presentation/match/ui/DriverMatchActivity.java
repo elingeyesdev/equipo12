@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,6 +47,9 @@ public class DriverMatchActivity extends BaseActivity {
     private TextView cardCounterText, swipeHintText, viewRouteHintText;
     private Button rejectButton, acceptButton, viewRouteButton;
     private CardView matchCard;
+    private ImageView driverImageView;
+    private View driverImagePlaceholder;
+    private TextView driverInitialText;
 
     private DriverMatchViewModel viewModel;
     private SessionManager sessionManager;
@@ -102,6 +106,9 @@ public class DriverMatchActivity extends BaseActivity {
         distanceHeroHint = findViewById(R.id.distanceHeroHint);
         driverNameText = findViewById(R.id.driverNameText);
         driverRouteText = findViewById(R.id.driverRouteText);
+        driverImageView = findViewById(R.id.driverImageView);
+        driverImagePlaceholder = findViewById(R.id.driverImagePlaceholder);
+        driverInitialText = findViewById(R.id.driverInitialText);
         driverVehicleText = findViewById(R.id.driverVehicleText);
         driverSeatsText = findViewById(R.id.driverSeatsText);
         driverTimeText = findViewById(R.id.driverTimeText);
@@ -393,6 +400,14 @@ public class DriverMatchActivity extends BaseActivity {
         distanceHeroValue.setText(String.format(Locale.US, "%.1f", current.distanceKm));
         distanceHeroHint.setText(R.string.driver_match_distance_hint);
         driverNameText.setText(current.driverName);
+        
+        String initial = current.driverName != null && !current.driverName.isEmpty() ? String.valueOf(current.driverName.charAt(0)).toUpperCase() : "D";
+        if (driverInitialText != null) {
+            driverInitialText.setText(initial);
+        }
+        if (driverImageView != null) {
+            loadBase64Image(current.driverProfilePicture, driverImageView, driverImagePlaceholder);
+        }
         driverRouteText.setText(getString(R.string.driver_match_route_format, current.routeDescription));
         driverVehicleText.setText(current.vehicleInfo);
         driverVehicleText.setVisibility(current.vehicleInfo != null && !current.vehicleInfo.isEmpty() ? View.VISIBLE : View.GONE);

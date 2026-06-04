@@ -18,6 +18,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.view.MenuItem;
 import android.widget.Toast;
+import android.widget.ImageView;
 import android.app.AlertDialog;
 import android.widget.EditText;
 import android.widget.ArrayAdapter;
@@ -165,6 +166,8 @@ public class MainActivity extends BaseActivity {
     private TextView drawerUserTitle;
     private TextView drawerUserEmail;
     private TextView drawerUserInitials;
+    private ImageView drawerUserImage;
+    private View drawerUserPlaceholder;
     private TextView drawerUserRole;
     private TextView drawerUserRating;
     private LinearLayout drawerReservationInfo;
@@ -377,6 +380,8 @@ public class MainActivity extends BaseActivity {
             drawerUserTitle = header.findViewById(R.id.drawerUserTitle);
             drawerUserEmail = header.findViewById(R.id.drawerUserEmail);
             drawerUserInitials = header.findViewById(R.id.drawerUserInitials);
+            drawerUserImage = header.findViewById(R.id.drawerUserImage);
+            drawerUserPlaceholder = header.findViewById(R.id.drawerUserPlaceholder);
             drawerUserRole = header.findViewById(R.id.drawerUserRole);
             drawerUserRating = header.findViewById(R.id.drawerUserRating);
             drawerReservationInfo = header.findViewById(R.id.drawerReservationInfo);
@@ -1012,6 +1017,10 @@ public class MainActivity extends BaseActivity {
         if (drawerUserInitials != null && fullName != null) {
             String initials = generateInitials(fullName);
             drawerUserInitials.setText(initials);
+        }
+        
+        if (drawerUserImage != null) {
+            loadBase64Image(sessionManager.getProfilePicture(), drawerUserImage, drawerUserPlaceholder);
         }
         
         // Mostrar rol del usuario

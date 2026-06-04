@@ -10,6 +10,8 @@ public class ChatMessageResponseDto
     
     public string SenderFullName { get; set; } = string.Empty;
     
+    public string? SenderProfilePicture { get; set; }
+    
     public string MessageText { get; set; } = string.Empty;
     
     public DateTime CreatedAt { get; set; }

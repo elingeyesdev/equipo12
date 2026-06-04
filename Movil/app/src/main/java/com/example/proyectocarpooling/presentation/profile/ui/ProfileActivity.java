@@ -2,6 +2,7 @@ package com.example.proyectocarpooling.presentation.profile.ui;
 
 import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.os.Bundle;
+import android.content.Intent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -12,6 +13,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.widget.ImageView;
+import android.graphics.Bitmap;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -39,6 +44,36 @@ public class ProfileActivity extends BaseActivity {
     private String originalRole = "student";
     private String editingVehicleId = null;
     private ViewGroup vehicleFieldsParent;
+    private View profilePictureContainer;
+    private ImageView profilePicture;
+    private View profilePicturePlaceholder;
+    private TextView profilePictureInitials;
+    private String newBase64Image = "";
+
+    private final ActivityResultLauncher<Intent> cameraLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Bundle extras = result.getData().getExtras();
+                    if (extras != null) {
+                        Bitmap bitmap = (Bitmap) extras.get("data");
+                        processAndSetImage(bitmap);
+                    }
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<Intent> galleryLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    android.net.Uri selectedImage = result.getData().getData();
+                    if (selectedImage != null) {
+                        processGalleryUri(selectedImage);
+                    }
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +95,9 @@ public class ProfileActivity extends BaseActivity {
 
         loadCurrentProfile();
         saveButton.setOnClickListener(v -> saveProfile());
+        if (profilePictureContainer != null) {
+            profilePictureContainer.setOnClickListener(v -> showImagePickerDialog());
+        }
         observeViewModel();
     }
 
@@ -76,6 +114,11 @@ public class ProfileActivity extends BaseActivity {
         newPasswordInput = findViewById(R.id.profileNewPasswordInput);
         saveButton = findViewById(R.id.profileSaveButton);
         loading = findViewById(R.id.profileLoading);
+
+        profilePictureContainer = findViewById(R.id.profilePictureContainer);
+        profilePicture = findViewById(R.id.profilePicture);
+        profilePicturePlaceholder = findViewById(R.id.profilePicturePlaceholder);
+        profilePictureInitials = findViewById(R.id.profilePictureInitials);
     }
 
     private void populateInitialFields() {
@@ -85,6 +128,12 @@ public class ProfileActivity extends BaseActivity {
         hasVehicleCheckbox.setChecked(sessionManager.isDriver());
         originalRole = sessionManager.getRole();
         vehicleFieldsContainer.setVisibility(hasVehicleCheckbox.isChecked() ? View.VISIBLE : View.GONE);
+
+        newBase64Image = sessionManager.getProfilePicture();
+        loadBase64Image(newBase64Image, profilePicture, profilePicturePlaceholder);
+        if (profilePictureInitials != null) {
+            profilePictureInitials.setText(generateInitials(sessionManager.getFullName()));
+        }
     }
 
     private void setupVehicleButtons() {
@@ -311,7 +360,7 @@ public class ProfileActivity extends BaseActivity {
             return;
         }
 
-        viewModel.updateProfile(userId, new UpdateUserRequest(fullName, email, phone, newPassword, role, roleChangeRequested, driverProfile));
+        viewModel.updateProfile(userId, new UpdateUserRequest(fullName, email, phone, newPassword, role, roleChangeRequested, newBase64Image, driverProfile));
     }
 
     private boolean validate(String fullName, String email, String phone, String newPassword,
@@ -341,5 +390,75 @@ public class ProfileActivity extends BaseActivity {
             if (color.length() < 2) { colorInput.setError(getString(R.string.validation_color_min)); return false; }
         }
         return true;
+    }
+
+    private void showImagePickerDialog() {
+        CharSequence[] options = {"Tomar foto", "Seleccionar de la galería", "Cancelar"};
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Foto de perfil");
+        builder.setItems(options, (dialog, item) -> {
+            if (options[item].equals("Tomar foto")) {
+                Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                cameraLauncher.launch(intent);
+            } else if (options[item].equals("Seleccionar de la galería")) {
+                Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                galleryLauncher.launch(intent);
+            } else {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    private void processAndSetImage(Bitmap bitmap) {
+        if (bitmap == null) return;
+        
+        int maxDimension = 300;
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        if (width > maxDimension || height > maxDimension) {
+            float ratio = (float) width / (float) height;
+            if (ratio > 1) {
+                width = maxDimension;
+                height = (int) (maxDimension / ratio);
+            } else {
+                height = maxDimension;
+                width = (int) (maxDimension * ratio);
+            }
+            bitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);
+        }
+
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+        byte[] imageBytes = baos.toByteArray();
+        newBase64Image = android.util.Base64.encodeToString(imageBytes, android.util.Base64.DEFAULT);
+
+        if (profilePicture != null) {
+            profilePicture.setImageBitmap(bitmap);
+            profilePicture.setVisibility(View.VISIBLE);
+        }
+        if (profilePicturePlaceholder != null) {
+            profilePicturePlaceholder.setVisibility(View.GONE);
+        }
+    }
+
+    private void processGalleryUri(android.net.Uri uri) {
+        try {
+            Bitmap bitmap = android.provider.MediaStore.Images.Media.getBitmap(this.getContentResolver(), uri);
+            processAndSetImage(bitmap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error al cargar imagen", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private static String generateInitials(String fullName) {
+        if (fullName == null || fullName.isEmpty()) return "U";
+        String[] parts = fullName.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+        for (int i = 0; i < Math.min(2, parts.length); i++) {
+            if (parts[i].length() > 0) initials.append(parts[i].charAt(0));
+        }
+        return initials.length() > 0 ? initials.toString().toUpperCase() : "U";
     }
 }

@@ -27,7 +27,8 @@ public final class DriverCandidateMapper {
                 m.etaMinutes, m.statusLabel,
                 m.originLatitude, m.originLongitude,
                 m.destinationLatitude, m.destinationLongitude,
-                buildVehicleInfo(m.vehicleBrand, m.vehicleColor, m.vehiclePlate));
+                buildVehicleInfo(m.vehicleBrand, m.vehicleColor, m.vehiclePlate),
+                m.driverProfilePicture);
     }
 
     private static String buildVehicleInfo(String brand, String color, String plate) {

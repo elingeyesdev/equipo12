@@ -8,6 +8,7 @@ public class UserResponseDto
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+    public string? ProfilePicture { get; set; }
     public string Role { get; set; } = string.Empty;
     public int RoleId { get; set; }
     public List<string> RawRoles { get; set; } = [];
@@ -56,6 +57,7 @@ public class UserResponseDto
             FullName = user.FullName,
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
+            ProfilePicture = user.ProfilePicture,
             Role = mappedRole,
             RoleId = mappedRoleId,
             RawRoles = rawRoles,

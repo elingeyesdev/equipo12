@@ -146,6 +146,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.DestinationLocation)
             .Include(t => t.StatusEntity)
             .Include(t => t.Vehicle)
+            .Include(t => t.DriverUser)
             .FirstOrDefaultAsync(t => t.Id == tripId);
     }
 
@@ -162,6 +163,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.DestinationLocation)
             .Include(t => t.StatusEntity)
             .Include(t => t.Vehicle)
+            .Include(t => t.DriverUser)
             .Where(t =>
                 t.Kind == TripKind.Regular
                 && (t.StatusId == 1 || t.StatusId == 2 || t.StatusId == 3) // scheduled, ready, or in progress
@@ -194,6 +196,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             {
                 TripId = t.Id,
                 DriverName = name,
+                DriverProfilePicture = t.DriverUser?.ProfilePicture,
                 Origin = new LocationDto
                 {
                     Id = t.OriginLocation.Id,
@@ -227,6 +230,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.OriginLocation)
             .Include(t => t.DestinationLocation)
             .Include(t => t.StatusEntity)
+            .Include(t => t.DriverUser)
             .Where(t =>
                 t.Kind == TripKind.Regular
                 && t.DriverUserId == driverUserId
@@ -283,6 +287,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             VehicleId = trip.VehicleId,
             DriverName = trip.DriverName,
             DriverUserId = trip.DriverUserId,
+            DriverProfilePicture = trip.DriverUser?.ProfilePicture,
             CreatedAt = trip.CreatedAt,
             UpdatedAt = trip.UpdatedAt,
             CancelledAt = trip.CancelledAt

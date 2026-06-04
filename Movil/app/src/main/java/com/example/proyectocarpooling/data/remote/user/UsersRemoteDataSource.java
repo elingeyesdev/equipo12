@@ -58,6 +58,7 @@ public class UsersRemoteDataSource {
             body.put("email", request.email);
             body.put("password", request.password);
             body.put("role", request.role);
+            body.put("profilePicture", request.profilePicture);
             if (request.phoneNumber != null && !request.phoneNumber.trim().isEmpty()) {
                 body.put("phoneNumber", request.phoneNumber);
             }
@@ -124,6 +125,7 @@ public class UsersRemoteDataSource {
             body.put("email", request.email);
             body.put("role", request.role);
             body.put("roleChangeRequested", request.roleChangeRequested);
+            body.put("profilePicture", request.profilePicture);
             if (request.phoneNumber != null && !request.phoneNumber.trim().isEmpty()) {
                 body.put("phoneNumber", request.phoneNumber);
             }

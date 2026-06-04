@@ -25,5 +25,7 @@ public class RegisterUserDto
     [MaxLength(20)]
     public string Role { get; set; } = "student";
 
+    public string? ProfilePicture { get; set; }
+
     public DriverProfileDto? DriverProfile { get; set; }
 }

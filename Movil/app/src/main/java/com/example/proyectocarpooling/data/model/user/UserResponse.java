@@ -13,17 +13,19 @@ public class UserResponse {
     public final String email;
     public final String phoneNumber;
     public final String role;
+    public final String profilePicture;
     public final DriverProfileResponse driverProfile;
     public final List<VehicleResponse> vehicles;
     public final String createdAt;
 
-    public UserResponse(String id, String fullName, String email, String phoneNumber, String role,
+    public UserResponse(String id, String fullName, String email, String phoneNumber, String role, String profilePicture,
                         DriverProfileResponse driverProfile, List<VehicleResponse> vehicles, String createdAt) {
         this.id = id;
         this.fullName = fullName;
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.role = role;
+        this.profilePicture = profilePicture;
         this.driverProfile = driverProfile;
         this.vehicles = vehicles;
         this.createdAt = createdAt;
@@ -53,6 +55,7 @@ public class UserResponse {
                 obj.getString("email"),
                 obj.optString("phoneNumber", null),
                 obj.optString("role", "student"),
+                obj.optString("profilePicture", ""),
                 driverProfile,
                 vehicles,
                 obj.optString("createdAt", "")

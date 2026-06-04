@@ -96,6 +96,7 @@ public class ChatService(CarPoolingContext context)
                 Id = m.Id,
                 SenderUserId = m.SenderUserId,
                 SenderFullName = m.SenderUser.FullName,
+                SenderProfilePicture = m.SenderUser.ProfilePicture,
                 MessageText = m.MessageText,
                 CreatedAt = m.CreatedAt,
                 ReadByUserIds = m.Reads.Select(r => r.UserId).ToList()
@@ -132,17 +133,20 @@ public class ChatService(CarPoolingContext context)
         
         await _context.SaveChangesAsync();
 
-        // Obtener el nombre del emisor para retornar el DTO completo
-        var senderFullName = await _context.Users
+        // Obtener el nombre del emisor y foto para retornar el DTO completo
+        var senderUser = await _context.Users
             .Where(u => u.Id == senderUserId)
-            .Select(u => u.FullName)
-            .FirstOrDefaultAsync() ?? "Usuario Desconocido";
+            .Select(u => new { u.FullName, u.ProfilePicture })
+            .FirstOrDefaultAsync();
+        var senderFullName = senderUser?.FullName ?? "Usuario Desconocido";
+        var senderProfilePicture = senderUser?.ProfilePicture;
 
         return new ChatMessageResponseDto
         {
             Id = message.Id,
             SenderUserId = message.SenderUserId,
             SenderFullName = senderFullName,
+            SenderProfilePicture = senderProfilePicture,
             MessageText = message.MessageText,
             CreatedAt = message.CreatedAt,
             ReadByUserIds = [senderUserId]
