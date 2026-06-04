@@ -45,6 +45,9 @@ public class LoginActivity extends BaseActivity {
         loginButton = findViewById(R.id.loginButton);
         TextView openRegisterText = findViewById(R.id.openRegisterText);
 
+        setupErrorClearer(emailInput);
+        setupErrorClearer(passwordInput);
+
         loginButton.setOnClickListener(v -> performLogin());
         openRegisterText.setOnClickListener(v -> startActivity(new Intent(this, RegisterActivity.class)));
 
@@ -67,7 +70,8 @@ public class LoginActivity extends BaseActivity {
 
         authViewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                setErrorState(emailInput, true, null);
+                setErrorState(passwordInput, true, error);
             }
         });
     }
@@ -85,22 +89,22 @@ public class LoginActivity extends BaseActivity {
 
     private boolean validate(String email, String password) {
         if (email.isEmpty()) {
-            emailInput.setError(getString(R.string.validation_required));
+            setErrorState(emailInput, true, getString(R.string.validation_required));
             return false;
         }
 
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailInput.setError(getString(R.string.validation_invalid_email));
+            setErrorState(emailInput, true, getString(R.string.validation_invalid_email));
             return false;
         }
 
         if (!email.endsWith("@univalle.edu")) {
-            emailInput.setError(getString(R.string.validation_univalle_email));
+            setErrorState(emailInput, true, getString(R.string.validation_univalle_email));
             return false;
         }
 
         if (password.length() < 6) {
-            passwordInput.setError(getString(R.string.validation_password_min));
+            setErrorState(passwordInput, true, getString(R.string.validation_password_min));
             return false;
         }
 

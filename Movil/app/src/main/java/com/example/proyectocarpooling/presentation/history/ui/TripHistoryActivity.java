@@ -127,7 +127,12 @@ public class TripHistoryActivity extends BaseActivity implements TripHistoryAdap
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                String cleanError = sanitizeError(error);
+                new AlertDialog.Builder(this)
+                        .setTitle("Historial de Viajes")
+                        .setMessage(cleanError)
+                        .setPositiveButton("Aceptar", null)
+                        .show();
             }
         });
     }

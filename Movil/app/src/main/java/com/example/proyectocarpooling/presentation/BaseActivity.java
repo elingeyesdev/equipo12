@@ -4,6 +4,8 @@ import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.proyectocarpooling.R;
+
 public abstract class BaseActivity extends AppCompatActivity {
 
     @Override
@@ -38,5 +40,46 @@ public abstract class BaseActivity extends AppCompatActivity {
             imageView.setVisibility(android.view.View.GONE);
             if (placeholderView != null) placeholderView.setVisibility(android.view.View.VISIBLE);
         }
+    }
+
+    public void setErrorState(android.widget.EditText editText, boolean hasError, String errorMessage) {
+        if (editText == null) return;
+        if (hasError) {
+            editText.setBackgroundResource(R.drawable.bg_input_error);
+            editText.setError(errorMessage);
+        } else {
+            editText.setBackgroundResource(R.drawable.bg_input_modern);
+            editText.setError(null);
+        }
+    }
+
+    public void setupErrorClearer(final android.widget.EditText editText) {
+        if (editText == null) return;
+        editText.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                editText.setBackgroundResource(R.drawable.bg_input_modern);
+                editText.setError(null);
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+    }
+
+    public String sanitizeError(String rawError) {
+        if (rawError == null || rawError.trim().isEmpty()) {
+            return "Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.";
+        }
+        String lower = rawError.toLowerCase();
+        if (lower.contains("fetch") || lower.contains("connect") || lower.contains("network") || 
+            lower.contains("timeout") || lower.contains("socket") || lower.contains("unable to resolve host") ||
+            lower.contains("http") || lower.contains("connection")) {
+            return "No se pudo establecer conexión con el servidor. Por favor, verifica tu conexión a internet.";
+        }
+        return rawError;
     }
 }

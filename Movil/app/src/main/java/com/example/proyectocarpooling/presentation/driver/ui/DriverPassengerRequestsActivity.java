@@ -48,8 +48,12 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
 
         tripId = getIntent().getStringExtra(EXTRA_TRIP_ID);
         if (tripId == null || tripId.trim().isEmpty()) {
-            Toast.makeText(this, R.string.driver_passenger_requests_load_error, Toast.LENGTH_SHORT).show();
-            finish();
+            new AlertDialog.Builder(this)
+                    .setTitle("Error de carga")
+                    .setMessage(R.string.driver_passenger_requests_load_error)
+                    .setPositiveButton("Aceptar", (d, w) -> finish())
+                    .setCancelable(false)
+                    .show();
             return;
         }
 
@@ -94,7 +98,12 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                String cleanError = sanitizeError(error);
+                new AlertDialog.Builder(this)
+                        .setTitle("Solicitudes de Pasajeros")
+                        .setMessage(cleanError)
+                        .setPositiveButton("Aceptar", null)
+                        .show();
             }
         });
     }
@@ -162,20 +171,28 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
         final EditText input = new EditText(this);
         input.setHint("Código de abordaje del pasajero");
         input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        setupErrorClearer(input);
 
-        new AlertDialog.Builder(this)
+        final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Verificar código de abordaje")
                 .setView(input)
-                .setPositiveButton("Confirmar", (dialog, which) -> {
-                    String code = input.getText().toString().trim();
-                    if (code.isEmpty()) {
-                        Toast.makeText(this, "Ingrese el código", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    viewModel.verifyAndBoardPassenger(tripId, reservation.id, code);
-                })
+                .setPositiveButton("Confirmar", null)
                 .setNegativeButton("Cancelar", null)
-                .show();
+                .create();
+
+        dialog.setOnShowListener(d -> {
+            Button confirmBtn = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            confirmBtn.setOnClickListener(v -> {
+                String code = input.getText().toString().trim();
+                if (code.isEmpty()) {
+                    setErrorState(input, true, "Ingrese el código");
+                    return;
+                }
+                dialog.dismiss();
+                viewModel.verifyAndBoardPassenger(tripId, reservation.id, code);
+            });
+        });
+        dialog.show();
     }
 
     private static String formatRequestTime(String iso) {

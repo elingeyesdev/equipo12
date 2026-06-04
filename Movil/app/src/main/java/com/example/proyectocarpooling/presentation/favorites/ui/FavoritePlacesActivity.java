@@ -90,7 +90,12 @@ public class FavoritePlacesActivity extends BaseActivity implements FavoritesAda
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                String cleanError = sanitizeError(error);
+                new AlertDialog.Builder(this)
+                        .setTitle("Lugares Favoritos")
+                        .setMessage(cleanError)
+                        .setPositiveButton("Aceptar", null)
+                        .show();
             }
         });
     }
@@ -98,8 +103,12 @@ public class FavoritePlacesActivity extends BaseActivity implements FavoritesAda
     private void loadFavorites() {
         String userId = sessionManager.getUserId();
         if (userId == null || userId.isBlank()) {
-            Toast.makeText(this, R.string.favorites_error_session, Toast.LENGTH_SHORT).show();
-            finish();
+            new AlertDialog.Builder(this)
+                    .setTitle("Acceso requerido")
+                    .setMessage(R.string.favorites_error_session)
+                    .setPositiveButton("Aceptar", (d, w) -> finish())
+                    .setCancelable(false)
+                    .show();
             return;
         }
         viewModel.loadFavorites(userId);

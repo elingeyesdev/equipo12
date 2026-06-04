@@ -36,6 +36,7 @@
             android:minHeight="48dp" />
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/supportDialogSubjectLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -50,6 +51,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/supportDialogDescriptionLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"

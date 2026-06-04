@@ -30,7 +30,7 @@ public class RegisterActivity extends BaseActivity {
     private EditText phoneInput;
     private CheckBox hasVehicleCheckbox;
     private View vehicleFieldsContainer;
-    private EditText seatsInput;
+    private android.widget.Spinner seatsInput;
     private EditText plateInput;
     private EditText brandInput;
     private EditText colorInput;
@@ -84,11 +84,23 @@ public class RegisterActivity extends BaseActivity {
         hasVehicleCheckbox = findViewById(R.id.registerHasVehicleCheckbox);
         vehicleFieldsContainer = findViewById(R.id.registerVehicleFieldsContainer);
         seatsInput = findViewById(R.id.registerSeatsInput);
+        android.widget.ArrayAdapter<String> seatsAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"1", "2", "3", "4", "5"});
+        seatsInput.setAdapter(seatsAdapter);
+        seatsInput.setSelection(3); // default to 4 seats
         plateInput = findViewById(R.id.registerPlateInput);
         brandInput = findViewById(R.id.registerBrandInput);
         colorInput = findViewById(R.id.registerColorInput);
         passwordInput = findViewById(R.id.registerPasswordInput);
         confirmPasswordInput = findViewById(R.id.registerConfirmPasswordInput);
+
+        setupErrorClearer(nameInput);
+        setupErrorClearer(emailInput);
+        setupErrorClearer(phoneInput);
+        setupErrorClearer(plateInput);
+        setupErrorClearer(brandInput);
+        setupErrorClearer(colorInput);
+        setupErrorClearer(passwordInput);
+        setupErrorClearer(confirmPasswordInput);
         registerButton = findViewById(R.id.registerButton);
         loading = findViewById(R.id.registerLoading);
         TextView backToLogin = findViewById(R.id.backToLoginText);
@@ -123,7 +135,15 @@ public class RegisterActivity extends BaseActivity {
 
         authViewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                if (error.toLowerCase().contains("email") || error.toLowerCase().contains("correo")) {
+                    setErrorState(emailInput, true, error);
+                } else {
+                    new androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle("Error de registro")
+                            .setMessage(error)
+                            .setPositiveButton("Aceptar", null)
+                            .show();
+                }
             }
         });
     }
@@ -133,7 +153,7 @@ public class RegisterActivity extends BaseActivity {
         String email = emailInput.getText().toString().trim().toLowerCase();
         String phone = phoneInput.getText().toString().trim();
         boolean hasVehicle = hasVehicleCheckbox.isChecked();
-        String seatsRaw = seatsInput.getText().toString().trim();
+        String seatsRaw = seatsInput.getSelectedItem().toString();
         String plate = plateInput.getText().toString().trim();
         String brand = brandInput.getText().toString().trim();
         String color = colorInput.getText().toString().trim();
@@ -165,71 +185,55 @@ public class RegisterActivity extends BaseActivity {
             String brand,
             String color) {
         if (fullName.length() < 3) {
-            nameInput.setError(getString(R.string.validation_name_min));
+            setErrorState(nameInput, true, getString(R.string.validation_name_min));
             return false;
         }
 
         if (email.isEmpty()) {
-            emailInput.setError(getString(R.string.validation_required));
+            setErrorState(emailInput, true, getString(R.string.validation_required));
             return false;
         }
 
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailInput.setError(getString(R.string.validation_invalid_email));
+            setErrorState(emailInput, true, getString(R.string.validation_invalid_email));
             return false;
         }
 
         if (!email.endsWith("@univalle.edu")) {
-            emailInput.setError(getString(R.string.validation_univalle_email));
+            setErrorState(emailInput, true, getString(R.string.validation_univalle_email));
             return false;
         }
 
         if (!phone.isEmpty() && phone.length() < 7) {
-            phoneInput.setError(getString(R.string.validation_phone_min));
+            setErrorState(phoneInput, true, getString(R.string.validation_phone_min));
             return false;
         }
 
         if (password.length() < 6) {
-            passwordInput.setError(getString(R.string.validation_password_min));
+            setErrorState(passwordInput, true, getString(R.string.validation_password_min));
             return false;
         }
 
         if (!password.equals(confirmPassword)) {
-            confirmPasswordInput.setError(getString(R.string.validation_password_match));
+            setErrorState(confirmPasswordInput, true, getString(R.string.validation_password_match));
             return false;
         }
 
         if (hasVehicle) {
-            if (seatsRaw.isEmpty()) {
-                seatsInput.setError(getString(R.string.validation_required));
-                return false;
-            }
-
-            int seats;
-            try {
-                seats = Integer.parseInt(seatsRaw);
-            } catch (NumberFormatException e) {
-                seatsInput.setError(getString(R.string.validation_seats_number));
-                return false;
-            }
-
-            if (seats < 1 || seats > 12) {
-                seatsInput.setError(getString(R.string.validation_seats_range));
-                return false;
-            }
+            int seats = Integer.parseInt(seatsRaw);
 
             if (plate.length() < 5) {
-                plateInput.setError(getString(R.string.validation_plate_min));
+                setErrorState(plateInput, true, getString(R.string.validation_plate_min));
                 return false;
             }
 
             if (brand.length() < 2) {
-                brandInput.setError(getString(R.string.validation_brand_min));
+                setErrorState(brandInput, true, getString(R.string.validation_brand_min));
                 return false;
             }
 
             if (color.length() < 2) {
-                colorInput.setError(getString(R.string.validation_color_min));
+                setErrorState(colorInput, true, getString(R.string.validation_color_min));
                 return false;
             }
         }

@@ -9,6 +9,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -127,8 +128,12 @@ public class TripHistoryDetailActivity extends BaseActivity {
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
                 loadingOverlay.setVisibility(View.GONE);
-                Toast.makeText(this, R.string.history_load_error, Toast.LENGTH_SHORT).show();
-                finish();
+                new AlertDialog.Builder(this)
+                        .setTitle("Error de carga")
+                        .setMessage(R.string.history_load_error)
+                        .setPositiveButton("Aceptar", (d, w) -> finish())
+                        .setCancelable(false)
+                        .show();
             }
         });
     }

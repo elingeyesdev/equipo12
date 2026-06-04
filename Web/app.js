@@ -101,12 +101,31 @@ function getCreateTripMapContainer() {
 
 document.getElementById("apiBaseUrl").value = state.apiBaseUrl;
 
+function sanitizeWebError(rawError) {
+  if (!rawError) {
+    return "Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.";
+  }
+  const errorMsg = String(rawError).trim();
+  const lower = errorMsg.toLowerCase();
+  if (lower.includes("fetch") || lower.includes("connect") || lower.includes("network") || 
+      lower.includes("timeout") || lower.includes("socket") || lower.includes("unable to resolve host") ||
+      lower.includes("http") || lower.includes("connection")) {
+    return "No se pudo establecer conexión con el servidor. Por favor, verifica tu conexión a internet o la URL base del backend.";
+  }
+  return errorMsg;
+}
+
 function setMessage(element, text, kind = "") {
   if (!element) {
     return;
   }
 
-  element.textContent = text;
+  let displayText = text;
+  if (kind === "error") {
+    displayText = sanitizeWebError(text);
+  }
+
+  element.textContent = displayText;
   element.classList.remove("success", "error");
 
   if (kind) {
@@ -690,7 +709,15 @@ function getCreateModalMarkup(type) {
       </label>
       <label class="field"><span>Nombre del conductor</span><input type="text" id="createTripDriverName" placeholder="Ej: Ana Perez" required /></label>
       <label class="field"><span>Driver User ID</span><input type="text" id="createTripDriverUserIdDisplay" placeholder="Se completa automaticamente" readonly /></label>
-      <label class="field"><span>Asientos ofrecidos</span><input type="number" id="createOfferedSeats" min="1" max="50" value="4" required /></label>
+      <label class="field"><span>Asientos ofrecidos</span>
+        <select id="createOfferedSeats">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
       <div class="trip-map-shell">
         <div class="trip-map-actions">
           <button type="button" class="btn ghost active" data-trip-point="origin">Marcar origen</button>
@@ -731,7 +758,15 @@ function getCreateModalMarkup(type) {
         </select>
       </label>
       <label class="field"><span>Passenger User ID</span><input type="text" id="createReservationPassengerUserIdDisplay" placeholder="Se completa automaticamente" readonly /></label>
-      <label class="field"><span>Asientos reservados</span><input type="number" id="createReservationSeatsReserved" min="1" max="50" value="1" required /></label>
+      <label class="field"><span>Asientos reservados</span>
+        <select id="createReservationSeatsReserved">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
       <div class="modal-actions">
         <button type="button" class="btn ghost" data-create-action="cancel">Cancelar</button>
         <button type="submit" class="btn primary">Crear reserva</button>
@@ -751,7 +786,15 @@ function getCreateModalMarkup(type) {
       </select>
     </label>
     <div id="createDriverFields" class="driver-fields hidden">
-      <label class="field"><span>Cantidad de personas (asientos)</span><input type="number" id="createSeats" min="1" max="12" placeholder="1 a 12" /></label>
+      <label class="field"><span>Cantidad de personas (asientos)</span>
+        <select id="createSeats">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
       <label class="field"><span>Placa del auto</span><input type="text" id="createPlate" minlength="5" placeholder="Ej: 1234-ABC" /></label>
       <label class="field"><span>Marca del auto</span><input type="text" id="createBrand" minlength="2" placeholder="Ej: Toyota" /></label>
       <label class="field"><span>Modelo del auto</span><input type="text" id="createModel" minlength="2" placeholder="Ej: Corolla" /></label>
@@ -1481,7 +1524,16 @@ function getEditFormMarkup(type, entity) {
       <label class="field"><span>Longitud origen</span><input type="number" step="any" name="originLongitude" value="${escapeHtml(origin.lng ?? "")}" required /></label>
       <label class="field"><span>Latitud destino (opcional)</span><input type="number" step="any" name="destinationLatitude" value="${escapeHtml(destination.lat ?? "")}" /></label>
       <label class="field"><span>Longitud destino (opcional)</span><input type="number" step="any" name="destinationLongitude" value="${escapeHtml(destination.lng ?? "")}" /></label>
-      <label class="field"><span>Cupos disponibles</span><input type="number" min="0" name="availableSeats" value="${escapeHtml(entity.availableSeats ?? 0)}" required /></label>
+      <label class="field"><span>Cupos disponibles</span>
+        <select name="availableSeats">
+          <option value="0" ${Number(entity.availableSeats) === 0 ? "selected" : ""}>0</option>
+          <option value="1" ${Number(entity.availableSeats) === 1 ? "selected" : ""}>1</option>
+          <option value="2" ${Number(entity.availableSeats) === 2 ? "selected" : ""}>2</option>
+          <option value="3" ${Number(entity.availableSeats) === 3 ? "selected" : ""}>3</option>
+          <option value="4" ${Number(entity.availableSeats) === 4 ? "selected" : ""}>4</option>
+          <option value="5" ${Number(entity.availableSeats) === 5 ? "selected" : ""}>5</option>
+        </select>
+      </label>
       <label class="field"><span>Estado</span>
         <select name="status">
           <option value="1" ${getTripStatusValue(statusValue) === "1" ? "selected" : ""}>Esperando destino</option>
@@ -2076,8 +2128,8 @@ createModalForm?.addEventListener("submit", async (event) => {
         const year = Number(createModalForm.querySelector("#createYear")?.value || 0);
         const color = createModalForm.querySelector("#createColor")?.value.trim() || "";
 
-        if (!Number.isInteger(seats) || seats < 1 || seats > 12) {
-          throw new Error("Para chofer, la cantidad de personas debe estar entre 1 y 12.");
+        if (!Number.isInteger(seats) || seats < 1 || seats > 5) {
+          throw new Error("Para chofer, la cantidad de personas debe estar entre 1 y 5.");
         }
 
         if (!model) {

@@ -33,7 +33,8 @@ import java.util.List;
 
 public class ProfileActivity extends BaseActivity {
 
-    private EditText nameInput, emailInput, phoneInput, seatsInput, plateInput, brandInput, colorInput, newPasswordInput;
+    private EditText nameInput, emailInput, phoneInput, plateInput, brandInput, colorInput, newPasswordInput;
+    private android.widget.Spinner seatsInput;
     private CheckBox hasVehicleCheckbox;
     private LinearLayout vehicleFieldsContainer;
     private Button saveButton, manageVehiclesButton, saveVehicleButton;
@@ -108,6 +109,9 @@ public class ProfileActivity extends BaseActivity {
         hasVehicleCheckbox = findViewById(R.id.profileHasVehicleCheckbox);
         vehicleFieldsContainer = findViewById(R.id.profileVehicleFieldsContainer);
         seatsInput = findViewById(R.id.profileSeatsInput);
+        android.widget.ArrayAdapter<String> seatsAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"1", "2", "3", "4", "5"});
+        seatsInput.setAdapter(seatsAdapter);
+        seatsInput.setSelection(3); // default to 4 seats
         plateInput = findViewById(R.id.profilePlateInput);
         brandInput = findViewById(R.id.profileBrandInput);
         colorInput = findViewById(R.id.profileColorInput);
@@ -119,6 +123,14 @@ public class ProfileActivity extends BaseActivity {
         profilePicture = findViewById(R.id.profilePicture);
         profilePicturePlaceholder = findViewById(R.id.profilePicturePlaceholder);
         profilePictureInitials = findViewById(R.id.profilePictureInitials);
+
+        setupErrorClearer(nameInput);
+        setupErrorClearer(emailInput);
+        setupErrorClearer(phoneInput);
+        setupErrorClearer(plateInput);
+        setupErrorClearer(brandInput);
+        setupErrorClearer(colorInput);
+        setupErrorClearer(newPasswordInput);
     }
 
     private void populateInitialFields() {
@@ -182,7 +194,12 @@ public class ProfileActivity extends BaseActivity {
                 originalRole = user.role;
                 if (user.driverProfile != null && user.vehicles != null && !user.vehicles.isEmpty()) {
                     VehicleResponse v = user.vehicles.get(0);
-                    seatsInput.setText(String.valueOf(v.totalSeats));
+                    int totalSeats = v.totalSeats;
+                    if (totalSeats >= 1 && totalSeats <= 5) {
+                        seatsInput.setSelection(totalSeats - 1);
+                    } else {
+                        seatsInput.setSelection(3); // default 4 seats
+                    }
                     plateInput.setText(v.licensePlate);
                     brandInput.setText(v.brand);
                     colorInput.setText(v.color);
@@ -212,7 +229,15 @@ public class ProfileActivity extends BaseActivity {
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                if (error.toLowerCase().contains("email") || error.toLowerCase().contains("correo")) {
+                    setErrorState(emailInput, true, error);
+                } else {
+                    new androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle("Error de perfil")
+                            .setMessage(error)
+                            .setPositiveButton("Aceptar", null)
+                            .show();
+                }
             }
         });
 
@@ -266,7 +291,12 @@ public class ProfileActivity extends BaseActivity {
                 int smallPad = (int) (6 * getResources().getDisplayMetrics().density);
                 editBtn.setPadding(smallPad * 2, smallPad, smallPad * 2, smallPad);
                 editBtn.setOnClickListener(ev -> {
-                    seatsInput.setText(String.valueOf(v.totalSeats));
+                    int totalSeats = v.totalSeats;
+                    if (totalSeats >= 1 && totalSeats <= 5) {
+                        seatsInput.setSelection(totalSeats - 1);
+                    } else {
+                        seatsInput.setSelection(3); // default 4 seats
+                    }
                     plateInput.setText(v.licensePlate);
                     brandInput.setText(v.brand);
                     colorInput.setText(v.color);
@@ -297,7 +327,7 @@ public class ProfileActivity extends BaseActivity {
         }
 
         builder.setPositiveButton("Agregar nuevo", (d, w) -> {
-            seatsInput.setText("");
+            seatsInput.setSelection(3); // default to 4 seats
             plateInput.setText("");
             brandInput.setText("");
             colorInput.setText("");
@@ -319,16 +349,12 @@ public class ProfileActivity extends BaseActivity {
         String plate = plateInput.getText().toString().trim().toUpperCase();
         String brand = brandInput.getText().toString().trim();
         String color = colorInput.getText().toString().trim();
-        String seatsRaw = seatsInput.getText().toString().trim();
+        String seatsRaw = seatsInput.getSelectedItem().toString();
 
         if (plate.length() < 5) { plateInput.setError(getString(R.string.validation_plate_min)); return; }
         if (brand.length() < 2) { brandInput.setError(getString(R.string.validation_brand_min)); return; }
         if (color.length() < 2) { colorInput.setError(getString(R.string.validation_color_min)); return; }
-        int seats;
-        try { seats = Integer.parseInt(seatsRaw); } catch (NumberFormatException e) {
-            seatsInput.setError(getString(R.string.validation_seats_number)); return;
-        }
-        if (seats < 1 || seats > 12) { seatsInput.setError(getString(R.string.validation_seats_range)); return; }
+        int seats = Integer.parseInt(seatsRaw);
 
         viewModel.saveVehicle(userId, editingVehicleId, plate, brand, color, seats);
     }
@@ -338,7 +364,7 @@ public class ProfileActivity extends BaseActivity {
         String email = emailInput.getText().toString().trim().toLowerCase();
         String phone = phoneInput.getText().toString().trim();
         boolean hasVehicle = hasVehicleCheckbox.isChecked();
-        String seatsRaw = seatsInput.getText().toString().trim();
+        String seatsRaw = seatsInput.getSelectedItem().toString();
         String plate = plateInput.getText().toString().trim();
         String brand = brandInput.getText().toString().trim();
         String color = colorInput.getText().toString().trim();
@@ -365,29 +391,40 @@ public class ProfileActivity extends BaseActivity {
 
     private boolean validate(String fullName, String email, String phone, String newPassword,
                               boolean hasVehicle, String seatsRaw, String plate, String brand, String color) {
-        if (fullName.length() < 3) { nameInput.setError(getString(R.string.validation_name_min)); return false; }
+        if (fullName.length() < 3) {
+            setErrorState(nameInput, true, getString(R.string.validation_name_min));
+            return false;
+        }
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailInput.setError(getString(R.string.validation_invalid_email)); return false;
+            setErrorState(emailInput, true, getString(R.string.validation_invalid_email));
+            return false;
         }
         if (!email.endsWith("@univalle.edu")) {
-            emailInput.setError(getString(R.string.validation_univalle_email)); return false;
+            setErrorState(emailInput, true, getString(R.string.validation_univalle_email));
+            return false;
         }
         if (!phone.isEmpty() && phone.length() < 7) {
-            phoneInput.setError(getString(R.string.validation_phone_min)); return false;
+            setErrorState(phoneInput, true, getString(R.string.validation_phone_min));
+            return false;
         }
         if (!newPassword.isEmpty() && newPassword.length() < 6) {
-            newPasswordInput.setError(getString(R.string.validation_password_min)); return false;
+            setErrorState(newPasswordInput, true, getString(R.string.validation_password_min));
+            return false;
         }
         if (hasVehicle) {
-            if (seatsRaw.isEmpty()) { seatsInput.setError(getString(R.string.validation_required)); return false; }
-            int seats;
-            try { seats = Integer.parseInt(seatsRaw); } catch (NumberFormatException e) {
-                seatsInput.setError(getString(R.string.validation_seats_number)); return false;
+            int seats = Integer.parseInt(seatsRaw);
+            if (plate.length() < 5) {
+                setErrorState(plateInput, true, getString(R.string.validation_plate_min));
+                return false;
             }
-            if (seats < 1 || seats > 12) { seatsInput.setError(getString(R.string.validation_seats_range)); return false; }
-            if (plate.length() < 5) { plateInput.setError(getString(R.string.validation_plate_min)); return false; }
-            if (brand.length() < 2) { brandInput.setError(getString(R.string.validation_brand_min)); return false; }
-            if (color.length() < 2) { colorInput.setError(getString(R.string.validation_color_min)); return false; }
+            if (brand.length() < 2) {
+                setErrorState(brandInput, true, getString(R.string.validation_brand_min));
+                return false;
+            }
+            if (color.length() < 2) {
+                setErrorState(colorInput, true, getString(R.string.validation_color_min));
+                return false;
+            }
         }
         return true;
     }

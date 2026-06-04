@@ -2819,7 +2819,11 @@ public class MainActivity extends BaseActivity {
             submitButton.setOnClickListener(v -> {
                 int score = ratingBar != null ? (int) ratingBar.getRating() : 5;
                 if (score < 1 || score > 5) {
-                    Toast.makeText(MainActivity.this, "Por favor selecciona un puntaje entre 1 y 5 estrellas", Toast.LENGTH_SHORT).show();
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Calificación requerida")
+                            .setMessage("Por favor selecciona un puntaje entre 1 y 5 estrellas")
+                            .setPositiveButton("Aceptar", null)
+                            .show();
                     return;
                 }
                 String comment = commentInput != null ? commentInput.getText().toString().trim() : "";
@@ -2842,7 +2846,12 @@ public class MainActivity extends BaseActivity {
 
                     @Override
                     public void onError(String message) {
-                        Toast.makeText(MainActivity.this, "Error al calificar: " + message, Toast.LENGTH_LONG).show();
+                        String cleanError = sanitizeError(message);
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Error al calificar")
+                                .setMessage(cleanError)
+                                .setPositiveButton("Aceptar", null)
+                                .show();
                     }
                 });
             });
@@ -2927,7 +2936,11 @@ public class MainActivity extends BaseActivity {
             submitButton.setOnClickListener(v -> {
                 int score = ratingBar != null ? (int) ratingBar.getRating() : 5;
                 if (score < 1 || score > 5) {
-                    Toast.makeText(MainActivity.this, "Por favor selecciona un puntaje entre 1 y 5 estrellas", Toast.LENGTH_SHORT).show();
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Calificación requerida")
+                            .setMessage("Por favor selecciona un puntaje entre 1 y 5 estrellas")
+                            .setPositiveButton("Aceptar", null)
+                            .show();
                     return;
                 }
                 String comment = commentInput != null ? commentInput.getText().toString().trim() : "";
@@ -2950,7 +2963,12 @@ public class MainActivity extends BaseActivity {
 
                     @Override
                     public void onError(String message) {
-                        Toast.makeText(MainActivity.this, "Error al calificar: " + message, Toast.LENGTH_LONG).show();
+                        String cleanError = sanitizeError(message);
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Error al calificar")
+                                .setMessage(cleanError)
+                                .setPositiveButton("Aceptar", null)
+                                .show();
                     }
                 });
             });

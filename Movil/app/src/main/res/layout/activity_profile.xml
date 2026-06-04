@@ -218,22 +218,15 @@
                     android:orientation="vertical"
                     android:visibility="gone">
 
-                    <EditText
+                    <Spinner
                         android:id="@+id/profileSeatsInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:background="@drawable/bg_input_modern"
-                        android:hint="@string/hint_vehicle_seats"
-                        android:inputType="number"
                         android:minHeight="52dp"
                         android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp"
-                        android:textColor="@color/carpool_text_primary"
-                        android:textColorHint="@color/carpool_text_secondary"
-                        android:textSize="15sp" />
+                        android:paddingEnd="16dp" />
 
                     <EditText
                         android:id="@+id/profilePlateInput"

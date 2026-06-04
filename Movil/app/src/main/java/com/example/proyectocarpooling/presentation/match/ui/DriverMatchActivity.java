@@ -14,6 +14,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
@@ -151,7 +152,12 @@ public class DriverMatchActivity extends BaseActivity {
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                String cleanError = sanitizeError(error);
+                new AlertDialog.Builder(this)
+                        .setTitle("Búsqueda de Chofer")
+                        .setMessage(cleanError)
+                        .setPositiveButton("Aceptar", null)
+                        .show();
                 swipeAnimating = false;
                 resetCardTransformInstant();
                 setButtonsEnabled(true);
