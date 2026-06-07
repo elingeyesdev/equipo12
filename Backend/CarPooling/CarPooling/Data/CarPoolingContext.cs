@@ -29,6 +29,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     public DbSet<PaymentReceipt> PaymentReceipts => Set<PaymentReceipt>();
+    public DbSet<PhysicalPayment> PhysicalPayments => Set<PhysicalPayment>();
     public DbSet<Refund> Refunds => Set<Refund>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -57,6 +58,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigurePayment(modelBuilder);
         ConfigurePaymentTransaction(modelBuilder);
         ConfigurePaymentReceipt(modelBuilder);
+        ConfigurePhysicalPayment(modelBuilder);
         ConfigureRefund(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
@@ -655,6 +657,46 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(r => r.QrCodeValue).HasMaxLength(300);
             entity.Property(r => r.IssuedAt).HasDefaultValueSql("GETUTCDATE()");
             entity.Property(r => r.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private static void ConfigurePhysicalPayment(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PhysicalPayment>(entity =>
+        {
+            entity.ToTable("PhysicalPayments");
+            entity.HasKey(p => p.Id);
+            entity.HasIndex(p => p.PaymentId).IsUnique();
+
+            entity.HasOne(p => p.Payment)
+                .WithOne(p => p.PhysicalPayment)
+                .HasForeignKey<PhysicalPayment>(p => p.PaymentId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            entity.HasOne(p => p.ReceivedByUser)
+                .WithMany()
+                .HasForeignKey(p => p.ReceivedByUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.HasOne(p => p.DeliveredByUser)
+                .WithMany()
+                .HasForeignKey(p => p.DeliveredByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.Property(p => p.ExpectedAmount).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(p => p.ReceivedAmount).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(p => p.ChangeAmount).HasColumnType("decimal(10,2)").HasDefaultValue(0m).IsRequired();
+            entity.Property(p => p.Status).HasConversion<int>().HasDefaultValue(PhysicalPaymentStatus.Pending).IsRequired();
+            entity.Property(p => p.EvidenceImageUrl).HasMaxLength(300);
+            entity.Property(p => p.Notes).HasMaxLength(300);
+            entity.Property(p => p.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(p => p.UpdatedAt);
+
+            entity.HasIndex(p => p.ReceivedByUserId);
+            entity.HasIndex(p => p.DeliveredByUserId);
+            entity.HasIndex(p => p.Status);
         });
     }
 
