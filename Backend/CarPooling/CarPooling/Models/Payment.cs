@@ -74,7 +74,5 @@ public class Payment
 
     public PaymentReceipt? Receipt { get; set; }
 
-    public PhysicalPayment? PhysicalPayment { get; set; }
-
     public ICollection<Refund> Refunds { get; set; } = [];
 }
