@@ -297,7 +297,7 @@
     <string name="hint_university_email">Correo institucional @univalle.edu</string>
     <string name="hint_password">Contraseña</string>
     <string name="hint_full_name">Nombre completo</string>
-    <string name="hint_phone">Teléfono (opcional)</string>
+    <string name="hint_phone">Teléfono</string>
     <string name="hint_confirm_password">Confirmar contraseña</string>
     <string name="hint_new_password_optional">Nueva contraseña (opcional)</string>
     <string name="hint_vehicle_seats">Número de pasajeros que puedes llevar</string>
@@ -317,6 +317,7 @@
     <string name="validation_plate_min">La placa debe tener al menos 5 caracteres.</string>
     <string name="validation_brand_min">La marca debe tener al menos 2 caracteres.</string>
     <string name="validation_color_min">El color debe tener al menos 2 caracteres.</string>
+    <string name="validation_plate_format">La placa debe tener 4 números y 3 letras (ej: 4216FDY).</string>
 
     <string name="button_save_favorite">Guardar favorito</string>
     <string name="favorites_title_manage">Tus lugares y viajes favoritos</string>

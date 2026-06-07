@@ -234,6 +234,7 @@
                 android:gravity="center_vertical">
 
                 <View
+                    android:id="@+id/originDot"
                     android:layout_width="12dp"
                     android:layout_height="12dp"
                     android:background="@drawable/online_indicator_background"
@@ -267,6 +268,7 @@
                 android:gravity="center_vertical">
 
                 <View
+                    android:id="@+id/destinationDot"
                     android:layout_width="12dp"
                     android:layout_height="12dp"
                     android:background="@drawable/role_badge_background"
@@ -473,12 +475,26 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="220dp"
+            android:layout_marginBottom="284dp"
             android:contentDescription="Abrir chat de viaje"
             android:src="@android:drawable/stat_notify_chat"
             android:visibility="gone"
             app:backgroundTint="?attr/colorPrimary"
-            app:tint="@color/white" />
+            app:tint="@color/white"
+            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MyApp.FAB.Circle" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/myLocationFloatingButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="220dp"
+            android:contentDescription="Centrar en mi ubicación"
+            android:src="@android:drawable/ic_menu_mylocation"
+            app:backgroundTint="?attr/colorPrimary"
+            app:tint="@color/white"
+            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MyApp.FAB.Circle" />
 
         <ProgressBar
             android:id="@+id/loadingIndicator"

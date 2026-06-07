@@ -30,5 +30,6 @@
     <color name="uber_button_disabled">#FFD7DDD4</color>
     <color name="uber_button_disabled_text">#FF7C887F</color>
     <color name="uber_text_inverse">#FFFFFFFF</color>
+    <color name="auth_on_hero">#FFFFFFFF</color>
     <color name="rating_star_yellow">#FFFFC107</color>
 </resources>

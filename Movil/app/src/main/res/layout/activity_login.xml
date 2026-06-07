@@ -4,100 +4,134 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/carpool_surface"
+    android:clipToPadding="false"
     android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingStart="24dp"
-        android:paddingTop="72dp"
-        android:paddingEnd="24dp"
         android:paddingBottom="40dp">
 
         <LinearLayout
+            android:id="@+id/authHeroLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:background="@drawable/bg_auth_hero"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:paddingBottom="32dp">
+            android:paddingStart="24dp"
+            android:paddingTop="48dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="64dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_auth_badge"
+                android:gravity="center"
+                android:minWidth="156dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="Viajes seguros Univalle"
+                android:textColor="@color/auth_on_hero"
+                android:tag="auth_on_hero"
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
             <FrameLayout
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:layout_marginBottom="20dp"
-                android:background="@drawable/avatar_gradient_background">
+                android:layout_width="76dp"
+                android:layout_height="76dp"
+                android:layout_marginTop="22dp"
+                android:background="@drawable/bg_profile_photo_ring"
+                android:padding="6dp">
 
-                <TextView
+                <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="UR"
-                    android:textColor="@color/uber_text_inverse"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
+                    android:src="@drawable/logounivalle"
+                    android:scaleType="fitCenter" />
             </FrameLayout>
 
             <TextView
                 android:id="@+id/loginTitle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:gravity="center"
                 android:text="@string/login_title"
-                android:textColor="@color/carpool_text_primary"
-                android:textSize="26sp"
-                android:textStyle="bold"
-                android:gravity="center" />
+                android:textColor="@color/auth_on_hero"
+                android:tag="auth_on_hero"
+                android:textSize="27sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/loginSubtitle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
                 android:text="@string/login_subtitle"
-                android:textColor="@color/carpool_text_secondary"
+                android:textColor="@color/auth_on_hero"
+                android:tag="auth_on_hero"
                 android:textSize="14sp" />
         </LinearLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:elevation="4dp"
+            android:layout_marginStart="22dp"
+            android:layout_marginTop="-36dp"
+            android:layout_marginEnd="22dp"
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="24dp"
-            app:cardElevation="4dp"
-            app:strokeWidth="0dp">
+            app:cardElevation="8dp"
+            app:strokeColor="@color/uber_border"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingStart="22dp"
-                android:paddingTop="28dp"
+                android:paddingTop="26dp"
                 android:paddingEnd="22dp"
-                android:paddingBottom="28dp">
+                android:paddingBottom="26dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:background="@drawable/bg_section_chip"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="ACCESO"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/loginEmailLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="8dp"
                     android:text="@string/hint_university_email"
                     android:textColor="@color/carpool_text_primary"
                     android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/loginEmailInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_input_modern"
-                    android:hint="usuario@correounivalle.edu.co"
+                    android:hint="usuario@univalle.edu"
                     android:inputType="textEmailAddress"
-                    android:minHeight="54dp"
+                    android:minHeight="56dp"
                     android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
                     android:paddingTop="16dp"
+                    android:paddingEnd="16dp"
                     android:paddingBottom="16dp"
                     android:textColor="@color/carpool_text_primary"
                     android:textColorHint="@color/carpool_text_secondary"
@@ -107,12 +141,12 @@
                     android:id="@+id/loginPasswordLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
+                    android:layout_marginTop="18dp"
+                    android:layout_marginBottom="8dp"
                     android:text="@string/hint_password"
                     android:textColor="@color/carpool_text_primary"
                     android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/loginPasswordInput"
@@ -121,10 +155,10 @@
                     android:background="@drawable/bg_input_modern"
                     android:hint="Contraseña"
                     android:inputType="textPassword"
-                    android:minHeight="54dp"
+                    android:minHeight="56dp"
                     android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
                     android:paddingTop="16dp"
+                    android:paddingEnd="16dp"
                     android:paddingBottom="16dp"
                     android:textColor="@color/carpool_text_primary"
                     android:textColorHint="@color/carpool_text_secondary"
@@ -133,15 +167,15 @@
                 <Button
                     android:id="@+id/loginButton"
                     android:layout_width="match_parent"
-                    android:layout_height="54dp"
+                    android:layout_height="56dp"
                     android:layout_marginTop="28dp"
                     android:background="@drawable/bg_primary_action"
                     android:backgroundTint="@null"
+                    android:letterSpacing="0"
                     android:text="@string/login_action"
                     android:textColor="@color/button_text_color"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.04" />
+                    android:textStyle="bold" />
 
                 <ProgressBar
                     android:id="@+id/loginLoading"
@@ -156,15 +190,20 @@
         <TextView
             android:id="@+id/openRegisterText"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="22dp"
+            android:background="@drawable/bg_auth_footer_action"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:minWidth="228dp"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
             android:text="@string/login_open_register"
             android:textColor="@color/carpool_text_primary"
             android:textSize="14sp"
-            android:textStyle="bold"
-            android:padding="10dp"
-            android:clickable="true"
-            android:focusable="true" />
+            android:textStyle="bold" />
 
     </LinearLayout>
 </ScrollView>

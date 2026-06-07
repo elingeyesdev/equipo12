@@ -47,17 +47,20 @@ public final class DynamicThemeManager {
             int primaryColor = Color.parseColor(primaryHex);
             int textColor = Color.parseColor(textHex);
             int secColor = Color.parseColor(secondaryHex);
-            int buttonColor = secColor;
+            int buttonColor = primaryColor;
             int panelColor = isDarkMode
                     ? androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#121815"), primaryColor, 0.12f)
                     : androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#fbfaf5"), primaryColor, 0.06f);
             int navColor = isDarkMode
-                    ? androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#101614"), primaryColor, 0.18f)
-                    : androidx.core.graphics.ColorUtils.blendARGB(primaryColor, Color.BLACK, 0.24f);
+                    ? androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#101614"), secColor, 0.18f)
+                    : secColor;
             int buttonTextColor = contrastFor(buttonColor);
 
+            if ("auth_on_hero".equals(view.getTag()) && view instanceof TextView) {
+                ((TextView) view).setTextColor(Color.WHITE);
+            }
             // 1. Tint standard and Material Buttons (excluding back button in account overview to keep it transparent)
-            if (view instanceof Button && view.getId() != com.example.proyectocarpooling.R.id.accountBackButton) {
+            if (view instanceof Button && !(view instanceof CompoundButton) && view.getId() != com.example.proyectocarpooling.R.id.accountBackButton) {
                 Button btn = (Button) view;
                 btn.setBackgroundTintList(ColorStateList.valueOf(buttonColor));
                 btn.setTextColor(buttonTextColor);
@@ -71,6 +74,12 @@ public final class DynamicThemeManager {
             else if (view instanceof CompoundButton) {
                 CompoundButton compoundButton = (CompoundButton) view;
                 compoundButton.setButtonTintList(ColorStateList.valueOf(secColor));
+                if (view.getId() == com.example.proyectocarpooling.R.id.registerHasVehicleCheckbox ||
+                        view.getId() == com.example.proyectocarpooling.R.id.profileHasVehicleCheckbox) {
+                    compoundButton.setBackgroundResource(com.example.proyectocarpooling.R.drawable.bg_info_field);
+                    compoundButton.setBackgroundTintList(null);
+                    compoundButton.setTextColor(textColor);
+                }
             }
             // 4. Tint explicitly tinted ImageViews
             else if (view instanceof ImageView) {
@@ -79,22 +88,22 @@ public final class DynamicThemeManager {
                     imageView.setImageTintList(ColorStateList.valueOf(primaryColor));
                 }
             }
-            // 5. Tint NavigationView (Sidebar) with Primary Background and handle Header views
+            // 5. Tint NavigationView (Sidebar) with Secondary Background and handle Header views
             else if (view instanceof com.google.android.material.navigation.NavigationView) {
                 com.google.android.material.navigation.NavigationView navView = (com.google.android.material.navigation.NavigationView) view;
                 
                 navView.setBackgroundColor(navColor);
                 
-                boolean isPrimaryDark = androidx.core.graphics.ColorUtils.calculateLuminance(navColor) < 0.5;
-                int contrastColor = isPrimaryDark ? Color.WHITE : Color.BLACK;
-                int inactiveColor = isPrimaryDark ? Color.parseColor("#B3FFFFFF") : Color.parseColor("#888888");
+                boolean isSecondaryDark = androidx.core.graphics.ColorUtils.calculateLuminance(navColor) < 0.5;
+                int contrastColor = isSecondaryDark ? Color.WHITE : Color.BLACK;
+                int inactiveColor = isSecondaryDark ? Color.parseColor("#B3FFFFFF") : Color.parseColor("#888888");
                 
                 int[][] states = new int[][] {
                     new int[] { android.R.attr.state_checked },
                     new int[] { -android.R.attr.state_checked }
                 };
-                int[] colors = new int[] { secColor, inactiveColor };
-                int[] textColors = new int[] { secColor, contrastColor };
+                int[] colors = new int[] { primaryColor, inactiveColor };
+                int[] textColors = new int[] { primaryColor, contrastColor };
                 
                 navView.setItemIconTintList(new ColorStateList(states, colors));
                 navView.setItemTextColor(new ColorStateList(states, textColors));
@@ -109,13 +118,13 @@ public final class DynamicThemeManager {
                 }
             }
 
-            // 6. Tint Sidebar Header and Profile Detail Header Backgrounds with Secondary Color (different from sidebar to create contrast!)
+            // 6. Tint Sidebar Header and Profile Detail Header Backgrounds with Primary Color (different from sidebar to create contrast!)
             if (view.getId() == com.example.proyectocarpooling.R.id.sidebarHeaderLayout || 
                 view.getId() == com.example.proyectocarpooling.R.id.accountHeaderLayout) {
                 if (view.getBackground() != null) {
-                    view.getBackground().mutate().setTint(secColor);
+                    view.getBackground().mutate().setTint(primaryColor);
                 } else {
-                    view.setBackgroundColor(secColor);
+                    view.setBackgroundColor(primaryColor);
                 }
             }
 
@@ -132,51 +141,51 @@ public final class DynamicThemeManager {
                 }
             }
 
-            // Initials avatar circle (drawn with primary color matching sidebar, creating a premium contrast bubble!)
+            // Initials avatar circle (drawn with secondary color matching sidebar, creating contrast against primary header!)
             if (view.getId() == com.example.proyectocarpooling.R.id.drawerUserInitials || 
                 view.getId() == com.example.proyectocarpooling.R.id.accountUserInitials) {
                 TextView tv = (TextView) view;
-                tv.setTextColor(isPrimaryDark ? Color.WHITE : Color.BLACK);
+                tv.setTextColor(isSecondaryDark ? Color.WHITE : Color.BLACK);
                 
                 if (view.getParent() instanceof View) {
                     View parent = (View) view.getParent();
                     if (parent.getBackground() != null) {
-                        parent.getBackground().mutate().setTint(primaryColor);
+                        parent.getBackground().mutate().setTint(secColor);
                     }
                 }
             }
-            // Role Badge (drawn with primary color accent)
+            // Role Badge (drawn with secondary color matching sidebar, creating contrast against primary header)
             else if (view.getId() == com.example.proyectocarpooling.R.id.drawerUserRole) {
                 TextView tv = (TextView) view;
-                tv.setTextColor(isPrimaryDark ? Color.WHITE : Color.BLACK);
+                tv.setTextColor(isSecondaryDark ? Color.WHITE : Color.BLACK);
                 
                 if (view.getParent() instanceof ViewGroup) {
                     ViewGroup parent = (ViewGroup) view.getParent();
                     if (parent.getChildCount() > 0) {
                         View badgeBg = parent.getChildAt(0);
                         if (badgeBg != null && badgeBg.getBackground() != null) {
-                            badgeBg.getBackground().mutate().setTint(primaryColor);
+                            badgeBg.getBackground().mutate().setTint(secColor);
                         }
                     }
                 }
             }
-            // Primary Name Text in Headers (Sidebar Header & Profile Header) - colored based on Secondary background
+            // Primary Name Text in Headers (Sidebar Header & Profile Header) - colored based on Primary background
             else if (view.getId() == com.example.proyectocarpooling.R.id.drawerUserTitle || 
                      view.getId() == com.example.proyectocarpooling.R.id.accountNameValue) {
                 TextView tv = (TextView) view;
-                tv.setTextColor(isSecondaryDark ? Color.WHITE : Color.BLACK);
+                tv.setTextColor(isPrimaryDark ? Color.WHITE : Color.BLACK);
             }
-            // Secondary Muted Subtitles in Headers - colored based on Secondary background
+            // Secondary Muted Subtitles in Headers - colored based on Primary background
             else if (view.getId() == com.example.proyectocarpooling.R.id.drawerUserEmail || 
                      view.getId() == com.example.proyectocarpooling.R.id.drawerUserRating || 
                      view.getId() == com.example.proyectocarpooling.R.id.accountEmailValue) {
                 TextView tv = (TextView) view;
-                tv.setTextColor(isSecondaryDark ? Color.parseColor("#B3FFFFFF") : Color.parseColor("#66000000"));
+                tv.setTextColor(isPrimaryDark ? Color.parseColor("#B3FFFFFF") : Color.parseColor("#66000000"));
             }
-            // Back Arrow Button in Profile Header (transparent, just text) - colored based on Secondary background
+            // Back Arrow Button in Profile Header (transparent, just text) - colored based on Primary background
             else if (view.getId() == com.example.proyectocarpooling.R.id.accountBackButton) {
                 Button btn = (Button) view;
-                btn.setTextColor(isSecondaryDark ? Color.WHITE : Color.BLACK);
+                btn.setTextColor(isPrimaryDark ? Color.WHITE : Color.BLACK);
             }
             // Reservation Badge parent container (drawn with primary color matching sidebar)
             else if (view.getId() == com.example.proyectocarpooling.R.id.drawerReservationInfo) {
@@ -194,7 +203,7 @@ public final class DynamicThemeManager {
                 }
             }
             // 8. General standard TextViews (excluding custom controls)
-            else if (view instanceof TextView && !(view instanceof Button) && !(view instanceof EditText) && !(view instanceof CompoundButton)) {
+            else if (view instanceof TextView && !(view instanceof Button) && !(view instanceof EditText) && !(view instanceof CompoundButton) && !"auth_on_hero".equals(view.getTag())) {
                 TextView tv = (TextView) view;
                 tv.setTextColor(textColor);
             }
@@ -211,6 +220,24 @@ public final class DynamicThemeManager {
             if (view.getId() == com.example.proyectocarpooling.R.id.menuToggleButton) {
                 if (view.getBackground() != null) {
                     view.getBackground().mutate().setTint(panelColor);
+                }
+            }
+
+            if (view.getId() == com.example.proyectocarpooling.R.id.authHeroLayout) {
+                if (view.getBackground() != null) {
+                    view.getBackground().mutate().setTint(primaryColor);
+                } else {
+                    view.setBackgroundColor(primaryColor);
+                }
+            }
+
+            // 10. Tint origin and destination dots on map query panel with Primary Color
+            if (view.getId() == com.example.proyectocarpooling.R.id.originDot || 
+                view.getId() == com.example.proyectocarpooling.R.id.destinationDot) {
+                if (view.getBackground() != null) {
+                    view.getBackground().mutate().setTint(primaryColor);
+                } else {
+                    view.setBackgroundColor(primaryColor);
                 }
             }
         } catch (Exception e) {

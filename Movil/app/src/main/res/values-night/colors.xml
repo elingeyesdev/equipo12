@@ -28,6 +28,7 @@
     
     <!-- Others -->
     <color name="uber_text_inverse">#FF121815</color>
+    <color name="auth_on_hero">#FFFFFFFF</color>
     <color name="uber_button_disabled">#FF303A34</color>
     <color name="uber_button_disabled_text">#FF7F8A83</color>
     <color name="uber_avatar">#FF8FAC98</color>

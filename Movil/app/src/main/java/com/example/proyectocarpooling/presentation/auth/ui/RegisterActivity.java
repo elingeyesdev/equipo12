@@ -32,8 +32,8 @@ public class RegisterActivity extends BaseActivity {
     private View vehicleFieldsContainer;
     private android.widget.Spinner seatsInput;
     private EditText plateInput;
-    private EditText brandInput;
-    private EditText colorInput;
+    private android.widget.AutoCompleteTextView brandInput;
+    private android.widget.AutoCompleteTextView colorInput;
     private EditText passwordInput;
     private EditText confirmPasswordInput;
     private Button registerButton;
@@ -90,6 +90,20 @@ public class RegisterActivity extends BaseActivity {
         plateInput = findViewById(R.id.registerPlateInput);
         brandInput = findViewById(R.id.registerBrandInput);
         colorInput = findViewById(R.id.registerColorInput);
+
+        String[] vehicleBrands = new String[]{
+            "Toyota", "Suzuki", "Nissan", "Honda", "Hyundai", "Kia", "Chevrolet", "Ford", 
+            "Fiat", "Volkswagen", "GAC", "BYD", "Changan", "Chery", "Great Wall", "Mitsubishi", "Mazda", "Renault", "Peugeot"
+        };
+        String[] vehicleColors = new String[]{
+            "Blanco", "Negro", "Gris", "Plateado", "Rojo", "Azul", "Verde", "Dorado", "Café", "Marrón", "Beige"
+        };
+        android.widget.ArrayAdapter<String> brandAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, vehicleBrands);
+        brandInput.setAdapter(brandAdapter);
+        brandInput.setThreshold(1);
+        android.widget.ArrayAdapter<String> colorAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, vehicleColors);
+        colorInput.setAdapter(colorAdapter);
+        colorInput.setThreshold(1);
         passwordInput = findViewById(R.id.registerPasswordInput);
         confirmPasswordInput = findViewById(R.id.registerConfirmPasswordInput);
 
@@ -167,7 +181,7 @@ public class RegisterActivity extends BaseActivity {
         int seats = hasVehicle ? Integer.parseInt(seatsRaw) : 0;
         String role = hasVehicle ? "driver" : "student";
         DriverProfileRequest driverProfile = hasVehicle
-                ? new DriverProfileRequest(seats, plate.toUpperCase(), brand, color)
+                ? new DriverProfileRequest(seats, plate.replaceAll("[\\s-]", "").toUpperCase(), brand, color)
                 : null;
 
         authViewModel.register(new RegisterUserRequest(fullName, email, password, phone, role, base64Image, driverProfile));
@@ -204,7 +218,12 @@ public class RegisterActivity extends BaseActivity {
             return false;
         }
 
-        if (!phone.isEmpty() && phone.length() < 7) {
+        if (phone.isEmpty()) {
+            setErrorState(phoneInput, true, getString(R.string.validation_required));
+            return false;
+        }
+
+        if (phone.length() < 7) {
             setErrorState(phoneInput, true, getString(R.string.validation_phone_min));
             return false;
         }
@@ -222,8 +241,9 @@ public class RegisterActivity extends BaseActivity {
         if (hasVehicle) {
             int seats = Integer.parseInt(seatsRaw);
 
-            if (plate.length() < 5) {
-                setErrorState(plateInput, true, getString(R.string.validation_plate_min));
+            String cleanPlate = plate.replaceAll("[\\s-]", "").toUpperCase();
+            if (!cleanPlate.matches("^[0-9]{4}[A-Z]{3}$")) {
+                setErrorState(plateInput, true, getString(R.string.validation_plate_format));
                 return false;
             }
 

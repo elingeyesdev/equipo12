@@ -134,6 +134,7 @@ public class MainActivity extends BaseActivity {
     private Button bannerRejectButton;
     private TextView bottomSheetTitle;
     private com.google.android.material.floatingactionbutton.FloatingActionButton chatFloatingButton;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton myLocationFloatingButton;
 
     private boolean isInitialPositionSet = false;
     private Point selectedOrigin;
@@ -258,6 +259,11 @@ public class MainActivity extends BaseActivity {
                         .build());
                 isInitialPositionSet = true;
                 setProgressVisible(false);
+                if (selectedOrigin == null) {
+                    setSelectedOrigin(point, null);
+                    updateCoordinateLabels();
+                    updateMapMarkers();
+                }
             }
         });
     };
@@ -373,6 +379,11 @@ public class MainActivity extends BaseActivity {
                     Toast.makeText(MainActivity.this, "No hay chat activo para este viaje", Toast.LENGTH_SHORT).show();
                 }
             });
+        }
+
+        myLocationFloatingButton = findViewById(R.id.myLocationFloatingButton);
+        if (myLocationFloatingButton != null) {
+            myLocationFloatingButton.setOnClickListener(v -> centerMapOnMyLocation());
         }
 
         if (navigationView != null) {
@@ -528,6 +539,17 @@ public class MainActivity extends BaseActivity {
 
         maybeRestoreDriverActiveTripAsync();
         checkPassengerReservationOnStart();
+    }
+
+    private void centerMapOnMyLocation() {
+        if (currentDriverPosition != null) {
+            mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
+                    .center(currentDriverPosition)
+                    .zoom(16.0)
+                    .build());
+        } else {
+            Toast.makeText(this, "Ubicación actual no disponible todavía", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override

@@ -33,7 +33,8 @@ import java.util.List;
 
 public class ProfileActivity extends BaseActivity {
 
-    private EditText nameInput, emailInput, phoneInput, plateInput, brandInput, colorInput, newPasswordInput;
+    private EditText nameInput, emailInput, phoneInput, plateInput, newPasswordInput;
+    private android.widget.AutoCompleteTextView brandInput, colorInput;
     private android.widget.Spinner seatsInput;
     private CheckBox hasVehicleCheckbox;
     private LinearLayout vehicleFieldsContainer;
@@ -117,6 +118,20 @@ public class ProfileActivity extends BaseActivity {
         colorInput = findViewById(R.id.profileColorInput);
         newPasswordInput = findViewById(R.id.profileNewPasswordInput);
         saveButton = findViewById(R.id.profileSaveButton);
+
+        String[] vehicleBrands = new String[]{
+            "Toyota", "Suzuki", "Nissan", "Honda", "Hyundai", "Kia", "Chevrolet", "Ford", 
+            "Fiat", "Volkswagen", "GAC", "BYD", "Changan", "Chery", "Great Wall", "Mitsubishi", "Mazda", "Renault", "Peugeot"
+        };
+        String[] vehicleColors = new String[]{
+            "Blanco", "Negro", "Gris", "Plateado", "Rojo", "Azul", "Verde", "Dorado", "Café", "Marrón", "Beige"
+        };
+        android.widget.ArrayAdapter<String> brandAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, vehicleBrands);
+        brandInput.setAdapter(brandAdapter);
+        brandInput.setThreshold(1);
+        android.widget.ArrayAdapter<String> colorAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, vehicleColors);
+        colorInput.setAdapter(colorAdapter);
+        colorInput.setThreshold(1);
         loading = findViewById(R.id.profileLoading);
 
         profilePictureContainer = findViewById(R.id.profilePictureContainer);
@@ -346,17 +361,21 @@ public class ProfileActivity extends BaseActivity {
             return;
         }
 
-        String plate = plateInput.getText().toString().trim().toUpperCase();
+        String plate = plateInput.getText().toString().trim();
         String brand = brandInput.getText().toString().trim();
         String color = colorInput.getText().toString().trim();
         String seatsRaw = seatsInput.getSelectedItem().toString();
 
-        if (plate.length() < 5) { plateInput.setError(getString(R.string.validation_plate_min)); return; }
+        String cleanPlate = plate.replaceAll("[\\s-]", "").toUpperCase();
+        if (!cleanPlate.matches("^[0-9]{4}[A-Z]{3}$")) {
+            plateInput.setError(getString(R.string.validation_plate_format));
+            return;
+        }
         if (brand.length() < 2) { brandInput.setError(getString(R.string.validation_brand_min)); return; }
         if (color.length() < 2) { colorInput.setError(getString(R.string.validation_color_min)); return; }
         int seats = Integer.parseInt(seatsRaw);
 
-        viewModel.saveVehicle(userId, editingVehicleId, plate, brand, color, seats);
+        viewModel.saveVehicle(userId, editingVehicleId, cleanPlate, brand, color, seats);
     }
 
     private void saveProfile() {
@@ -377,7 +396,7 @@ public class ProfileActivity extends BaseActivity {
         String role = hasVehicle ? "driver" : "student";
         boolean roleChangeRequested = !role.equalsIgnoreCase(originalRole);
         DriverProfileRequest driverProfile = hasVehicle
-                ? new DriverProfileRequest(Integer.parseInt(seatsRaw), plate.toUpperCase(), brand, color)
+                ? new DriverProfileRequest(Integer.parseInt(seatsRaw), plate.replaceAll("[\\s-]", "").toUpperCase(), brand, color)
                 : null;
 
         String userId = sessionManager.getUserId();
@@ -413,8 +432,9 @@ public class ProfileActivity extends BaseActivity {
         }
         if (hasVehicle) {
             int seats = Integer.parseInt(seatsRaw);
-            if (plate.length() < 5) {
-                setErrorState(plateInput, true, getString(R.string.validation_plate_min));
+            String cleanPlate = plate.replaceAll("[\\s-]", "").toUpperCase();
+            if (!cleanPlate.matches("^[0-9]{4}[A-Z]{3}$")) {
+                setErrorState(plateInput, true, getString(R.string.validation_plate_format));
                 return false;
             }
             if (brand.length() < 2) {

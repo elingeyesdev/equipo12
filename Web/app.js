@@ -2474,13 +2474,13 @@ const presets = {
     secondaryDark: "#bca4c4",
     textDark: "#edeaf5"
   },
-  Midnight: {
-    primaryLight: "#cba477",
-    secondaryLight: "#8a7b69",
-    textLight: "#26211a",
-    primaryDark: "#dcb282",
-    secondaryDark: "#a89782",
-    textDark: "#f4f1ed"
+  Univalle: {
+    primaryLight: "#7a1c31",
+    secondaryLight: "#D3D3D3",
+    textLight: "#111827",
+    primaryDark: "#a12b42",
+    secondaryDark: "#9ca3af",
+    textDark: "#ffffff"
   }
 };
 
