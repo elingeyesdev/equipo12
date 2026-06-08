@@ -5,9 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Services;
 
-public class ReservationService(CarPoolingContext context)
+public class ReservationService(CarPoolingContext context, INotificationService notificationService)
 {
     private readonly CarPoolingContext _context = context;
+    private readonly INotificationService _notificationService = notificationService;
 
     /// <summary>Crea reserva en estado "pending". Genera código de abordaje.</summary>
     public async Task<Reservation> CreateAsync(Guid tripId, CreateReservationDto dto)
@@ -44,6 +45,17 @@ public class ReservationService(CarPoolingContext context)
         _context.Reservations.Add(reservation);
         await _context.SaveChangesAsync();
 
+        var passenger = await _context.Users.FindAsync(dto.PassengerUserId);
+        if (passenger != null && trip.DriverUserId.HasValue)
+        {
+            await _notificationService.SendNotificationAsync(
+                trip.DriverUserId.Value,
+                "Nueva solicitud de reserva",
+                $"{passenger.FullName} ha solicitado unirse a tu viaje.",
+                new Dictionary<string, string> { { "type", "reservation_request" }, { "tripId", tripId.ToString() } }
+            );
+        }
+
         return reservation;
     }
 
@@ -65,6 +77,14 @@ public class ReservationService(CarPoolingContext context)
         reservation.Trip.AvailableSeats -= reservation.SeatsReserved;
 
         await _context.SaveChangesAsync();
+
+        await _notificationService.SendNotificationAsync(
+            reservation.PassengerUserId,
+            "Reserva Confirmada",
+            $"Tu solicitud de viaje con {reservation.Trip.DriverName} ha sido aceptada.",
+            new Dictionary<string, string> { { "type", "reservation_accepted" }, { "tripId", reservation.TripId.ToString() } }
+        );
+
         return reservation;
     }
 
@@ -81,6 +101,14 @@ public class ReservationService(CarPoolingContext context)
 
         reservation.StatusId = 4; // cancelled
         await _context.SaveChangesAsync();
+
+        await _notificationService.SendNotificationAsync(
+            reservation.PassengerUserId,
+            "Reserva Rechazada",
+            $"Lo sentimos, tu solicitud de viaje con {reservation.Trip.DriverName} fue rechazada.",
+            new Dictionary<string, string> { { "type", "reservation_rejected" }, { "tripId", reservation.TripId.ToString() } }
+        );
+
         return reservation;
     }
 
@@ -121,6 +149,18 @@ public class ReservationService(CarPoolingContext context)
 
         reservation.StatusId = 4; // cancelled
         await _context.SaveChangesAsync();
+
+        var passenger = await _context.Users.FindAsync(reservation.PassengerUserId);
+        if (passenger != null && reservation.Trip.DriverUserId.HasValue)
+        {
+            await _notificationService.SendNotificationAsync(
+                reservation.Trip.DriverUserId.Value,
+                "Reserva Cancelada",
+                $"{passenger.FullName} ha cancelado su reserva.",
+                new Dictionary<string, string> { { "type", "reservation_cancelled" }, { "tripId", reservation.TripId.ToString() } }
+            );
+        }
+
         return reservation;
     }
 
