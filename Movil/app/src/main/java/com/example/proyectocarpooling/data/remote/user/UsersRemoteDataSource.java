@@ -308,6 +308,49 @@ public class UsersRemoteDataSource {
         }
     }
 
+    public void registerFcmToken(String userId, String token) throws IOException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("fcmToken", token);
+            body.put("deviceName", android.os.Build.MODEL);
+        } catch (JSONException e) {
+            throw new IOException("No se pudo construir cuerpo del token", e);
+        }
+
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/" + userId + "/fcm-token")
+                .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Error registrando FCM token: " + response.code() + " " + errorBody);
+            }
+        }
+    }
+
+    public void logoutDevice(String token) throws IOException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("fcmToken", token);
+        } catch (JSONException e) {
+            throw new IOException("No se pudo construir cuerpo del token para cerrar sesión", e);
+        }
+
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/Users/logout-device")
+                .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Error desvinculando dispositivo: " + response.code() + " " + errorBody);
+            }
+        }
+    }
+
     private UserResponse executeUserRequest(Request request, String errorPrefix) throws IOException {
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {

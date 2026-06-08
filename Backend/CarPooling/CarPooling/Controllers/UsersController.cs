@@ -200,6 +200,49 @@ public class UsersController(CarPoolingContext context,
         return Convert.ToHexString(bytes);
     }
 
+    [HttpPost("{id:guid}/fcm-token")]
+    public async Task<IActionResult> UpdateFcmTokenAsync(Guid id, [FromBody] UpdateFcmTokenDto dto)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user is null) return NotFound("Usuario no encontrado.");
+
+        var device = await _context.UserDevices
+            .FirstOrDefaultAsync(d => d.UserId == id && d.FcmToken == dto.FcmToken);
+
+        if (device == null)
+        {
+            device = new UserDevice
+            {
+                Id = Guid.NewGuid(),
+                UserId = id,
+                FcmToken = dto.FcmToken,
+                DeviceName = dto.DeviceName,
+                LastUsedAt = DateTime.UtcNow
+            };
+            _context.UserDevices.Add(device);
+        }
+        else
+        {
+            device.LastUsedAt = DateTime.UtcNow;
+            device.DeviceName = dto.DeviceName;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Token FCM registrado con éxito." });
+    }
+
+    [HttpPost("logout-device")]
+    public async Task<IActionResult> LogoutDeviceAsync([FromBody] UpdateFcmTokenDto dto)
+    {
+        var device = await _context.UserDevices.FirstOrDefaultAsync(d => d.FcmToken == dto.FcmToken);
+        if (device != null)
+        {
+            _context.UserDevices.Remove(device);
+            await _context.SaveChangesAsync();
+        }
+        return Ok(new { message = "Dispositivo desvinculado con éxito." });
+    }
+
     private bool IsAdminOverride() =>
         Request.Headers.TryGetValue("X-Admin-Override", out var v) && v.ToString().Trim().ToLowerInvariant() is "true" or "1" or "yes";
 
