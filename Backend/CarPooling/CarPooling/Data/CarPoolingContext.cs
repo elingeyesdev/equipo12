@@ -30,6 +30,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     public DbSet<PaymentReceipt> PaymentReceipts => Set<PaymentReceipt>();
     public DbSet<Refund> Refunds => Set<Refund>();
+    public DbSet<UserDevice> UserDevices => Set<UserDevice>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,6 +59,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigurePaymentTransaction(modelBuilder);
         ConfigurePaymentReceipt(modelBuilder);
         ConfigureRefund(modelBuilder);
+        ConfigureUserDevice(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -750,5 +752,25 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
+    }
+
+    private static void ConfigureUserDevice(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserDevice>(entity =>
+        {
+            entity.ToTable("UserDevices");
+            entity.HasKey(d => d.Id);
+            entity.HasIndex(d => new { d.UserId, d.FcmToken }).IsUnique();
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            entity.Property(d => d.FcmToken).IsRequired().HasMaxLength(500);
+            entity.Property(d => d.DeviceName).HasMaxLength(100);
+            entity.Property(d => d.LastUsedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
     }
 }
