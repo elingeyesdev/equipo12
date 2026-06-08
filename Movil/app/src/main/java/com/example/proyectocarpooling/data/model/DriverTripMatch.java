@@ -15,6 +15,7 @@ public final class DriverTripMatch {
     public final String destinationAddress;
     public final String statusLabel;
     public final int availableSeats;
+    public final double fareAmount;
     public final double distanceKm;
     public final int etaMinutes;
     public final String vehicleBrand;
@@ -26,7 +27,7 @@ public final class DriverTripMatch {
             String tripId, String driverName,
             double originLatitude, double originLongitude, String originAddress,
             double destinationLatitude, double destinationLongitude, String destinationAddress,
-            String statusLabel, int availableSeats, double distanceKm, int etaMinutes,
+            String statusLabel, int availableSeats, double fareAmount, double distanceKm, int etaMinutes,
             String vehicleBrand, String vehicleColor, String vehiclePlate, String driverProfilePicture) {
         this.tripId = tripId;
         this.driverName = driverName;
@@ -38,6 +39,7 @@ public final class DriverTripMatch {
         this.destinationAddress = destinationAddress;
         this.statusLabel = statusLabel;
         this.availableSeats = availableSeats;
+        this.fareAmount = fareAmount;
         this.distanceKm = distanceKm;
         this.etaMinutes = etaMinutes;
         this.vehicleBrand = vehicleBrand;
@@ -61,6 +63,7 @@ public final class DriverTripMatch {
                 destination.optString("addressLabel", ""),
                 o.optString("statusLabel", ""),
                 o.optInt("availableSeats", 0),
+                o.optDouble("fareAmount", 10.0),
                 o.optDouble("distanceKm", 0.0),
                 o.optInt("etaMinutes", 1),
                 o.optString("vehicleBrand", ""),

@@ -31,7 +31,13 @@ public class PaymentService(CarPoolingContext context)
 
         if (method.Type == PaymentMethodType.BankQr && string.IsNullOrWhiteSpace(dto.QrImageUrl))
         {
-            throw new InvalidOperationException("Debes registrar la imagen o URL del QR bancario.");
+            throw new InvalidOperationException("Debes registrar una imagen del QR bancario.");
+        }
+
+        if (method.Type == PaymentMethodType.BankQr &&
+            !dto.QrImageUrl!.Trim().StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("El QR bancario debe enviarse como imagen en base64.");
         }
 
         if (dto.IsDefault)
@@ -129,11 +135,6 @@ public class PaymentService(CarPoolingContext context)
 
     public async Task<PaymentResponseDto> CreatePaymentAsync(Guid userId, CreatePaymentDto dto)
     {
-        if (dto.Amount <= 0)
-        {
-            throw new InvalidOperationException("El monto del pago debe ser mayor a cero.");
-        }
-
         var currency = NormalizeCurrency(dto.Currency);
 
         var reservation = await _context.Reservations
@@ -149,6 +150,11 @@ public class PaymentService(CarPoolingContext context)
         if (reservation.StatusId == 4)
         {
             throw new InvalidOperationException("No se puede pagar una reserva cancelada.");
+        }
+
+        if (reservation.StatusId != 2 && reservation.StatusId != 3)
+        {
+            throw new InvalidOperationException("Solo se puede pagar una reserva aceptada por el conductor.");
         }
 
         if (reservation.Trip.StatusId is 4 or 5)
@@ -180,7 +186,7 @@ public class PaymentService(CarPoolingContext context)
             PassengerUserId = userId,
             PaymentMethodId = dto.PaymentMethodId,
             UserPaymentMethodId = dto.UserPaymentMethodId,
-            Amount = dto.Amount,
+            Amount = reservation.Trip.FareAmount * reservation.SeatsReserved,
             Currency = currency,
             Status = PaymentStatus.Pending,
             Description = dto.Description?.Trim(),

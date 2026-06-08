@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <gradient
-        android:angle="135"
-        android:startColor="@color/carpool_primary_dark"
-        android:centerColor="@color/carpool_primary"
-        android:endColor="#FFB67A52" />
+    <solid android:color="@color/carpool_primary" />
 </shape>

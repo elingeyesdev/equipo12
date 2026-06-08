@@ -12,6 +12,7 @@ import java.util.List;
 public interface TripRepository {
     TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull) throws IOException;
     TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull) throws IOException;
+    TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull, double fareAmount) throws IOException;
     List<DriverTripMatch> searchTripMatchCandidates(double referenceLatitude, double referenceLongitude) throws IOException;
     TripResponse getTripByIdIfPresent(String tripId) throws IOException;
     TripResponse findActiveTripForDriver(String driverUserId, String driverDisplayNameForFallback) throws IOException;

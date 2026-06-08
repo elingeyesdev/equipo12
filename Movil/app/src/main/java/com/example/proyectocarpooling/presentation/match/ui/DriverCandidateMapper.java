@@ -27,11 +27,11 @@ public final class DriverCandidateMapper {
                 m.etaMinutes, m.statusLabel,
                 m.originLatitude, m.originLongitude,
                 m.destinationLatitude, m.destinationLongitude,
-                buildVehicleInfo(m.vehicleBrand, m.vehicleColor, m.vehiclePlate),
+                buildVehicleInfo(m.vehicleBrand, m.vehicleColor, m.vehiclePlate, m.fareAmount),
                 m.driverProfilePicture);
     }
 
-    private static String buildVehicleInfo(String brand, String color, String plate) {
+    private static String buildVehicleInfo(String brand, String color, String plate, double fareAmount) {
         StringBuilder sb = new StringBuilder();
         if (brand != null && !brand.isEmpty()) sb.append(brand);
         if (color != null && !color.isEmpty()) {
@@ -42,6 +42,8 @@ public final class DriverCandidateMapper {
             if (sb.length() > 0) sb.append(" - ");
             sb.append(plate);
         }
+        if (sb.length() > 0) sb.append(" - ");
+        sb.append(String.format(Locale.US, "%.2f Bs", fareAmount));
         return sb.toString();
     }
 }

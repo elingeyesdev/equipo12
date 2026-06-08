@@ -106,6 +106,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
 
             entity.Property(t => t.OfferedSeats).IsRequired().HasDefaultValue(4);
             entity.Property(t => t.AvailableSeats).IsRequired().HasDefaultValue(4);
+            entity.Property(t => t.FareAmount).HasColumnType("decimal(10,2)").HasDefaultValue(10m).IsRequired();
             entity.Property(t => t.DriverName).HasMaxLength(100).IsRequired();
             entity.Property(t => t.Kind).HasConversion<int>().HasDefaultValue(TripKind.Regular).IsRequired();
             entity.Property(t => t.BookmarkUseCount).HasDefaultValue(0);
@@ -585,7 +586,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.HasOne(p => p.ConfirmedByUser)
                 .WithMany()
                 .HasForeignKey(p => p.ConfirmedByUserId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.Property(p => p.Amount).HasColumnType("decimal(10,2)").IsRequired();
             entity.Property(p => p.RefundedAmount).HasColumnType("decimal(10,2)").HasDefaultValue(0m).IsRequired();
@@ -709,7 +710,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 Type = PaymentMethodType.Cash,
                 RequiresManualConfirmation = true,
                 SupportsRefunds = false,
-                IsActive = true
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new PaymentMethod
             {
@@ -720,7 +722,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 Type = PaymentMethodType.Simulated,
                 RequiresManualConfirmation = false,
                 SupportsRefunds = true,
-                IsActive = true
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new PaymentMethod
             {
@@ -731,7 +734,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 Type = PaymentMethodType.BankQr,
                 RequiresManualConfirmation = true,
                 SupportsRefunds = true,
-                IsActive = true
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new PaymentMethod
             {
@@ -742,7 +746,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 Type = PaymentMethodType.Wallet,
                 RequiresManualConfirmation = false,
                 SupportsRefunds = true,
-                IsActive = true
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
     }

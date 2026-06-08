@@ -4,6 +4,7 @@ using CarPooling.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarPooling.Migrations
 {
     [DbContext(typeof(CarPoolingContext))]
-    partial class CarPoolingContextModelSnapshot : ModelSnapshot
+    [Migration("20260608002828_FixDeterministicPaymentMethodSeed")]
+    partial class FixDeterministicPaymentMethodSeed
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -790,11 +793,6 @@ namespace CarPooling.Migrations
 
                     b.Property<Guid?>("DriverUserId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("FareAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(10,2)")
-                        .HasDefaultValue(10m);
 
                     b.Property<DateTime?>("FinishedAt")
                         .HasColumnType("datetime2");

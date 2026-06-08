@@ -107,6 +107,16 @@
             android:exported="false"
             android:theme="@style/Theme.ProyectoCarpooling" />
 
+        <activity
+            android:name=".presentation.payment.ui.PaymentActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.payment.ui.DriverPaymentsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
     </application>
 
 </manifest>

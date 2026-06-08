@@ -75,7 +75,6 @@ public class CreatePaymentDto
     public Guid ReservationId { get; set; }
     public int PaymentMethodId { get; set; }
     public Guid? UserPaymentMethodId { get; set; }
-    public decimal Amount { get; set; }
     public string Currency { get; set; } = "BOB";
     public string? Description { get; set; }
 }

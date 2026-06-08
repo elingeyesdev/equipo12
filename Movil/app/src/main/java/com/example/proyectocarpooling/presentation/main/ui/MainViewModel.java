@@ -88,10 +88,14 @@ public class MainViewModel extends AndroidViewModel {
     }
 
     public void createTrip(Point origin, Point destination, String vehicleId, ResultCallback<CreateTripResult> callback) {
+        createTrip(origin, destination, vehicleId, 10.0, callback);
+    }
+
+    public void createTrip(Point origin, Point destination, String vehicleId, double fareAmount, ResultCallback<CreateTripResult> callback) {
         String driverName = sessionManager.isDriver() ? sessionManager.getFullName() : null;
         String driverUserId = sessionManager.isDriver() ? sessionManager.getUserId() : null;
         taskRunner.runWithResult(
-                () -> createTripUseCase.execute(origin, destination, driverName, driverUserId, vehicleId),
+                () -> createTripUseCase.execute(origin, destination, driverName, driverUserId, vehicleId, fareAmount),
                 adapt(callback));
     }
 

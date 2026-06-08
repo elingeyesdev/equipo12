@@ -16,6 +16,7 @@ public class TripResponse {
     public final int statusId;
     public final int offeredSeats;
     public final int availableSeats;
+    public final double fareAmount;
     public final String vehicleId;
     public final String driverName;
     public final String driverUserId;
@@ -23,7 +24,7 @@ public class TripResponse {
     public TripResponse(String id, double originLatitude, double originLongitude, String originAddress,
                         double destinationLatitude, double destinationLongitude, String destinationAddress,
                         String statusLabel, int statusId, int offeredSeats, int availableSeats,
-                        String vehicleId, String driverName, String driverUserId) {
+                        double fareAmount, String vehicleId, String driverName, String driverUserId) {
         this.id = id;
         this.originLatitude = originLatitude;
         this.originLongitude = originLongitude;
@@ -35,6 +36,7 @@ public class TripResponse {
         this.statusId = statusId;
         this.offeredSeats = offeredSeats;
         this.availableSeats = availableSeats;
+        this.fareAmount = fareAmount;
         this.vehicleId = vehicleId;
         this.driverName = driverName;
         this.driverUserId = driverUserId;
@@ -57,6 +59,7 @@ public class TripResponse {
                 obj.optInt("statusId", 0),
                 obj.optInt("offeredSeats", 0),
                 obj.optInt("availableSeats", 0),
+                obj.optDouble("fareAmount", 10.0),
                 obj.optString("vehicleId", null),
                 obj.optString("driverName", ""),
                 obj.optString("driverUserId", null)

@@ -42,6 +42,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             DriverUserId = request.DriverUserId,
             OfferedSeats = request.OfferedSeats ?? 4,
             AvailableSeats = request.OfferedSeats ?? 4,
+            FareAmount = request.FareAmount ?? 10m,
             VehicleId = request.VehicleId
         };
 
@@ -213,6 +214,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
                 },
                 StatusLabel = t.StatusEntity?.LabelEs ?? "",
                 AvailableSeats = t.AvailableSeats,
+                FareAmount = t.FareAmount,
                 DistanceKm = Math.Round(distanceKm, 2, MidpointRounding.AwayFromZero),
                 EtaMinutes = eta,
                 VehicleBrand = t.Vehicle?.Brand ?? "",
@@ -284,6 +286,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             StatusId = trip.StatusId,
             OfferedSeats = trip.OfferedSeats,
             AvailableSeats = trip.AvailableSeats,
+            FareAmount = trip.FareAmount,
             VehicleId = trip.VehicleId,
             DriverName = trip.DriverName,
             DriverUserId = trip.DriverUserId,

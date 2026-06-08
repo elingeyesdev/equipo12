@@ -21,4 +21,7 @@ public class CoordinateRequest
 
     [Range(1, 50)]
     public int? OfferedSeats { get; set; }
+
+    [Range(0.5, 1000)]
+    public decimal? FareAmount { get; set; }
 }

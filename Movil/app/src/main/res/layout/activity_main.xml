@@ -356,6 +356,21 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
+            <EditText
+                android:id="@+id/fareAmountInput"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_input_modern"
+                android:hint="Tarifa por pasajero (Bs)"
+                android:inputType="numberDecimal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:text="10.00"
+                android:textColor="@color/carpool_text_primary"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
             <Button
                 android:id="@+id/findDriverButton"
                 android:layout_width="match_parent"

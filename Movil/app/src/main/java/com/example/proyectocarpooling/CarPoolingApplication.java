@@ -136,4 +136,13 @@ public class CarPoolingApplication extends Application {
         }
         return ratingRemoteDataSource;
     }
+
+    private com.example.proyectocarpooling.data.remote.PaymentRemoteDataSource paymentRemoteDataSource;
+
+    public synchronized com.example.proyectocarpooling.data.remote.PaymentRemoteDataSource getPaymentRemoteDataSource() {
+        if (paymentRemoteDataSource == null) {
+            paymentRemoteDataSource = new com.example.proyectocarpooling.data.remote.PaymentRemoteDataSource(ApiBaseUrlProvider.get(this));
+        }
+        return paymentRemoteDataSource;
+    }
 }

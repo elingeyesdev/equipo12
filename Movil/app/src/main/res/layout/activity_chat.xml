@@ -26,24 +26,41 @@
             android:src="@android:drawable/ic_menu_revert"
             android:tint="?attr/colorPrimary" />
 
-        <!-- Circular Avatar Placeholder -->
-        <FrameLayout
+        <!-- Circular Avatar Container -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/chatAvatarCard"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_marginStart="4dp"
             android:layout_marginEnd="12dp"
-            android:background="@drawable/avatar_gradient_background">
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@android:color/transparent">
 
-            <TextView
-                android:id="@+id/chatAvatarInitials"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="U"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-        </FrameLayout>
+            <ImageView
+                android:id="@+id/chatAvatarImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/chatAvatarPlaceholder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/avatar_gradient_background">
+
+                <TextView
+                    android:id="@+id/chatAvatarInitials"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="U"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
 
         <LinearLayout
             android:layout_width="0dp"

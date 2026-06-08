@@ -25,6 +25,9 @@ public class TripRepositoryImpl implements TripRepository {
     @Override public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull) throws IOException {
         return remoteDataSource.createTrip(origin, destination, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull);
     }
+    @Override public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull, double fareAmount) throws IOException {
+        return remoteDataSource.createTrip(origin, destination, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull, fareAmount);
+    }
     @Override public List<DriverTripMatch> searchTripMatchCandidates(double a, double b) throws IOException {
         return remoteDataSource.searchTripMatchCandidates(a, b);
     }
