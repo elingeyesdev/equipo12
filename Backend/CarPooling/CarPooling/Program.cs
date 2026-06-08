@@ -36,6 +36,7 @@ builder.Services.AddScoped<GeocodingService>();
 builder.Services.AddScoped<RatingService>();
 builder.Services.AddScoped<SupportTicketService>();
 builder.Services.AddScoped<SafeZoneService>();
+builder.Services.AddScoped<PaymentService>();
 builder.Services.AddHttpClient<GeocodingService>();
 
 builder.Services.AddCors(options =>
