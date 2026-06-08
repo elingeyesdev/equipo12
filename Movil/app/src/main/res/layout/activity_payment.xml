@@ -266,6 +266,19 @@
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
+                <TextView
+                    android:id="@+id/paymentWarningText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_auth_badge"
+                    android:backgroundTint="#FFEBEE"
+                    android:padding="12dp"
+                    android:text="El conductor aún no cuenta con QR. Por favor, selecciona Efectivo o Tarjeta."
+                    android:textColor="#C62828"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
                 <Button
                     android:id="@+id/paymentPayButton"
                     android:layout_width="match_parent"
@@ -277,13 +290,40 @@
                     android:textColor="@color/button_text_color"
                     android:textSize="15sp"
                     android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/paymentCancelButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_auth_footer_action"
+                    android:backgroundTint="@null"
+                    android:text="Cancelar pago en revisión"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/paymentRefundButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_auth_footer_action"
+                    android:backgroundTint="@null"
+                    android:text="Solicitar Reembolso"
+                    android:textColor="#C62828"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <TextView
+                android:id="@+id/paymentHistoryHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="26dp"
-                android:text="Historial"
+                android:text="Historial de pagos"
                 android:textColor="@color/carpool_text_primary"
                 android:textSize="16sp"
                 android:textStyle="bold"

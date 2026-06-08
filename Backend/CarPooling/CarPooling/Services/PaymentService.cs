@@ -167,6 +167,11 @@ public class PaymentService(CarPoolingContext context)
 
         await ValidateUserPaymentMethodAsync(dto.UserPaymentMethodId, method, reservation, userId);
 
+        var existingPending = await _context.Payments
+            .Where(p => p.ReservationId == dto.ReservationId && p.Status == PaymentStatus.Pending)
+            .ToListAsync();
+        await CheckAndExpirePaymentsAsync(existingPending);
+
         var hasOpenPayment = await _context.Payments.AnyAsync(p =>
             p.ReservationId == dto.ReservationId &&
             p.Status != PaymentStatus.Rejected &&
@@ -226,6 +231,8 @@ public class PaymentService(CarPoolingContext context)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
 
+        await CheckAndExpirePaymentsAsync(payments);
+
         return payments.Select(PaymentResponseDto.FromEntity).ToList();
     }
 
@@ -247,6 +254,8 @@ public class PaymentService(CarPoolingContext context)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
 
+        await CheckAndExpirePaymentsAsync(payments);
+
         return payments.Select(PaymentResponseDto.FromEntity).ToList();
     }
 
@@ -255,6 +264,8 @@ public class PaymentService(CarPoolingContext context)
         var payment = await PaymentDetailsQuery()
             .FirstOrDefaultAsync(p => p.Id == paymentId)
             ?? throw new KeyNotFoundException("Pago no encontrado.");
+
+        await CheckAndExpirePaymentsAsync(new List<Payment> { payment });
 
         EnsureCanAccessPayment(userId, payment);
         return PaymentResponseDto.FromEntity(payment);
@@ -620,5 +631,49 @@ public class PaymentService(CarPoolingContext context)
             IssuedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
+    }
+
+    public async Task<List<PaymentResponseDto>> ListAllPaymentsAsync()
+    {
+        var payments = await PaymentDetailsQuery()
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        await CheckAndExpirePaymentsAsync(payments);
+
+        return payments.Select(PaymentResponseDto.FromEntity).ToList();
+    }
+
+    private async Task CheckAndExpirePaymentsAsync(List<Payment> payments)
+    {
+        var now = DateTime.UtcNow;
+        bool changed = false;
+        foreach (var payment in payments)
+        {
+            if (payment.Status == PaymentStatus.Pending && payment.ExpiresAt.HasValue && payment.ExpiresAt.Value < now)
+            {
+                payment.Status = PaymentStatus.Expired;
+                payment.UpdatedAt = now;
+                payment.Transactions.Add(new PaymentTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    PaymentId = payment.Id,
+                    TransactionType = PaymentTransactionType.Cancellation,
+                    Status = PaymentTransactionStatus.Failed,
+                    Amount = payment.Amount,
+                    Provider = payment.PaymentMethod?.Code ?? "SYSTEM",
+                    ProviderTransactionId = $"TX-EXP-{now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}",
+                    ResponseCode = "EXPIRED",
+                    ResponseMessage = "Pago expirado automáticamente por límite de tiempo.",
+                    ProcessedAt = now,
+                    CreatedAt = now
+                });
+                changed = true;
+            }
+        }
+        if (changed)
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }

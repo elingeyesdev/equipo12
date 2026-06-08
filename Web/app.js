@@ -13,6 +13,7 @@ const state = {
     reservations: [],
     supportTickets: []
   },
+  adminPayments: [],
   isLoadingSupportTickets: false,
   editContext: null,
   detailContext: null,
@@ -83,6 +84,10 @@ const supportFilterInput = document.getElementById("supportFilterInput");
 const supportStatusFilter = document.getElementById("supportStatusFilter");
 const supportCategoryFilter = document.getElementById("supportCategoryFilter");
 const supportReloadBtn = document.getElementById("supportReloadBtn");
+const adminPaymentsBody = document.getElementById("adminPaymentsBody");
+const paymentsFilterInput = document.getElementById("paymentsFilterInput");
+const paymentsStatusFilter = document.getElementById("paymentsStatusFilter");
+const paymentsReloadBtn = document.getElementById("paymentsReloadBtn");
 const adminSafeZonesBody = document.getElementById("adminSafeZonesBody");
 const safeZonesDataMessage = document.getElementById("safeZonesDataMessage");
 const safeZonesFilterInput = document.getElementById("safeZonesFilterInput");
@@ -544,6 +549,10 @@ function openSection(section) {
     loadSupportTickets();
   }
 
+  if (section === "payments" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+    loadAdminPayments();
+  }
+
   if (section === "settings" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
     loadThemeSettings();
   }
@@ -586,6 +595,10 @@ function getSectionMeta(section) {
     admins: {
       name: "Admins",
       description: "Gestiona las cuentas administrativas y define sus roles y permisos."
+    },
+    payments: {
+      name: "Pagos",
+      description: "Consulta todos los pagos y reembolsos registrados en el sistema." 
     },
     settings: {
       name: "Ajustes",
@@ -1339,6 +1352,10 @@ function renderDetailsModalContent(type, entity) {
     return renderSupportDetails(entity);
   }
 
+  if (type === "payment") {
+    return renderPaymentDetails(entity);
+  }
+
   return renderUserDetails(entity);
 }
 
@@ -1353,7 +1370,8 @@ function openDetailsModal(type, entity) {
     user: "Ver detalles de usuario",
     trip: "Ver detalles de viaje",
     reservation: "Ver detalles de reserva",
-    support: "Ver detalles del reporte"
+    support: "Ver detalles del reporte",
+    payment: "Ver detalles de pago"
   };
 
   state.detailContext = { type, id: entity.id };
@@ -1446,7 +1464,8 @@ function getEntityFromState(type, id) {
     user: state.adminData.users,
     trip: state.adminData.trips,
     reservation: state.adminData.reservations,
-    support: state.adminData.supportTickets
+    support: state.adminData.supportTickets,
+    payment: state.adminPayments
   }[type] || [];
 
   return source.find((item) => String(item.id) === String(id));
@@ -1895,6 +1914,174 @@ function renderSupportTable(tickets) {
       </td>
     </tr>
   `).join("");
+}
+
+async function loadAdminPayments() {
+  const msgElement = document.getElementById("adminPaymentsMessage");
+  if (msgElement) setMessage(msgElement, "");
+  try {
+    const payments = await apiFetch("/api/payments", {
+      headers: getAdminHeaders()
+    });
+    state.adminPayments = payments || [];
+    renderPaymentsTable(state.adminPayments);
+  } catch (err) {
+    console.error("Error al cargar pagos:", err);
+    if (msgElement) {
+      setMessage(msgElement, `Error al cargar pagos: ${err.message}`, "error");
+    }
+  }
+}
+
+function renderPaymentsTable(payments) {
+  if (!adminPaymentsBody) return;
+  if (!payments || !payments.length) {
+    adminPaymentsBody.innerHTML = '<tr><td colspan="7">Sin pagos registrados.</td></tr>';
+    return;
+  }
+
+  adminPaymentsBody.innerHTML = payments.map((payment) => {
+    let statusLabel = "Desconocido";
+    let statusClass = "";
+    switch (payment.status) {
+      case 1: statusLabel = "Pendiente"; statusClass = "pending"; break;
+      case 2: statusLabel = "Aprobado"; statusClass = "approved"; break;
+      case 3: statusLabel = "Rechazado"; statusClass = "rejected"; break;
+      case 4: statusLabel = "Cancelado"; statusClass = "cancelled"; break;
+      case 5: statusLabel = "Expirado"; statusClass = "expired"; break;
+      case 6: statusLabel = "Devuelto"; statusClass = "refunded"; break;
+      case 7: statusLabel = "Devuelto parcial"; statusClass = "partially-refunded"; break;
+    }
+
+    return `
+    <tr data-status="${payment.status}">
+      <td>${escapeHtml(payment.id.substring(0, 8))}</td>
+      <td>${escapeHtml(payment.passengerName || "-")}</td>
+      <td>${escapeHtml(payment.driverName || "-")}</td>
+      <td>${escapeHtml(payment.paymentMethodName || "-")}</td>
+      <td>${escapeHtml(payment.amount.toFixed(2))} ${escapeHtml(payment.currency)}</td>
+      <td><span class="status-pill ${statusClass}">${escapeHtml(statusLabel)}</span></td>
+      <td>
+        <div class="action-row">
+          <button class="btn tiny secondary admin-view-details" data-type="payment" data-id="${escapeHtml(payment.id)}">Ver detalles</button>
+        </div>
+      </td>
+    </tr>
+    `;
+  }).join("");
+  applyPaymentsFilter();
+}
+
+function applyPaymentsFilter() {
+  const textVal = (paymentsFilterInput?.value || "").toLowerCase();
+  const statusVal = paymentsStatusFilter?.value || "";
+  const tbody = adminPaymentsBody;
+  if (!tbody) return;
+  const rows = tbody.querySelectorAll("tr");
+  rows.forEach((row) => {
+    if (row.cells.length === 1) return;
+    const matchesText = (row.textContent || "").toLowerCase().includes(textVal);
+    const matchesStatus = statusVal === "" || row.dataset.status === statusVal;
+    row.style.display = (matchesText && matchesStatus) ? "" : "none";
+  });
+}
+
+function renderPaymentDetails(payment) {
+  if (!payment) {
+    return `
+      <div class="empty-state">
+        <strong>Sin resultados</strong>
+        <p>Consulta un pago para ver todos sus datos.</p>
+      </div>
+    `;
+  }
+
+  let statusLabel = "Desconocido";
+  let statusClass = "unknown";
+  switch (payment.status) {
+    case 1: statusLabel = "Pendiente"; statusClass = "pending"; break;
+    case 2: statusLabel = "Aprobado"; statusClass = "approved"; break;
+    case 3: statusLabel = "Rechazado"; statusClass = "rejected"; break;
+    case 4: statusLabel = "Cancelado"; statusClass = "cancelled"; break;
+    case 5: statusLabel = "Expirado"; statusClass = "expired"; break;
+    case 6: statusLabel = "Devuelto"; statusClass = "refunded"; break;
+    case 7: statusLabel = "Devuelto parcial"; statusClass = "partially-refunded"; break;
+  }
+
+  let refundsHtml = "";
+  if (payment.refunds && payment.refunds.length > 0) {
+    refundsHtml = `
+      <div class="detail-section" style="margin-top: 16px;">
+        <h5 style="margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Historial de Reembolsos</h5>
+        <div class="table-wrap">
+          <table class="admin-table" style="font-size: 13px;">
+            <thead>
+              <tr>
+                <th>Monto</th>
+                <th>Estado</th>
+                <th>Motivo</th>
+                <th>Rechazo Motivo</th>
+                <th>Solicitado</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${payment.refunds.map(refund => {
+                let rStatus = "Desconocido";
+                if (refund.status === 1) rStatus = "Solicitado";
+                else if (refund.status === 2) rStatus = "Aprobado";
+                else if (refund.status === 3) rStatus = "Rechazado";
+                return `
+                  <tr>
+                    <td>${escapeHtml(refund.amount.toFixed(2))} ${escapeHtml(payment.currency)}</td>
+                    <td>${escapeHtml(rStatus)}</td>
+                    <td>${escapeHtml(refund.reason || "-")}</td>
+                    <td>${escapeHtml(refund.rejectionReason || "-")}</td>
+                    <td>${escapeHtml(formatDateTime(refund.requestedAt))}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } else {
+    refundsHtml = `
+      <div class="detail-section" style="margin-top: 16px;">
+        <h5 style="margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Historial de Reembolsos</h5>
+        <p style="color: var(--text-secondary); font-size: 13px;">No hay reembolsos registrados para este pago.</p>
+      </div>
+    `;
+  }
+
+  return `
+    <article class="detail-card">
+      <div class="detail-card__header">
+        <div>
+          <h4>Pago #${escapeHtml(payment.id.substring(0, 8))}</h4>
+          <p>Reserva: ${escapeHtml(payment.reservationId || "-")}</p>
+        </div>
+        <span class="status-badge status-badge--${statusClass}">
+          ${escapeHtml(statusLabel)}
+        </span>
+      </div>
+
+      <div class="detail-grid">
+        <div><strong>Monto:</strong> ${escapeHtml(payment.amount.toFixed(2))} ${escapeHtml(payment.currency)}</div>
+        <div><strong>Monto Devuelto:</strong> ${escapeHtml(payment.refundedAmount.toFixed(2))} ${escapeHtml(payment.currency)}</div>
+        <div><strong>Pasajero:</strong> ${escapeHtml(payment.passengerName || "-")}</div>
+        <div><strong>Conductor:</strong> ${escapeHtml(payment.driverName || "-")}</div>
+        <div><strong>Método de Pago:</strong> ${escapeHtml(payment.paymentMethodName || "-")}</div>
+        <div><strong>Referencia Externa:</strong> ${escapeHtml(payment.externalReference || "-")}</div>
+        <div><strong>Descripción:</strong> ${escapeHtml(payment.description || "-")}</div>
+        <div><strong>Nro. Comprobante:</strong> ${escapeHtml(payment.receiptNumber || "-")}</div>
+        <div><strong>Fecha Creación:</strong> ${escapeHtml(formatDateTime(payment.createdAt))}</div>
+        <div><strong>Fecha Confirmación:</strong> ${escapeHtml(formatDateTime(payment.confirmedAt))}</div>
+      </div>
+
+      ${refundsHtml}
+    </article>
+  `;
 }
 
 function renderUsersTable(users) {
@@ -3360,6 +3547,10 @@ adminModalForm?.addEventListener("submit", async (event) => {
 document.getElementById("adminsFilterInput")?.addEventListener("input", (event) => {
   applyTableFilter("adminAdminsBody", event.target.value);
 });
+
+paymentsFilterInput?.addEventListener("input", applyPaymentsFilter);
+paymentsStatusFilter?.addEventListener("change", applyPaymentsFilter);
+paymentsReloadBtn?.addEventListener("click", loadAdminPayments);
 
 // Startup Execution
 fetchThemeOnStartup().finally(() => {

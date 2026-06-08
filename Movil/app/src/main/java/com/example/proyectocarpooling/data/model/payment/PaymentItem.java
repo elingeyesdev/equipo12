@@ -35,13 +35,14 @@ public class PaymentItem {
     public final String paidAt;
     public final String createdAt;
     public final String receiptNumber;
+    public final List<RefundItem> refunds;
 
     public PaymentItem(String id, String reservationId, String passengerUserId, String passengerName,
                        String tripId, String driverName, String paymentMethodCode, String paymentMethodName,
                        double amount, double refundedAmount, String currency, int status,
                        String description, String externalReference, String failureReason,
                        String confirmedByName, String confirmedAt, String paidAt,
-                       String createdAt, String receiptNumber) {
+                       String createdAt, String receiptNumber, List<RefundItem> refunds) {
         this.id = id;
         this.reservationId = reservationId;
         this.passengerUserId = passengerUserId;
@@ -62,10 +63,13 @@ public class PaymentItem {
         this.paidAt = paidAt;
         this.createdAt = createdAt;
         this.receiptNumber = receiptNumber;
+        this.refunds = refunds;
     }
 
     public static PaymentItem fromJson(JSONObject obj) {
         JSONObject receipt = obj.optJSONObject("receipt");
+        JSONArray refundsArr = obj.optJSONArray("refunds");
+        List<RefundItem> refundsList = RefundItem.listFromJson(refundsArr);
         return new PaymentItem(
                 obj.optString("id", ""),
                 obj.optString("reservationId", ""),
@@ -86,7 +90,8 @@ public class PaymentItem {
                 obj.optString("confirmedAt", ""),
                 obj.optString("paidAt", ""),
                 obj.optString("createdAt", ""),
-                receipt != null ? receipt.optString("receiptNumber", "") : ""
+                receipt != null ? receipt.optString("receiptNumber", "") : "",
+                refundsList
         );
     }
 

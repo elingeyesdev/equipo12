@@ -27,7 +27,7 @@ public class UserPaymentMethod
     [MaxLength(120)]
     public string? ProviderToken { get; set; }
 
-    [MaxLength(300)]
+    [Column(TypeName = "nvarchar(max)")]
     public string? QrImageUrl { get; set; }
 
     [MaxLength(120)]

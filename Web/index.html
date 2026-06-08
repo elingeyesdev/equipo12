@@ -58,6 +58,7 @@
         <button class="menu-item" data-section="users">Usuarios</button>
         <button class="menu-item" data-section="trips">Viajes</button>
         <button class="menu-item" data-section="reservations">Reservas</button>
+        <button class="menu-item" data-section="payments">Pagos</button>
         <button class="menu-item" data-section="support">Soporte</button>
         <button class="menu-item" data-section="safe-zones">Zonas seguras</button>
         <button class="menu-item hidden" id="nav-admins" data-section="admins">Admins</button>
@@ -219,6 +220,58 @@
                 </tr>
               </thead>
               <tbody id="adminReservationsBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-payments">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Panel de pagos</p>
+            <h3>Pagos y Transacciones</h3>
+            <p class="card-help">Monitorea y visualiza todos los pagos simulados realizados por los usuarios.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button type="button" class="btn secondary" id="paymentsReloadBtn">Actualizar</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <div class="filters-grid form-grid-2">
+            <label class="field filter-field">
+              <span>Filtrar pagos</span>
+              <input type="text" id="paymentsFilterInput" placeholder="Pasajero, conductor o método" />
+            </label>
+            <label class="field filter-field">
+              <span>Estado</span>
+              <select id="paymentsStatusFilter">
+                <option value="">Todos los estados</option>
+                <option value="1">Pendiente</option>
+                <option value="2">Aprobado</option>
+                <option value="3">Rechazado</option>
+                <option value="4">Cancelado</option>
+                <option value="5">Expirado</option>
+                <option value="6">Devuelto</option>
+                <option value="7">Devuelto parcial</option>
+              </select>
+            </label>
+          </div>
+          <p id="adminPaymentsMessage" class="message" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminPaymentsTable">
+              <thead>
+                <tr>
+                  <th>Pago ID</th>
+                  <th>Pasajero</th>
+                  <th>Conductor</th>
+                  <th>Método</th>
+                  <th>Monto</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminPaymentsBody"></tbody>
             </table>
           </div>
         </article>

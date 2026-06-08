@@ -348,6 +348,20 @@ public class PaymentsController(PaymentService paymentService) : ControllerBase
         }
     }
 
+    [Authorize(AuthenticationSchemes = HeaderUserAuthenticationHandler.SchemeName)]
+    [HttpGet("api/payments")]
+    public async Task<ActionResult<IEnumerable<PaymentResponseDto>>> ListAllPayments()
+    {
+        try
+        {
+            return Ok(await paymentService.ListAllPaymentsAsync());
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     private bool TryAuthorizeUser(Guid routeUserId, out ActionResult? forbidden)
     {
         forbidden = null;
