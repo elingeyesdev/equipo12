@@ -5,9 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Services;
 
-public class ChatService(CarPoolingContext context)
+public class ChatService(CarPoolingContext context, INotificationService notificationService)
 {
     private readonly CarPoolingContext _context = context;
+    private readonly INotificationService _notificationService = notificationService;
 
     /// <summary>
     /// Valida si un usuario está autorizado para participar en el chat de un viaje.
@@ -96,6 +97,7 @@ public class ChatService(CarPoolingContext context)
                 Id = m.Id,
                 SenderUserId = m.SenderUserId,
                 SenderFullName = m.SenderUser.FullName,
+                SenderProfilePicture = m.SenderUser.ProfilePicture,
                 MessageText = m.MessageText,
                 CreatedAt = m.CreatedAt,
                 ReadByUserIds = m.Reads.Select(r => r.UserId).ToList()
@@ -132,17 +134,55 @@ public class ChatService(CarPoolingContext context)
         
         await _context.SaveChangesAsync();
 
-        // Obtener el nombre del emisor para retornar el DTO completo
-        var senderFullName = await _context.Users
+        // Obtener el nombre del emisor y foto para retornar el DTO completo
+        var senderUser = await _context.Users
             .Where(u => u.Id == senderUserId)
-            .Select(u => u.FullName)
-            .FirstOrDefaultAsync() ?? "Usuario Desconocido";
+            .Select(u => new { u.FullName, u.ProfilePicture })
+            .FirstOrDefaultAsync();
+        var senderFullName = senderUser?.FullName ?? "Usuario Desconocido";
+        var senderProfilePicture = senderUser?.ProfilePicture;
+
+        // Disparar la notificación push a los otros participantes del chat
+        var tripChat = await _context.TripChats.FindAsync(chatId);
+        if (tripChat != null)
+        {
+            var trip = await _context.Trips
+                .Include(t => t.Reservations)
+                .FirstOrDefaultAsync(t => t.Id == tripChat.TripId);
+
+            if (trip != null)
+            {
+                var recipients = new List<Guid>();
+
+                if (trip.DriverUserId.HasValue && trip.DriverUserId.Value != senderUserId)
+                {
+                    recipients.Add(trip.DriverUserId.Value);
+                }
+
+                var passengers = trip.Reservations
+                    .Where(r => (r.StatusId == 2 || r.StatusId == 3) && r.PassengerUserId != senderUserId)
+                    .Select(r => r.PassengerUserId);
+
+                recipients.AddRange(passengers);
+
+                if (recipients.Count > 0)
+                {
+                    await _notificationService.SendNotificationToMultipleAsync(
+                        recipients,
+                        $"Mensaje de {senderFullName}",
+                        messageText,
+                        new Dictionary<string, string> { { "type", "chat_message" }, { "tripId", trip.Id.ToString() } }
+                    );
+                }
+            }
+        }
 
         return new ChatMessageResponseDto
         {
             Id = message.Id,
             SenderUserId = message.SenderUserId,
             SenderFullName = senderFullName,
+            SenderProfilePicture = senderProfilePicture,
             MessageText = message.MessageText,
             CreatedAt = message.CreatedAt,
             ReadByUserIds = [senderUserId]

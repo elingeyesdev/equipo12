@@ -99,9 +99,9 @@
                 android:layout_weight="1"
                 android:text="@string/history_view_detail"
                 android:textAllCaps="false"
-                android:textColor="@color/uber_accent"
+                android:textColor="?attr/colorPrimary"
                 app:cornerRadius="12dp"
-                app:strokeColor="@color/uber_accent"
+                app:strokeColor="?attr/colorPrimary"
                 app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton

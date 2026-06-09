@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using CarPooling.Models;
 using Microsoft.EntityFrameworkCore;
+using CarPooling.Security;
 
 namespace CarPooling.Data;
 
@@ -120,25 +121,97 @@ public static class DevelopmentDataSeeder
 
         await context.Database.MigrateAsync();
 
+        // 0. Seed Permissions
+        foreach (var p in AppPermissions.AllPermissions)
+        {
+            var existingPermission = await context.Permissions.FirstOrDefaultAsync(dbP => dbP.Id == p.Id);
+            if (existingPermission == null)
+            {
+                context.Permissions.Add(new Permission
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    GroupName = p.GroupName
+                });
+            }
+        }
+        await context.SaveChangesAsync();
+
+        // Seed Roles (SuperAdmin, Student, Driver, Analyst)
+        var rolesToSeed = new[]
+        {
+            new { Name = "SuperAdmin", Description = "Acceso total al sistema", IsSystemRole = true },
+            new { Name = "Student", Description = "Rol por defecto para estudiantes", IsSystemRole = true },
+            new { Name = "Driver", Description = "Rol por defecto para conductores", IsSystemRole = true },
+            new { Name = "Analyst", Description = "Rol limitado para visualizar métricas", IsSystemRole = false }
+        };
+
+        foreach (var r in rolesToSeed)
+        {
+            var existingRole = await context.Roles
+                .Include(dbR => dbR.RolePermissions)
+                .FirstOrDefaultAsync(dbR => dbR.Name == r.Name);
+
+            if (existingRole == null)
+            {
+                var newRole = new Role
+                {
+                    Id = Guid.NewGuid(),
+                    Name = r.Name,
+                    Description = r.Description,
+                    IsSystemRole = r.IsSystemRole
+                };
+                context.Roles.Add(newRole);
+                existingRole = newRole;
+                await context.SaveChangesAsync();
+            }
+
+            // Assign permissions to SuperAdmin
+            if (r.Name == "SuperAdmin")
+            {
+                var allDbPermissions = await context.Permissions.ToListAsync();
+                foreach (var dbP in allDbPermissions)
+                {
+                    if (!existingRole.RolePermissions.Any(rp => rp.PermissionId == dbP.Id))
+                    {
+                        context.RolePermissions.Add(new RolePermission { RoleId = existingRole.Id, PermissionId = dbP.Id });
+                    }
+                }
+            }
+            // Assign permissions to Analyst
+            else if (r.Name == "Analyst")
+            {
+                var analystPermissions = new[] { AppPermissions.ViewMetrics, AppPermissions.ReadUsers, AppPermissions.ReadTrips };
+                foreach (var pId in analystPermissions)
+                {
+                    if (!existingRole.RolePermissions.Any(rp => rp.PermissionId == pId))
+                    {
+                        context.RolePermissions.Add(new RolePermission { RoleId = existingRole.Id, PermissionId = pId });
+                    }
+                }
+            }
+        }
+        await context.SaveChangesAsync();
+
         var passwordHash = HashPassword("123456");
 
-        // 1. Users
-        var admin = await UpsertUserAsync(context, AdminId, "Administrador", "admin@univalle.edu", passwordHash, UserRole.Admin);
+        // 1. Users (using dynamic role name)
+        var admin = await UpsertUserAsync(context, AdminId, "Administrador", "admin@univalle.edu", passwordHash, "SuperAdmin");
         
         // Drivers
-        var driverOne = await UpsertUserAsync(context, DriverOneId, "Carlos Rojas", "carlos.rojas@univalle.edu", passwordHash, UserRole.Driver, "+57 300 111 2233");
-        var driverTwo = await UpsertUserAsync(context, DriverTwoId, "Mariana Torres", "mariana.torres@univalle.edu", passwordHash, UserRole.Driver, "+57 300 222 3344");
-        var driverThree = await UpsertUserAsync(context, DriverThreeId, "Andrés Castro", "andres.castro@univalle.edu", passwordHash, UserRole.Driver, "+57 300 666 7788");
-        var driverFour = await UpsertUserAsync(context, DriverFourId, "Diana Morales", "diana.morales@univalle.edu", passwordHash, UserRole.Driver, "+57 300 777 8899");
-        var driverFive = await UpsertUserAsync(context, DriverFiveId, "Mateo Restrepo", "mateo.restrepo@univalle.edu", passwordHash, UserRole.Driver, "+57 300 888 9900");
+        var driverOne = await UpsertUserAsync(context, DriverOneId, "Carlos Rojas", "carlos.rojas@univalle.edu", passwordHash, "Driver", "+57 300 111 2233");
+        var driverTwo = await UpsertUserAsync(context, DriverTwoId, "Mariana Torres", "mariana.torres@univalle.edu", passwordHash, "Driver", "+57 300 222 3344");
+        var driverThree = await UpsertUserAsync(context, DriverThreeId, "Andrés Castro", "andres.castro@univalle.edu", passwordHash, "Driver", "+57 300 666 7788");
+        var driverFour = await UpsertUserAsync(context, DriverFourId, "Diana Morales", "diana.morales@univalle.edu", passwordHash, "Driver", "+57 300 777 8899");
+        var driverFive = await UpsertUserAsync(context, DriverFiveId, "Mateo Restrepo", "mateo.restrepo@univalle.edu", passwordHash, "Driver", "+57 300 888 9900");
 
         // Students
-        var studentOne = await UpsertUserAsync(context, StudentOneId, "Valentina Pérez", "valentina.perez@univalle.edu", passwordHash, UserRole.Student, "+57 300 333 4455");
-        var studentTwo = await UpsertUserAsync(context, StudentTwoId, "Santiago Gómez", "santiago.gomez@univalle.edu", passwordHash, UserRole.Student, "+57 300 444 5566");
-        var studentThree = await UpsertUserAsync(context, StudentThreeId, "Laura Ramírez", "laura.ramirez@univalle.edu", passwordHash, UserRole.Student, "+57 300 555 6677");
-        var studentFour = await UpsertUserAsync(context, StudentFourId, "Sofía Ortiz", "sofia.ortiz@univalle.edu", passwordHash, UserRole.Student, "+57 300 999 1122");
-        var studentFive = await UpsertUserAsync(context, StudentFiveId, "Alejandro Ruiz", "alejandro.ruiz@univalle.edu", passwordHash, UserRole.Student, "+57 300 999 2233");
-        var studentSix = await UpsertUserAsync(context, StudentSixId, "Gabriela Lugo", "gabriela.lugo@univalle.edu", passwordHash, UserRole.Student, "+57 300 999 3344");
+        var studentOne = await UpsertUserAsync(context, StudentOneId, "Valentina Pérez", "valentina.perez@univalle.edu", passwordHash, "Student", "+57 300 333 4455");
+        var studentTwo = await UpsertUserAsync(context, StudentTwoId, "Santiago Gómez", "santiago.gomez@univalle.edu", passwordHash, "Student", "+57 300 444 5566");
+        var studentThree = await UpsertUserAsync(context, StudentThreeId, "Laura Ramírez", "laura.ramirez@univalle.edu", passwordHash, "Student", "+57 300 555 6677");
+        var studentFour = await UpsertUserAsync(context, StudentFourId, "Sofía Ortiz", "sofia.ortiz@univalle.edu", passwordHash, "Student", "+57 300 999 1122");
+        var studentFive = await UpsertUserAsync(context, StudentFiveId, "Alejandro Ruiz", "alejandro.ruiz@univalle.edu", passwordHash, "Student", "+57 300 999 2233");
+        var studentSix = await UpsertUserAsync(context, StudentSixId, "Gabriela Lugo", "gabriela.lugo@univalle.edu", passwordHash, "Student", "+57 300 999 3344");
 
         // 2. Driver Profiles
         await UpsertDriverProfileAsync(context, DriverOneProfileId, driverOne.Id, "LIC-DRIVER-001", true);
@@ -340,6 +413,16 @@ public static class DevelopmentDataSeeder
             "Duda con cobro de reserva", "Deseo saber si el cobro estimado de la reserva es fijo o si puede variar de acuerdo a la ruta final que tome el conductor.",
             SupportTicketStatus.Resolved, DateTime.UtcNow.AddDays(-2));
 
+        // Seed default theme if not present
+        if (!await context.AppSettings.AnyAsync(s => s.Key == "theme"))
+        {
+            context.AppSettings.Add(new AppSetting 
+            { 
+                Key = "theme", 
+                Value = "{\"primaryLight\":\"#5f7f6c\",\"secondaryLight\":\"#b67a52\",\"textLight\":\"#24302b\",\"primaryDark\":\"#8fac98\",\"secondaryDark\":\"#d0a27d\",\"textDark\":\"#edf2ee\"}" 
+            });
+        }
+
         await context.SaveChangesAsync();
     }
 
@@ -349,10 +432,13 @@ public static class DevelopmentDataSeeder
         string fullName,
         string email,
         string passwordHash,
-        UserRole role,
+        string roleName,
         string? phoneNumber = null)
     {
-        var user = await context.Users.FirstOrDefaultAsync(item => item.Email == email);
+        var user = await context.Users
+            .Include(u => u.UserRoles)
+            .FirstOrDefaultAsync(item => item.Email == email);
+
         if (user is null)
         {
             user = new User { Id = id };
@@ -363,7 +449,13 @@ public static class DevelopmentDataSeeder
         user.Email = email;
         user.PasswordHash = passwordHash;
         user.PhoneNumber = phoneNumber;
-        user.Role = role;
+
+        var role = await context.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
+        if (role != null)
+        {
+            context.UserRoles.RemoveRange(user.UserRoles);
+            user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
+        }
 
         return user;
     }

@@ -17,6 +17,7 @@ public class SessionManager {
     private static final String KEY_EMAIL = "email";
     private static final String KEY_PHONE = "phone";
     private static final String KEY_ROLE = "role";
+    private static final String KEY_PROFILE_PICTURE = "profile_picture";
     private static final String KEY_EXPIRES_AT = "expires_at";
     /** Viaje activo del conductor en este dispositivo (clave por usuario). */
     private static final String KEY_DRIVER_ACTIVE_TRIP_PREFIX = "driver_active_trip_";
@@ -43,6 +44,7 @@ public class SessionManager {
                 .putString(KEY_EMAIL, user.email)
                 .putString(KEY_PHONE, user.phoneNumber)
                 .putString(KEY_ROLE, user.role)
+                .putString(KEY_PROFILE_PICTURE, user.profilePicture)
                 .putLong(KEY_EXPIRES_AT, expiresAt)
                 .commit();
     }
@@ -86,6 +88,10 @@ public class SessionManager {
 
     public String getRole() {
         return preferences.getString(KEY_ROLE, "student");
+    }
+
+    public String getProfilePicture() {
+        return preferences.getString(KEY_PROFILE_PICTURE, "");
     }
 
     public boolean isDriver() {
@@ -185,5 +191,62 @@ public class SessionManager {
 
     public void clearSession() {
         preferences.edit().clear().commit();
+    }
+
+    // --- Ajustes de Colores / Temas ---
+    private static final String KEY_THEME_PRIMARY_LIGHT = "theme_primary_light";
+    private static final String KEY_THEME_SECONDARY_LIGHT = "theme_secondary_light";
+    private static final String KEY_THEME_TEXT_LIGHT = "theme_text_light";
+    private static final String KEY_THEME_PRIMARY_DARK = "theme_primary_dark";
+    private static final String KEY_THEME_SECONDARY_DARK = "theme_secondary_dark";
+    private static final String KEY_THEME_TEXT_DARK = "theme_text_dark";
+
+    public void saveThemeColors(String pl, String sl, String pd, String sd) {
+        saveThemeColors(pl, sl, "#24302b", pd, sd, "#edf2ee");
+    }
+
+    public void saveThemeColors(String pl, String sl, String tl, String pd, String sd, String td) {
+        preferences.edit()
+                .putString(KEY_THEME_PRIMARY_LIGHT, pl)
+                .putString(KEY_THEME_SECONDARY_LIGHT, sl)
+                .putString(KEY_THEME_TEXT_LIGHT, tl)
+                .putString(KEY_THEME_PRIMARY_DARK, pd)
+                .putString(KEY_THEME_SECONDARY_DARK, sd)
+                .putString(KEY_THEME_TEXT_DARK, td)
+                .apply();
+    }
+
+    public String getThemePrimaryLight() {
+        return preferences.getString(KEY_THEME_PRIMARY_LIGHT, "#5f7f6c");
+    }
+
+    public String getThemeSecondaryLight() {
+        return preferences.getString(KEY_THEME_SECONDARY_LIGHT, "#b67a52");
+    }
+
+    public String getThemeTextLight() {
+        return preferences.getString(KEY_THEME_TEXT_LIGHT, "#24302b");
+    }
+
+    public String getThemePrimaryDark() {
+        return preferences.getString(KEY_THEME_PRIMARY_DARK, "#8fac98");
+    }
+
+    public String getThemeSecondaryDark() {
+        return preferences.getString(KEY_THEME_SECONDARY_DARK, "#d0a27d");
+    }
+
+    public String getThemeTextDark() {
+        return preferences.getString(KEY_THEME_TEXT_DARK, "#edf2ee");
+    }
+
+    private static final String KEY_FCM_TOKEN = "fcm_token";
+
+    public void saveFcmToken(String token) {
+        preferences.edit().putString(KEY_FCM_TOKEN, token).apply();
+    }
+
+    public String getFcmToken() {
+        return preferences.getString(KEY_FCM_TOKEN, "");
     }
 }

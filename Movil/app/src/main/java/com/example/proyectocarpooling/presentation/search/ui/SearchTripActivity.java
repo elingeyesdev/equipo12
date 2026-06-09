@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.search.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
@@ -14,6 +15,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -49,7 +51,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SearchTripActivity extends AppCompatActivity implements SearchTripAdapter.Listener {
+public class SearchTripActivity extends BaseActivity implements SearchTripAdapter.Listener {
 
     private enum Category {
         ALL,
@@ -201,6 +203,21 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
     }
 
     private void setupFilterListeners() {
+<<<<<<< HEAD
+=======
+        minPriceInput.addTextChangedListener(new SimpleTextWatcher() {
+            @Override public void afterTextChanged(Editable s) {
+                minPriceLayout.setError(null);
+                applyFilters();
+            }
+        });
+        maxPriceInput.addTextChangedListener(new SimpleTextWatcher() {
+            @Override public void afterTextChanged(Editable s) {
+                maxPriceLayout.setError(null);
+                applyFilters();
+            }
+        });
+>>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
         categoryGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             applyFilters();
         });
@@ -470,12 +487,20 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
     public void onReserveTrip(SearchTripResultItem item) {
         String userId = sessionManager.getUserId();
         if (userId == null || userId.isEmpty()) {
-            Toast.makeText(this, "Inicia sesión para reservar plaza", Toast.LENGTH_SHORT).show();
+            new AlertDialog.Builder(this)
+                    .setTitle("Acceso requerido")
+                    .setMessage("Inicia sesión para reservar plaza")
+                    .setPositiveButton("Aceptar", null)
+                    .show();
             return;
         }
 
         if (sessionManager.hasPassengerBookedTrip()) {
-            Toast.makeText(this, R.string.passenger_already_booked, Toast.LENGTH_LONG).show();
+            new AlertDialog.Builder(this)
+                    .setTitle("Reserva activa")
+                    .setMessage(R.string.passenger_already_booked)
+                    .setPositiveButton("Aceptar", null)
+                    .show();
             return;
         }
 
@@ -499,7 +524,11 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     setLoading(false);
-                    Toast.makeText(this, R.string.toast_reservation_failed, Toast.LENGTH_SHORT).show();
+                    new AlertDialog.Builder(this)
+                            .setTitle("Error de reserva")
+                            .setMessage(sanitizeError(e.getMessage() != null ? e.getMessage() : getString(R.string.toast_reservation_failed)))
+                            .setPositiveButton("Aceptar", null)
+                            .show();
                 });
             }
         });
@@ -522,7 +551,11 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     setLoading(false);
-                    Toast.makeText(this, R.string.cancel_reservation_error, Toast.LENGTH_SHORT).show();
+                    new AlertDialog.Builder(this)
+                            .setTitle("Error al cancelar")
+                            .setMessage(sanitizeError(e.getMessage() != null ? e.getMessage() : getString(R.string.cancel_reservation_error)))
+                            .setPositiveButton("Aceptar", null)
+                            .show();
                 });
             }
         });
@@ -552,7 +585,11 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     setLoading(false);
-                    Toast.makeText(this, R.string.toast_boarding_failed, Toast.LENGTH_SHORT).show();
+                    new AlertDialog.Builder(this)
+                            .setTitle("Error de abordaje")
+                            .setMessage(sanitizeError(e.getMessage() != null ? e.getMessage() : getString(R.string.toast_boarding_failed)))
+                            .setPositiveButton("Aceptar", null)
+                            .show();
                 });
             }
         });

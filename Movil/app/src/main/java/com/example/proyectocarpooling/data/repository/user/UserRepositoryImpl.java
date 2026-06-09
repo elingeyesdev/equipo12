@@ -77,4 +77,14 @@ public class UserRepositoryImpl implements UserRepository {
     public JSONObject getActiveReservation(String userId) throws IOException {
         return remoteDataSource.getActiveReservation(userId);
     }
+
+    @Override
+    public void registerFcmToken(String userId, String token) throws IOException {
+        remoteDataSource.registerFcmToken(userId, token);
+    }
+
+    @Override
+    public void logoutDevice(String token) throws IOException {
+        remoteDataSource.logoutDevice(token);
+    }
 }

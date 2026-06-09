@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/carpool_surface"
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/accountHeaderLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/drawer_header_background"
@@ -33,21 +35,37 @@
             android:layout_height="88dp"
             android:layout_marginBottom="16dp">
 
-            <FrameLayout
+            <androidx.cardview.widget.CardView
                 android:layout_width="88dp"
                 android:layout_height="88dp"
-                android:background="@drawable/avatar_gradient_background">
+                app:cardCornerRadius="44dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@android:color/transparent">
 
-                <TextView
-                    android:id="@+id/accountUserInitials"
+                <ImageView
+                    android:id="@+id/accountUserImage"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="UI"
-                    android:textColor="@color/uber_text_inverse"
-                    android:textSize="36sp"
-                    android:textStyle="bold" />
-            </FrameLayout>
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <FrameLayout
+                    android:id="@+id/accountUserPlaceholder"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/avatar_gradient_background">
+
+                    <TextView
+                        android:id="@+id/accountUserInitials"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="UI"
+                        android:textColor="@color/uber_text_inverse"
+                        android:textSize="36sp"
+                        android:textStyle="bold" />
+                </FrameLayout>
+            </androidx.cardview.widget.CardView>
 
             <View
                 android:layout_width="16dp"
@@ -121,7 +139,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="4.9"
-                        android:textColor="@color/uber_accent"
+                        android:textColor="?attr/colorPrimary"
                         android:textSize="56sp"
                         android:textStyle="bold" />
 
@@ -141,7 +159,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="★★★★★"
-                    android:textColor="@color/uber_accent"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="22sp"
                     android:layout_marginBottom="10dp" />
 
@@ -360,7 +378,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="12"
-                        android:textColor="@color/uber_accent"
+                        android:textColor="?attr/colorPrimary"
                         android:textSize="28sp"
                         android:textStyle="bold" />
 
@@ -389,7 +407,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="--"
-                        android:textColor="@color/uber_accent"
+                        android:textColor="?attr/colorPrimary"
                         android:textSize="28sp"
                         android:textStyle="bold" />
 

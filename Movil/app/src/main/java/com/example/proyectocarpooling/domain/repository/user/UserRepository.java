@@ -36,4 +36,8 @@ public interface UserRepository {
     void deleteVehicle(String userId, String vehicleId) throws IOException;
 
     JSONObject getActiveReservation(String userId) throws IOException;
+
+    void registerFcmToken(String userId, String token) throws IOException;
+
+    void logoutDevice(String token) throws IOException;
 }

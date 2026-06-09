@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.history.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -8,6 +9,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -27,7 +29,7 @@ import com.google.android.material.button.MaterialButton;
 
 import java.util.Locale;
 
-public class TripHistoryDetailActivity extends AppCompatActivity {
+public class TripHistoryDetailActivity extends BaseActivity {
     public static final String EXTRA_TRIP_ID = "extra_trip_id";
 
     private MaterialToolbar toolbar;
@@ -126,8 +128,12 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
                 loadingOverlay.setVisibility(View.GONE);
-                Toast.makeText(this, R.string.history_load_error, Toast.LENGTH_SHORT).show();
-                finish();
+                new AlertDialog.Builder(this)
+                        .setTitle("Error de carga")
+                        .setMessage(R.string.history_load_error)
+                        .setPositiveButton("Aceptar", (d, w) -> finish())
+                        .setCancelable(false)
+                        .show();
             }
         });
     }

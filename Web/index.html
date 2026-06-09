@@ -53,7 +53,11 @@
         <button class="menu-item" data-section="users">Usuarios</button>
         <button class="menu-item" data-section="trips">Viajes</button>
         <button class="menu-item" data-section="reservations">Reservas</button>
+        <button class="menu-item" data-section="payments">Pagos</button>
         <button class="menu-item" data-section="support">Soporte</button>
+        <button class="menu-item" data-section="safe-zones">Zonas seguras</button>
+        <button class="menu-item hidden" id="nav-admins" data-section="admins">Admins</button>
+        <button class="menu-item" data-section="settings">Personalizar</button>
       </nav>
 
       <button id="logoutBtn" class="btn ghost">Cerrar sesion</button>
@@ -84,7 +88,7 @@
           <p id="kpiApiBase">-</p>
         </article>
 
-        <article class="card span-3">
+        <article class="card span-3" id="quickActionsCard">
           <h3>Acciones rapidas</h3>
           <p class="card-help">Navega a las tareas mas comunes sin buscar en el menu lateral.</p>
           <div class="quick-actions" id="overviewQuickActions">
@@ -216,6 +220,58 @@
         </article>
       </section>
 
+      <section class="content-grid hidden" id="section-payments">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Panel de pagos</p>
+            <h3>Pagos y Transacciones</h3>
+            <p class="card-help">Monitorea y visualiza todos los pagos simulados realizados por los usuarios.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button type="button" class="btn secondary" id="paymentsReloadBtn">Actualizar</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <div class="filters-grid form-grid-2">
+            <label class="field filter-field">
+              <span>Filtrar pagos</span>
+              <input type="text" id="paymentsFilterInput" placeholder="Pasajero, conductor o método" />
+            </label>
+            <label class="field filter-field">
+              <span>Estado</span>
+              <select id="paymentsStatusFilter">
+                <option value="">Todos los estados</option>
+                <option value="1">Pendiente</option>
+                <option value="2">Aprobado</option>
+                <option value="3">Rechazado</option>
+                <option value="4">Cancelado</option>
+                <option value="5">Expirado</option>
+                <option value="6">Devuelto</option>
+                <option value="7">Devuelto parcial</option>
+              </select>
+            </label>
+          </div>
+          <p id="adminPaymentsMessage" class="message" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminPaymentsTable">
+              <thead>
+                <tr>
+                  <th>Pago ID</th>
+                  <th>Pasajero</th>
+                  <th>Conductor</th>
+                  <th>Método</th>
+                  <th>Monto</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminPaymentsBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
       <section class="content-grid hidden" id="section-support">
         <article class="card span-3">
           <h3>Quejas y reportes de usuarios</h3>
@@ -273,6 +329,218 @@
           </div>
         </article>
       </section>
+
+      <section class="content-grid hidden" id="section-safe-zones">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Seguridad en campus</p>
+            <h3>Zonas seguras</h3>
+            <p class="card-help">Define paradas tranquilas y vigiladas. Los usuarios las veran en el mapa al planear su ruta con un marcador verde distintivo.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button type="button" class="btn secondary" id="safeZonesReloadBtn">Actualizar</button>
+            <button type="button" class="btn primary" id="safeZoneCreateBtn">Nueva zona segura</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <p id="safeZonesDataMessage" class="message">Cargando zonas seguras...</p>
+          <div class="toolbar">
+            <label class="field grow">
+              <span>Buscar</span>
+              <input type="text" id="safeZonesFilterInput" placeholder="Nombre, area o direccion" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Area</th>
+                  <th>Uso</th>
+                  <th>Estado</th>
+                  <th>Coordenadas</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminSafeZonesBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <h4>Vista previa en mapa</h4>
+          <p class="card-help">Marcadores verdes: zonas activas. Grises: inactivas.</p>
+          <div id="safeZonesOverviewMap" class="trip-map trip-map--tall" aria-label="Mapa de zonas seguras"></div>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-settings">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Personalización corporativa</p>
+            <h3>Ajustes de Apariencia</h3>
+            <p class="card-help">Personaliza la identidad visual de tu negocio. Estos colores se aplicarán instantáneamente tanto al Panel Administrativo Web como a la Aplicación Móvil de tus usuarios.</p>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <h4>Temas Predefinidos (Presets)</h4>
+          <p class="card-help">Selecciona una de nuestras combinaciones de color diseñadas profesionalmente para comenzar rápido.</p>
+          <div class="presets-grid" id="presetsContainer">
+            <button type="button" class="preset-card" data-preset="Custom" id="presetCustomCard">
+              <div class="preset-preview">
+                <span class="color-dot" id="presetDotCustomPrimary" style="background-color: #5f7f6c;"></span>
+                <span class="color-dot" id="presetDotCustomSecondary" style="background-color: #b67a52;"></span>
+                <span class="color-dot" id="presetDotCustomText" style="background-color: #24302b;"></span>
+              </div>
+              <span class="preset-name">Personalizado</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Natural">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #5f7f6c;"></span>
+                <span class="color-dot" style="background-color: #b67a52;"></span>
+                <span class="color-dot" style="background-color: #24302b;"></span>
+              </div>
+              <span class="preset-name">Natural Sage</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Emerald">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #7abfa6;"></span>
+                <span class="color-dot" style="background-color: #5a8777;"></span>
+                <span class="color-dot" style="background-color: #1c2e28;"></span>
+              </div>
+              <span class="preset-name">Emerald Mint</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Ocean">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #7bb0db;"></span>
+                <span class="color-dot" style="background-color: #8496ab;"></span>
+                <span class="color-dot" style="background-color: #18232e;"></span>
+              </div>
+              <span class="preset-name">Ocean Sky</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Orchid">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #a397db;"></span>
+                <span class="color-dot" style="background-color: #9e7fa6;"></span>
+                <span class="color-dot" style="background-color: #231e33;"></span>
+              </div>
+              <span class="preset-name">Royal Orchid</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="Univalle">
+              <div class="preset-preview">
+                <span class="color-dot" style="background-color: #7a1c31;"></span>
+                <span class="color-dot" style="background-color: #D3D3D3;"></span>
+                <span class="color-dot" style="background-color: #111827;"></span>
+              </div>
+              <span class="preset-name">Univalle</span>
+            </button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <h4>Personalización de Colores Manual</h4>
+          <p class="card-help">Ajusta cada color a mano usando los selectores a continuación para lograr el branding perfecto de tu marca.</p>
+          <form id="themeSettingsForm" class="stack">
+            <h5 style="margin-bottom: 8px;">Colores para Modo Claro</h5>
+            <div class="color-pickers-grid">
+              <label class="field color-picker-field">
+                <span>Principal Claro (Botones, Acentos)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themePrimaryLight" required />
+                  <span class="color-hex-text" id="themePrimaryLightHex">#5f7f6c</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Secundario Claro (Sidebar, Estructura)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeSecondaryLight" required />
+                  <span class="color-hex-text" id="themeSecondaryLightHex">#b67a52</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Texto Claro (Letras, Títulos)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeTextLight" required />
+                  <span class="color-hex-text" id="themeTextLightHex">#24302b</span>
+                </div>
+              </label>
+            </div>
+
+            <h5 style="margin-top: 16px; margin-bottom: 8px;">Colores para Modo Oscuro</h5>
+            <div class="color-pickers-grid">
+              <label class="field color-picker-field">
+                <span>Principal Oscuro (Botones, Acentos)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themePrimaryDark" required />
+                  <span class="color-hex-text" id="themePrimaryDarkHex">#8fac98</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Secundario Oscuro (Sidebar, Estructura)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeSecondaryDark" required />
+                  <span class="color-hex-text" id="themeSecondaryDarkHex">#d0a27d</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Texto Oscuro (Letras, Títulos)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeTextDark" required />
+                  <span class="color-hex-text" id="themeTextDarkHex">#edf2ee</span>
+                </div>
+              </label>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 14px;">
+              <button type="submit" class="btn primary" id="saveThemeBtn">Guardar Cambios</button>
+            </div>
+            
+            <p id="settingsMessage" class="message" aria-live="polite"></p>
+          </form>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-admins">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Seguridad y Roles</p>
+            <h3>Cuentas de Administradores</h3>
+            <p class="card-help">Gestiona los accesos administrativos del personal web, define sus permisos y asocia sus roles.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button type="button" class="btn secondary" id="adminCreateBtn">Agregar Administrador</button>
+          </div>
+        </article>
+
+        <article class="card span-3">
+          <div class="filters-grid">
+            <label class="field filter-field">
+              <span>Filtrar administradores</span>
+              <input type="text" id="adminsFilterInput" placeholder="Nombre, email o rol" />
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table" id="adminAdminsTable">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol / Descripcion</th>
+                  <th>Permisos asignados</th>
+                  <th>Fecha de Registro</th>
+                </tr>
+              </thead>
+              <tbody id="adminAdminsBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
     </div>
   </section>
 
@@ -298,6 +566,63 @@
     </section>
   </div>
 
+  <div class="modal-overlay hidden" id="safeZoneModalOverlay" aria-hidden="true">
+    <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="safeZoneModalTitle">
+      <div class="modal-header">
+        <h3 id="safeZoneModalTitle">Zona segura</h3>
+        <button type="button" class="btn tiny" id="safeZoneModalCloseBtn">Cerrar</button>
+      </div>
+      <form id="safeZoneModalForm" class="stack compact">
+        <input type="hidden" id="safeZoneEditId" value="" />
+        <div class="form-grid-2">
+          <label class="field">
+            <span>Nombre</span>
+            <input type="text" id="safeZoneName" required maxlength="120" placeholder="Ej. Porteria principal" />
+          </label>
+          <label class="field">
+            <span>Area del campus</span>
+            <input type="text" id="safeZoneCampusArea" maxlength="80" placeholder="Ej. Campus Melendez" />
+          </label>
+        </div>
+        <label class="field">
+          <span>Descripcion</span>
+          <textarea id="safeZoneDescription" rows="2" maxlength="400" placeholder="Iluminacion, vigilancia, etc."></textarea>
+        </label>
+        <div class="form-grid-2">
+          <label class="field">
+            <span>Uso permitido</span>
+            <select id="safeZonePurpose" required>
+              <option value="0">Recogida y destino</option>
+              <option value="1">Solo recogida</option>
+              <option value="2">Solo destino</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Orden de visualizacion</span>
+            <input type="number" id="safeZoneDisplayOrder" value="0" min="0" max="9999" />
+          </label>
+        </div>
+        <label class="field checkbox-field">
+          <input type="checkbox" id="safeZoneIsActive" checked />
+          <span>Zona activa (visible en la app)</span>
+        </label>
+        <div class="trip-map-shell">
+          <div class="trip-map-actions">
+            <button type="button" class="btn ghost" data-safe-zone-action="clear-point">Limpiar punto</button>
+          </div>
+          <div id="safeZoneEditMap" class="trip-map" aria-label="Mapa para ubicar la zona segura"></div>
+          <p class="hint-box">Haz clic en el mapa para colocar el marcador de la zona segura.</p>
+          <p id="safeZoneCoordsHint" class="hint-box">Coordenadas: sin definir</p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" data-safe-zone-action="cancel">Cancelar</button>
+          <button type="submit" class="btn primary">Guardar zona</button>
+        </div>
+        <p id="safeZoneModalMessage" class="message" aria-live="polite"></p>
+      </form>
+    </section>
+  </div>
+
   <div class="modal-overlay hidden" id="createModalOverlay" aria-hidden="true">
     <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="createModalTitle">
       <div class="modal-header">
@@ -315,6 +640,142 @@
         </label>
         <div id="createModalFields"></div>
         <p id="createModalMessage" class="message" aria-live="polite"></p>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-overlay hidden" id="adminModalOverlay" aria-hidden="true">
+    <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+      <div class="modal-header">
+        <h3 id="adminModalTitle">Crear Cuenta de Administrador</h3>
+        <button type="button" class="btn tiny" id="adminModalCloseBtn">Cerrar</button>
+      </div>
+      <form id="adminModalForm" class="stack compact">
+        <div class="form-grid-2">
+          <label class="field">
+            <span>Nombre completo</span>
+            <input type="text" id="adminFullName" required placeholder="Ej. Juan Perez" />
+          </label>
+          <label class="field">
+            <span>Correo institucional</span>
+            <input type="email" id="adminEmail" required placeholder="ejemplo@univalle.edu" />
+          </label>
+        </div>
+        <div class="form-grid-2">
+          <label class="field">
+            <span>Contrasena</span>
+            <input type="password" id="adminPassword" required placeholder="Minimo 6 caracteres" minlength="6" />
+          </label>
+          <label class="field">
+            <span>Tipo de Rol</span>
+            <select id="adminRolePreset" required>
+              <option value="Soporte">Soporte</option>
+              <option value="Analista">Analista</option>
+              <option value="Secretariado">Secretariado</option>
+              <option value="Personalizado">Personalizado</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="field hidden" id="adminCustomRoleNameContainer">
+          <span>Nombre del Rol Personalizado</span>
+          <input type="text" id="adminCustomRoleName" placeholder="Ej. Supervisor de Soporte" />
+        </div>
+
+        <div class="field">
+          <span>Permisos del Rol</span>
+          <p class="hint-box">Selecciona los modulos y operaciones permitidas para esta cuenta.</p>
+          
+          <div class="permissions-groups-grid">
+            <!-- Metrics -->
+            <div class="permission-group-card">
+              <h4>Metricas</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="metrics:view" />
+                <span>Ver resumen / Dashboard</span>
+              </label>
+            </div>
+
+            <!-- Users -->
+            <div class="permission-group-card">
+              <h4>Usuarios</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="users:read" />
+                <span>Ver usuarios</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="users:write" />
+                <span>Modificar usuarios</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="users:delete" />
+                <span>Eliminar usuarios</span>
+              </label>
+            </div>
+
+            <!-- Trips -->
+            <div class="permission-group-card">
+              <h4>Viajes</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="trips:read" />
+                <span>Ver viajes</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="trips:write" />
+                <span>Modificar viajes</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="trips:delete" />
+                <span>Eliminar viajes</span>
+              </label>
+            </div>
+
+            <!-- Reservations -->
+            <div class="permission-group-card">
+              <h4>Reservas</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="reservations:read" />
+                <span>Ver reservas</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="reservations:write" />
+                <span>Modificar reservas</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="reservations:delete" />
+                <span>Eliminar reservas</span>
+              </label>
+            </div>
+
+            <!-- Support -->
+            <div class="permission-group-card">
+              <h4>Soporte</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="support:read" />
+                <span>Ver reportes</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="support:write" />
+                <span>Responder reportes</span>
+              </label>
+            </div>
+
+            <!-- Security -->
+            <div class="permission-group-card">
+              <h4>Seguridad</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="roles:manage" />
+                <span>Gestionar roles y permisos</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" id="adminModalCancelBtn">Cancelar</button>
+          <button type="submit" class="btn primary">Crear Administrador</button>
+        </div>
+        <p id="adminModalMessage" class="message" aria-live="polite"></p>
       </form>
     </section>
   </div>

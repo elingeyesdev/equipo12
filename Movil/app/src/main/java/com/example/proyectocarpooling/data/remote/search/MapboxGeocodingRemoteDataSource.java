@@ -103,4 +103,32 @@ public class MapboxGeocodingRemoteDataSource {
         List<SearchSuggestion> suggestions = search(query, 1);
         return suggestions.isEmpty() ? null : suggestions.get(0);
     }
+
+    public String reverseGeocode(double latitude, double longitude) throws IOException, JSONException {
+        String url = String.format(Locale.US,
+                "https://api.mapbox.com/geocoding/v5/mapbox.places/%f,%f.json?limit=1&language=es&types=address,place,poi&access_token=%s",
+                longitude,
+                latitude,
+                accessToken);
+
+        Request request = new Request.Builder().url(url).get().build();
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                return null;
+            }
+            if (response.body() == null) {
+                return null;
+            }
+
+            JSONObject root = new JSONObject(response.body().string());
+            JSONArray features = root.optJSONArray("features");
+            if (features != null && features.length() > 0) {
+                JSONObject feature = features.optJSONObject(0);
+                if (feature != null) {
+                    return feature.optString("place_name");
+                }
+            }
+            return null;
+        }
+    }
 }

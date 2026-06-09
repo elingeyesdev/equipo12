@@ -5,6 +5,8 @@ using CarPooling.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,8 +37,28 @@ builder.Services.AddScoped<DriverService>();
 builder.Services.AddScoped<GeocodingService>();
 builder.Services.AddScoped<RatingService>();
 builder.Services.AddScoped<SupportTicketService>();
+<<<<<<< HEAD
 builder.Services.AddScoped<SupportTicketMessagingService>();
+=======
+builder.Services.AddScoped<SafeZoneService>();
+builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<INotificationService, FirebaseNotificationService>();
+>>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 builder.Services.AddHttpClient<GeocodingService>();
+
+// Initialize Firebase
+var pathToFirebaseKey = builder.Configuration["Firebase:CredentialsPath"] ?? "firebase-adminsdk.json";
+if (File.Exists(pathToFirebaseKey))
+{
+    FirebaseApp.Create(new AppOptions
+    {
+        Credential = GoogleCredential.FromFile(pathToFirebaseKey)
+    });
+}
+else
+{
+    Console.WriteLine("Advertencia: No se encontró el archivo de credenciales de Firebase. Las notificaciones push no funcionarán.");
+}
 
 builder.Services.AddCors(options =>
 {

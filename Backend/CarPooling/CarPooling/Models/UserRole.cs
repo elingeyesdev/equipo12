@@ -1,8 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CarPooling.Models;
 
-public enum UserRole
+public class UserRole
 {
-    Student = 1,
-    Driver = 2,
-    Admin = 3
+    public Guid UserId { get; set; }
+    public User User { get; set; } = null!;
+
+    public Guid RoleId { get; set; }
+    public Role Role { get; set; } = null!;
 }

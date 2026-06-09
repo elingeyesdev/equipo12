@@ -7,14 +7,16 @@ public class RegisterUserRequest {
     public final String password;
     public final String phoneNumber;
     public final String role;
+    public final String profilePicture;
     public final DriverProfileRequest driverProfile;
 
-    public RegisterUserRequest(String fullName, String email, String password, String phoneNumber, String role, DriverProfileRequest driverProfile) {
+    public RegisterUserRequest(String fullName, String email, String password, String phoneNumber, String role, String profilePicture, DriverProfileRequest driverProfile) {
         this.fullName = fullName;
         this.email = email;
         this.password = password;
         this.phoneNumber = phoneNumber;
         this.role = role;
+        this.profilePicture = profilePicture;
         this.driverProfile = driverProfile;
     }
 }

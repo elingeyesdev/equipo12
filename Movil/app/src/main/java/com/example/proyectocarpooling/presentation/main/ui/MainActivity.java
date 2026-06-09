@@ -1,9 +1,13 @@
 package com.example.proyectocarpooling.presentation.main.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.example.proyectocarpooling.domain.repository.user.UserRepository;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -17,6 +21,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.view.MenuItem;
 import android.widget.Toast;
+import android.widget.ImageView;
 import android.app.AlertDialog;
 import android.widget.EditText;
 import android.widget.ArrayAdapter;
@@ -41,7 +46,9 @@ import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
+import com.example.proyectocarpooling.data.model.SafeZoneItem;
 import com.example.proyectocarpooling.data.model.TripResponse;
+import com.example.proyectocarpooling.data.model.payment.PaymentItem;
 import com.example.proyectocarpooling.domain.model.CreateTripResult;
 import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
@@ -54,6 +61,9 @@ import com.example.proyectocarpooling.presentation.support.ui.SupportActivity;
 import com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity;
 import com.example.proyectocarpooling.presentation.search.ui.SearchTripActivity;
 import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
+import com.example.proyectocarpooling.presentation.payment.ui.DriverPaymentsActivity;
+import com.example.proyectocarpooling.presentation.payment.ui.PaymentActivity;
+import com.example.proyectocarpooling.data.remote.search.MapboxGeocodingRemoteDataSource;
 // MainViewModel now in same package
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
 
@@ -77,12 +87,14 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
 
     public static boolean sReservationCompletedFromBanner = false;
     public static Intent sReservationResultData = null;
@@ -113,6 +125,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView destinationText;
     private TextView statusText;
     private TextView routeTimeText;
+    private EditText fareAmountInput;
     private View menuToggleButton;
     private Button createTripButton;
     private Button cancelTripButton;
@@ -130,10 +143,13 @@ public class MainActivity extends AppCompatActivity {
     private Button bannerRejectButton;
     private TextView bottomSheetTitle;
     private com.google.android.material.floatingactionbutton.FloatingActionButton chatFloatingButton;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton myLocationFloatingButton;
 
     private boolean isInitialPositionSet = false;
     private Point selectedOrigin;
     private Point selectedDestination;
+    private String selectedOriginAddress;
+    private String selectedDestinationAddress;
     private SelectionMode selectionMode = SelectionMode.NONE;
     private String activeTripId;
     private String lastTripStatusLabel;
@@ -150,16 +166,24 @@ public class MainActivity extends AppCompatActivity {
     private PointAnnotation destinationAnnotation;
     private Bitmap originMarkerBitmap;
     private Bitmap destinationMarkerBitmap;
+    private Bitmap safeZoneMarkerBitmap;
+    private final List<PointAnnotation> safeZoneAnnotations = new ArrayList<>();
+    private final Map<String, SafeZoneItem> safeZoneByAnnotationId = new HashMap<>();
+    private boolean safeZonesLoaded;
+    private boolean safeZoneClickListenerRegistered;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private TextView drawerUserTitle;
     private TextView drawerUserEmail;
     private TextView drawerUserInitials;
+    private ImageView drawerUserImage;
+    private View drawerUserPlaceholder;
     private TextView drawerUserRole;
     private TextView drawerUserRating;
     private LinearLayout drawerReservationInfo;
     private TextView drawerReservationDriver;
     private TextView drawerReservationCode;
+    private TextView drawerReservationPaymentStatus;
     private SessionManager sessionManager;
     private UserAccessUseCase userAccessUseCase;
     private MainViewModel mainViewModel;
@@ -176,6 +200,8 @@ public class MainActivity extends AppCompatActivity {
     private String passengerReservedTripId;
     private String passengerBoardingCode;
     private String passengerReservedDriverName;
+    private int passengerReservationStatusId;
+    private String passengerPaymentStatusLabel = "Pago: pendiente de confirmacion";
     private int activeTripPendingCount;
 
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
@@ -205,6 +231,7 @@ public class MainActivity extends AppCompatActivity {
                         passengerReservedTripId = tripId;
                         passengerBoardingCode = code;
                         passengerReservedDriverName = driverName;
+                        passengerReservationStatusId = 1;
                         refreshForPassengerReservation();
                     }
                     double oLat = matchData.getDoubleExtra(DriverMatchActivity.EXTRA_RESULT_ORIGIN_LAT, Double.NaN);
@@ -236,6 +263,15 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+    private final ActivityResultLauncher<String> requestNotificationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    Toast.makeText(this, "Permiso de notificaciones concedido", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Las notificaciones están desactivadas. No recibirás alertas de tus viajes.", Toast.LENGTH_LONG).show();
+                }
+            });
+
     private final OnIndicatorPositionChangedListener onIndicatorPositionChangedListener = point -> {
         runOnUiThread(() -> {
             currentDriverPosition = point;
@@ -246,6 +282,11 @@ public class MainActivity extends AppCompatActivity {
                         .build());
                 isInitialPositionSet = true;
                 setProgressVisible(false);
+                if (selectedOrigin == null) {
+                    setSelectedOrigin(point, null);
+                    updateCoordinateLabels();
+                    updateMapMarkers();
+                }
             }
         });
     };
@@ -285,11 +326,17 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        checkNotificationPermission();
+        syncFcmTokenOnStart();
+        handleNotificationIntent(getIntent());
     }
 
     private void restoreStateFromViewModel() {
         selectedOrigin = mainViewModel.getSelectedOrigin();
         selectedDestination = mainViewModel.getSelectedDestination();
+        selectedOriginAddress = mainViewModel.getSelectedOriginAddress();
+        selectedDestinationAddress = mainViewModel.getSelectedDestinationAddress();
         activeTripId = mainViewModel.getActiveTripId();
         lastTripStatusLabel = mainViewModel.getLastTripStatusLabel();
         activeTripAvailableSeats = mainViewModel.getActiveTripAvailableSeats();
@@ -299,6 +346,8 @@ public class MainActivity extends AppCompatActivity {
     private void syncSelectionStateToViewModel() {
         mainViewModel.setSelectedOrigin(selectedOrigin);
         mainViewModel.setSelectedDestination(selectedDestination);
+        mainViewModel.setSelectedOriginAddress(selectedOriginAddress);
+        mainViewModel.setSelectedDestinationAddress(selectedDestinationAddress);
     }
 
     private void syncTripStateToViewModel() {
@@ -319,6 +368,7 @@ public class MainActivity extends AppCompatActivity {
         destinationText = findViewById(R.id.destinationText);
         statusText = findViewById(R.id.statusText);
         routeTimeText = findViewById(R.id.routeTimeText);
+        fareAmountInput = findViewById(R.id.fareAmountInput);
         menuToggleButton = findViewById(R.id.menuToggleButton);
         createTripButton = findViewById(R.id.createTripButton);
         cancelTripButton = findViewById(R.id.cancelTripButton);
@@ -359,16 +409,24 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
+        myLocationFloatingButton = findViewById(R.id.myLocationFloatingButton);
+        if (myLocationFloatingButton != null) {
+            myLocationFloatingButton.setOnClickListener(v -> centerMapOnMyLocation());
+        }
+
         if (navigationView != null) {
             var header = navigationView.getHeaderView(0);
             drawerUserTitle = header.findViewById(R.id.drawerUserTitle);
             drawerUserEmail = header.findViewById(R.id.drawerUserEmail);
             drawerUserInitials = header.findViewById(R.id.drawerUserInitials);
+            drawerUserImage = header.findViewById(R.id.drawerUserImage);
+            drawerUserPlaceholder = header.findViewById(R.id.drawerUserPlaceholder);
             drawerUserRole = header.findViewById(R.id.drawerUserRole);
             drawerUserRating = header.findViewById(R.id.drawerUserRating);
             drawerReservationInfo = header.findViewById(R.id.drawerReservationInfo);
             drawerReservationDriver = header.findViewById(R.id.drawerReservationDriver);
             drawerReservationCode = header.findViewById(R.id.drawerReservationCode);
+            drawerReservationPaymentStatus = header.findViewById(R.id.drawerReservationPaymentStatus);
 
             header.setOnClickListener(v -> {
                 startActivity(new Intent(this, AccountOverviewActivity.class));
@@ -511,11 +569,23 @@ public class MainActivity extends AppCompatActivity {
         checkPassengerReservationOnStart();
     }
 
+    private void centerMapOnMyLocation() {
+        if (currentDriverPosition != null) {
+            mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
+                    .center(currentDriverPosition)
+                    .zoom(16.0)
+                    .build());
+        } else {
+            Toast.makeText(this, "Ubicación actual no disponible todavía", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         consumeApplyFavoriteIntent(intent);
+        handleNotificationIntent(intent);
     }
 
     private void checkPassengerReservationOnStart() {
@@ -538,6 +608,7 @@ public class MainActivity extends AppCompatActivity {
                     final String reservationId = reservation.optString("reservationId", "");
                     final String boardingCode = reservation.optString("boardingCode", "");
                     final String driverName = reservation.optString("driverName", "");
+                    final int statusId = reservation.optInt("statusId", 0);
 
                     if (!tripId.isEmpty()) {
                         sessionManager.savePassengerBookedTrip(tripId, reservationId, boardingCode, driverName);
@@ -555,11 +626,12 @@ public class MainActivity extends AppCompatActivity {
                                 passengerReservedTripId = trip.id;
                                 passengerBoardingCode = boardingCode;
                                 passengerReservedDriverName = trip.driverName;
+                                passengerReservationStatusId = statusId;
                                 if (passengerReservedDriverName == null || passengerReservedDriverName.isEmpty()) {
                                     passengerReservedDriverName = driverName;
                                 }
-                                selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
-                                selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+                                setSelectedOrigin(Point.fromLngLat(trip.originLongitude, trip.originLatitude), trip.originAddress);
+                                setSelectedDestination(Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude), trip.destinationAddress);
                                 syncSelectionStateToViewModel();
                                 updateCoordinateLabels();
                                 updateMapMarkers();
@@ -615,11 +687,12 @@ public class MainActivity extends AppCompatActivity {
                                         passengerReservedTripId = trip.id;
                                         passengerBoardingCode = sessionManager.getPassengerBoardingCode();
                                         passengerReservedDriverName = trip.driverName;
+                                        passengerReservationStatusId = 0;
                                         if (passengerReservedDriverName == null || passengerReservedDriverName.isEmpty()) {
                                             passengerReservedDriverName = sessionManager.getPassengerDriverName();
                                         }
-                                        selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
-                                        selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+                                        setSelectedOrigin(Point.fromLngLat(trip.originLongitude, trip.originLatitude), trip.originAddress);
+                                        setSelectedDestination(Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude), trip.destinationAddress);
                                         syncSelectionStateToViewModel();
                                         updateCoordinateLabels();
                                         updateMapMarkers();
@@ -656,11 +729,14 @@ public class MainActivity extends AppCompatActivity {
             if (bottomSheetTitle != null) bottomSheetTitle.setText("Viaje reservado");
             findDriverButton.setVisibility(View.GONE);
             if (saveFavoriteButton != null) saveFavoriteButton.setVisibility(View.GONE);
-            selectionInstruction.setText("Viaje reservado - Codigo: " + (passengerBoardingCode != null ? passengerBoardingCode : "----"));
+            selectionInstruction.setText(isPassengerReservationAccepted()
+                    ? "Confirmado - Codigo: " + (passengerBoardingCode != null ? passengerBoardingCode : "----")
+                    : "Pendiente de confirmacion del conductor");
             statusText.setText("Conductor: " + (passengerReservedDriverName != null ? passengerReservedDriverName : "Asignado"));
-            routeTimeText.setText("Destino confirmado");
+            routeTimeText.setText(isPassengerReservationAccepted() ? passengerPaymentStatusLabel : "Espera la aceptacion");
             updateDrawerReservationMenu();
             refreshDrawerUserInfo();
+            refreshPassengerPaymentStateAsync();
             startPassengerPolling();
         } else {
             if (bottomSheetTitle != null) bottomSheetTitle.setText(R.string.bottom_sheet_title);
@@ -714,8 +790,8 @@ public class MainActivity extends AppCompatActivity {
                                 passengerBoardingCode = null;
                                 passengerReservedDriverName = null;
                                 stopPassengerPolling();
-                                selectedOrigin = null;
-                                selectedDestination = null;
+                                setSelectedOrigin(null, null);
+                                setSelectedDestination(null, null);
                                 syncSelectionStateToViewModel();
                                 clearRoute();
                                 updateCoordinateLabels();
@@ -754,6 +830,10 @@ public class MainActivity extends AppCompatActivity {
         MenuItem cancelResItem = navigationView.getMenu().findItem(R.id.nav_cancel_reservation);
         if (cancelResItem != null) {
             cancelResItem.setVisible(hasActivePassengerReservation && !isDriverUser);
+        }
+        MenuItem payResItem = navigationView.getMenu().findItem(R.id.nav_pay_reservation);
+        if (payResItem != null) {
+            payResItem.setVisible(hasActivePassengerReservation && !isDriverUser && isPassengerReservationAccepted());
         }
     }
 
@@ -838,8 +918,8 @@ public class MainActivity extends AppCompatActivity {
                         activeTripAvailableSeats = 0;
                         lastRouteTimeLabel = null;
                         syncTripStateToViewModel();
-                        selectedOrigin = null;
-                        selectedDestination = null;
+                        setSelectedOrigin(null, null);
+                        setSelectedDestination(null, null);
                         syncSelectionStateToViewModel();
                         clearRoute();
                         setSelectionMode(SelectionMode.NONE);
@@ -874,11 +954,15 @@ public class MainActivity extends AppCompatActivity {
         lastTripStatusLabel = trip.statusLabel;
         lastTripStatusId = trip.statusId;
         activeTripAvailableSeats = trip.availableSeats;
+        if (fareAmountInput != null) {
+            fareAmountInput.setText(String.format(Locale.US, "%.2f", trip.fareAmount));
+            fareAmountInput.setEnabled(false);
+        }
         sessionManager.saveDriverActiveTripId(trip.id);
         syncTripStateToViewModel();
 
-        selectedOrigin = Point.fromLngLat(trip.originLongitude, trip.originLatitude);
-        selectedDestination = Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude);
+        setSelectedOrigin(Point.fromLngLat(trip.originLongitude, trip.originLatitude), trip.originAddress);
+        setSelectedDestination(Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude), trip.destinationAddress);
         syncSelectionStateToViewModel();
 
         setSelectionMode(SelectionMode.NONE);
@@ -912,6 +996,10 @@ public class MainActivity extends AppCompatActivity {
         createTripButton.setVisibility(driverVisibility);
         cancelTripButton.setVisibility(driverVisibility);
         tripButtonsRow.setVisibility(driverVisibility);
+        if (fareAmountInput != null) {
+            fareAmountInput.setVisibility(driverVisibility);
+            fareAmountInput.setEnabled(activeTripId == null);
+        }
         markBoardedButton.setVisibility(driverVisibility);
         startTripButton.setVisibility(driverVisibility);
         finishTripButton.setVisibility(driverVisibility);
@@ -931,6 +1019,10 @@ public class MainActivity extends AppCompatActivity {
         MenuItem requestsItem = navigationView.getMenu().findItem(R.id.nav_driver_passenger_requests);
         if (requestsItem != null) {
             requestsItem.setVisible(isDriverUser);
+        }
+        MenuItem paymentsItem = navigationView.getMenu().findItem(R.id.nav_driver_payments);
+        if (paymentsItem != null) {
+            paymentsItem.setVisible(isDriverUser);
         }
     }
 
@@ -960,12 +1052,16 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, R.string.drawer_option_coming_soon, Toast.LENGTH_SHORT).show();
                 } else if (id == R.id.nav_driver_passenger_requests) {
                     openPassengerRequestsScreen(true);
+                } else if (id == R.id.nav_driver_payments) {
+                    startActivity(new Intent(this, DriverPaymentsActivity.class));
                 } else if (id == R.id.nav_find_driver) {
                     openDriverMatchScreen();
                 } else if (id == R.id.nav_my_reservation) {
                     if (hasActivePassengerReservation) {
                         showBoardingCodeDialog(passengerReservedDriverName, passengerBoardingCode);
                     }
+                } else if (id == R.id.nav_pay_reservation) {
+                    openPaymentScreen();
                 } else if (id == R.id.nav_cancel_reservation) {
                     cancelPassengerReservationAction();
                 } else if (id == R.id.nav_logout) {
@@ -978,6 +1074,56 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             });
         }
+    }
+
+    private void openPaymentScreen() {
+        Intent intent = new Intent(this, PaymentActivity.class);
+        intent.putExtra(PaymentActivity.EXTRA_RESERVATION_ID, sessionManager.getPassengerBookedReservationId());
+        intent.putExtra(PaymentActivity.EXTRA_TRIP_ID, passengerReservedTripId);
+        intent.putExtra(PaymentActivity.EXTRA_DRIVER_NAME, passengerReservedDriverName);
+        startActivity(intent);
+    }
+
+    private boolean isPassengerReservationAccepted() {
+        return passengerReservationStatusId == 2 || passengerReservationStatusId == 3;
+    }
+
+    private void refreshPassengerPaymentStateAsync() {
+        if (!hasActivePassengerReservation || !isPassengerReservationAccepted()) {
+            passengerPaymentStatusLabel = "Pago: pendiente de confirmacion";
+            return;
+        }
+        final String reservationId = sessionManager.getPassengerBookedReservationId();
+        final String userId = sessionManager.getUserId();
+        if (reservationId == null || reservationId.isEmpty() || userId == null || userId.isEmpty()) {
+            return;
+        }
+        backgroundExecutor.execute(() -> {
+            try {
+                List<PaymentItem> payments = ((CarPoolingApplication) getApplication())
+                        .getPaymentRemoteDataSource()
+                        .getReservationPayments(userId, reservationId);
+                String label = "Pago: pendiente";
+                for (PaymentItem payment : payments) {
+                    if (payment.status == PaymentItem.STATUS_APPROVED) {
+                        label = "Pago: viaje pagado";
+                        break;
+                    }
+                    if (payment.status == PaymentItem.STATUS_PENDING) {
+                        label = "Pago: en revision";
+                    }
+                }
+                final String finalLabel = label;
+                runOnUiThread(() -> {
+                    passengerPaymentStatusLabel = finalLabel;
+                    if (routeTimeText != null && hasActivePassengerReservation && isPassengerReservationAccepted()) {
+                        routeTimeText.setText(finalLabel);
+                    }
+                    refreshDrawerUserInfo();
+                });
+            } catch (IOException ignored) {
+            }
+        });
     }
 
     private void refreshDrawerUserInfo() {
@@ -998,6 +1144,10 @@ public class MainActivity extends AppCompatActivity {
         if (drawerUserInitials != null && fullName != null) {
             String initials = generateInitials(fullName);
             drawerUserInitials.setText(initials);
+        }
+        
+        if (drawerUserImage != null) {
+            loadBase64Image(sessionManager.getProfilePicture(), drawerUserImage, drawerUserPlaceholder);
         }
         
         // Mostrar rol del usuario
@@ -1044,6 +1194,11 @@ public class MainActivity extends AppCompatActivity {
                 if (drawerReservationCode != null && passengerBoardingCode != null) {
                     drawerReservationCode.setText("Codigo: " + passengerBoardingCode);
                 }
+                if (drawerReservationPaymentStatus != null) {
+                    drawerReservationPaymentStatus.setText(isPassengerReservationAccepted()
+                            ? passengerPaymentStatusLabel
+                            : "Pago: disponible cuando acepten tu reserva");
+                }
             } else {
                 drawerReservationInfo.setVisibility(View.GONE);
             }
@@ -1065,7 +1220,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void logout() {
+        final String fcmToken = sessionManager.getFcmToken();
         new Thread(() -> {
+            try {
+                if (fcmToken != null && !fcmToken.isEmpty()) {
+                    UserRepository userRepository = ((CarPoolingApplication) getApplication()).getUserRepository();
+                    userRepository.logoutDevice(fcmToken);
+                    Log.d("MainActivity", "FCM token pruned on logout");
+                }
+            } catch (Exception e) {
+                Log.e("MainActivity", "Error pruning FCM token on logout", e);
+            }
             try {
                 userAccessUseCase.logout();
             } catch (Exception ignored) {
@@ -1164,6 +1329,9 @@ public class MainActivity extends AppCompatActivity {
         polylineAnnotationManager = com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManagerKt.createPolylineAnnotationManager(annotationPlugin, null);
         originMarkerBitmap = createMarkerBitmap(Color.parseColor("#1E88E5"));
         destinationMarkerBitmap = createMarkerBitmap(Color.parseColor("#E53935"));
+        safeZoneMarkerBitmap = createSafeZoneMarkerBitmap();
+        registerSafeZoneClickListenerIfNeeded();
+        loadSafeZonesOnMap();
         updateMapMarkers();
         if (selectedOrigin != null && selectedDestination != null) {
             fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
@@ -1212,6 +1380,126 @@ public class MainActivity extends AppCompatActivity {
         return bitmap;
     }
 
+    private Bitmap createSafeZoneMarkerBitmap() {
+        int size = 96;
+        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fillPaint.setStyle(Paint.Style.FILL);
+        fillPaint.setColor(Color.parseColor("#43A047"));
+
+        Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        strokePaint.setStyle(Paint.Style.STROKE);
+        strokePaint.setStrokeWidth(6f);
+        strokePaint.setColor(Color.WHITE);
+
+        float centerX = size / 2f;
+        float centerY = size * 0.42f;
+        float radius = size * 0.22f;
+
+        canvas.drawCircle(centerX, centerY, radius + 4f, strokePaint);
+        canvas.drawCircle(centerX, centerY, radius, fillPaint);
+
+        Paint shieldPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        shieldPaint.setStyle(Paint.Style.FILL);
+        shieldPaint.setColor(Color.WHITE);
+
+        Path shield = new Path();
+        shield.moveTo(centerX, size * 0.24f);
+        shield.lineTo(centerX + radius * 0.72f, size * 0.34f);
+        shield.lineTo(centerX + radius * 0.55f, size * 0.56f);
+        shield.quadTo(centerX, size * 0.64f, centerX - radius * 0.55f, size * 0.56f);
+        shield.lineTo(centerX - radius * 0.72f, size * 0.34f);
+        shield.close();
+        canvas.drawPath(shield, shieldPaint);
+
+        Paint checkPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        checkPaint.setStyle(Paint.Style.STROKE);
+        checkPaint.setStrokeWidth(5f);
+        checkPaint.setColor(Color.parseColor("#2E7D32"));
+        checkPaint.setStrokeCap(Paint.Cap.ROUND);
+
+        Path check = new Path();
+        check.moveTo(centerX - radius * 0.22f, centerY);
+        check.lineTo(centerX - radius * 0.02f, centerY + radius * 0.2f);
+        check.lineTo(centerX + radius * 0.28f, centerY - radius * 0.18f);
+        canvas.drawPath(check, checkPaint);
+
+        return bitmap;
+    }
+
+    private void registerSafeZoneClickListenerIfNeeded() {
+        if (safeZoneClickListenerRegistered || pointAnnotationManager == null) {
+            return;
+        }
+
+        pointAnnotationManager.addClickListener(clicked -> {
+            SafeZoneItem zone = safeZoneByAnnotationId.get(clicked.getId());
+            if (zone != null) {
+                runOnUiThread(() -> Toast.makeText(
+                        MainActivity.this,
+                        getString(R.string.safe_zone_marker_toast, zone.name),
+                        Toast.LENGTH_SHORT
+                ).show());
+                return true;
+            }
+            return false;
+        });
+        safeZoneClickListenerRegistered = true;
+    }
+
+    private void loadSafeZonesOnMap() {
+        if (pointAnnotationManager == null || safeZoneMarkerBitmap == null) {
+            return;
+        }
+
+        backgroundExecutor.execute(() -> {
+            try {
+                List<SafeZoneItem> zones = ((CarPoolingApplication) getApplication())
+                        .getSafeZonesRemoteDataSource()
+                        .fetchActiveSafeZones();
+                runOnUiThread(() -> renderSafeZoneMarkers(zones));
+            } catch (IOException exception) {
+                Log.w("MainActivity", "No se pudieron cargar zonas seguras", exception);
+            }
+        });
+    }
+
+    private void renderSafeZoneMarkers(List<SafeZoneItem> zones) {
+        if (pointAnnotationManager == null || safeZoneMarkerBitmap == null) {
+            return;
+        }
+
+        clearSafeZoneMarkers();
+        for (SafeZoneItem zone : zones) {
+            if (zone.latitude == 0d && zone.longitude == 0d) {
+                continue;
+            }
+            PointAnnotationOptions options = new PointAnnotationOptions()
+                    .withPoint(Point.fromLngLat(zone.longitude, zone.latitude))
+                    .withIconImage(safeZoneMarkerBitmap)
+                    .withIconSize(1.2);
+            PointAnnotation annotation = pointAnnotationManager.create(options);
+            safeZoneAnnotations.add(annotation);
+            safeZoneByAnnotationId.put(annotation.getId(), zone);
+        }
+        safeZonesLoaded = true;
+    }
+
+    private void clearSafeZoneMarkers() {
+        if (pointAnnotationManager == null) {
+            return;
+        }
+
+        for (PointAnnotation annotation : safeZoneAnnotations) {
+            pointAnnotationManager.delete(annotation);
+        }
+        safeZoneAnnotations.clear();
+        safeZoneByAnnotationId.clear();
+        safeZonesLoaded = false;
+    }
+
     private void updateMapMarkers() {
         if (pointAnnotationManager == null) {
             return;
@@ -1255,10 +1543,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (selectionMode == SelectionMode.ORIGIN) {
-            selectedOrigin = point;
+            setSelectedOrigin(point, null);
             Toast.makeText(this, R.string.button_select_origin, Toast.LENGTH_SHORT).show();
         } else if (selectionMode == SelectionMode.DESTINATION) {
-            selectedDestination = point;
+            setSelectedDestination(point, null);
             Toast.makeText(this, R.string.button_select_destination, Toast.LENGTH_SHORT).show();
         }
 
@@ -1322,7 +1610,8 @@ public class MainActivity extends AppCompatActivity {
 
         final Point origin = selectedOrigin;
         final Point destination = selectedDestination;
-        mainViewModel.createTrip(origin, destination, vehicleId, new MainViewModel.ResultCallback<>() {
+        final double fareAmount = readFareAmount();
+        mainViewModel.createTrip(origin, destination, vehicleId, fareAmount, new MainViewModel.ResultCallback<>() {
             @Override
             public void onSuccess(CreateTripResult result) {
                 TripResponse response = result.trip;
@@ -1330,6 +1619,10 @@ public class MainActivity extends AppCompatActivity {
                 lastTripStatusLabel = response.statusLabel;
                 lastTripStatusId = response.statusId;
                 activeTripAvailableSeats = response.availableSeats;
+                if (fareAmountInput != null) {
+                    fareAmountInput.setText(String.format(Locale.US, "%.2f", response.fareAmount));
+                    fareAmountInput.setEnabled(false);
+                }
                 lastRouteTimeLabel = buildEstimatedTimeLabel(result.route.distanceMeters);
                 sessionManager.saveDriverActiveTripId(response.id);
                 syncTripStateToViewModel();
@@ -1354,6 +1647,19 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private double readFareAmount() {
+        if (fareAmountInput == null || fareAmountInput.getText() == null) {
+            return 10.0;
+        }
+        try {
+            double value = Double.parseDouble(fareAmountInput.getText().toString().trim());
+            if (value < 0.5) return 10.0;
+            return value;
+        } catch (Exception e) {
+            return 10.0;
+        }
+    }
+
     private void cancelTrip() {
         setProgressVisible(true);
         cancelTripButton.setEnabled(false);
@@ -1372,8 +1678,8 @@ public class MainActivity extends AppCompatActivity {
                 syncTripStateToViewModel();
                 pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
                 Toast.makeText(MainActivity.this, R.string.toast_trip_cancelled, Toast.LENGTH_SHORT).show();
-                selectedOrigin = null;
-                selectedDestination = null;
+                setSelectedOrigin(null, null);
+                setSelectedDestination(null, null);
                 syncSelectionStateToViewModel();
                 clearRoute();
                 setSelectionMode(SelectionMode.NONE);
@@ -1486,17 +1792,69 @@ public class MainActivity extends AppCompatActivity {
         selectionInstruction.setText(messageRes);
     }
 
+    private void setSelectedOrigin(Point point, String address) {
+        selectedOrigin = point;
+        selectedOriginAddress = address;
+        if (point != null && (address == null || address.isEmpty())) {
+            reverseGeocodePoint(point, true);
+        }
+    }
+
+    private void setSelectedDestination(Point point, String address) {
+        selectedDestination = point;
+        selectedDestinationAddress = address;
+        if (point != null && (address == null || address.isEmpty())) {
+            reverseGeocodePoint(point, false);
+        }
+    }
+
+    private void reverseGeocodePoint(final Point point, final boolean isOrigin) {
+        if (point == null) return;
+        final String token = getString(R.string.mapbox_access_token);
+        backgroundExecutor.execute(() -> {
+            try {
+                MapboxGeocodingRemoteDataSource geocoder = new MapboxGeocodingRemoteDataSource(token);
+                final String address = geocoder.reverseGeocode(point.latitude(), point.longitude());
+                runOnUiThread(() -> {
+                    if (isOrigin) {
+                        if (point.equals(selectedOrigin)) {
+                            selectedOriginAddress = address;
+                            updateCoordinateLabels();
+                            syncSelectionStateToViewModel();
+                        }
+                    } else {
+                        if (point.equals(selectedDestination)) {
+                            selectedDestinationAddress = address;
+                            updateCoordinateLabels();
+                            syncSelectionStateToViewModel();
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     private void updateCoordinateLabels() {
         if (selectedOrigin == null) {
             originText.setText(R.string.origin_placeholder);
         } else {
-            originText.setText(formatCoordinate(selectedOrigin));
+            if (selectedOriginAddress != null && !selectedOriginAddress.isEmpty()) {
+                originText.setText(selectedOriginAddress);
+            } else {
+                originText.setText(formatCoordinate(selectedOrigin));
+            }
         }
 
         if (selectedDestination == null) {
             destinationText.setText(R.string.destination_placeholder);
         } else {
-            destinationText.setText(formatCoordinate(selectedDestination));
+            if (selectedDestinationAddress != null && !selectedDestinationAddress.isEmpty()) {
+                destinationText.setText(selectedDestinationAddress);
+            } else {
+                destinationText.setText(formatCoordinate(selectedDestination));
+            }
         }
     }
 
@@ -1632,6 +1990,7 @@ public class MainActivity extends AppCompatActivity {
                             resId = activeRes.optString("reservationId", null);
                             code = activeRes.optString("boardingCode", code);
                             finalDriverName = activeRes.optString("driverName", finalDriverName);
+                            passengerReservationStatusId = activeRes.optInt("statusId", 1);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -1854,8 +2213,8 @@ public class MainActivity extends AppCompatActivity {
                 syncTripStateToViewModel();
                 pollingHandler.removeCallbacks(pendingReservationPollingRunnable);
                 clearRoute();
-                selectedOrigin = null;
-                selectedDestination = null;
+                setSelectedOrigin(null, null);
+                setSelectedDestination(null, null);
                 syncSelectionStateToViewModel();
                 updateCoordinateLabels();
                 updateMapMarkers();
@@ -1974,17 +2333,17 @@ public class MainActivity extends AppCompatActivity {
             double dLat = intent.getDoubleExtra(EXTRA_APPLY_DEST_LAT, Double.NaN);
             double dLng = intent.getDoubleExtra(EXTRA_APPLY_DEST_LNG, Double.NaN);
             if (!Double.isNaN(dLat) && !Double.isNaN(dLng)) {
-                selectedOrigin = Point.fromLngLat(oLng, oLat);
-                selectedDestination = Point.fromLngLat(dLng, dLat);
+                setSelectedOrigin(Point.fromLngLat(oLng, oLat), null);
+                setSelectedDestination(Point.fromLngLat(dLng, dLat), null);
                 shouldPreviewRoute = true;
             }
         } else {
             boolean asOrigin = intent.getBooleanExtra(EXTRA_APPLY_PLACE_AS_ORIGIN, false);
             Point p = Point.fromLngLat(oLng, oLat);
             if (asOrigin) {
-                selectedOrigin = p;
+                setSelectedOrigin(p, null);
             } else {
-                selectedDestination = p;
+                setSelectedDestination(p, null);
             }
         }
 
@@ -2352,7 +2711,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         Intent intent = new Intent(this, DriverMatchActivity.class);
-        intent.putExtra(DriverMatchActivity.EXTRA_DESTINATION_LABEL, formatCoordinate(selectedDestination));
+        String destinationLabel = selectedDestinationAddress != null && !selectedDestinationAddress.isEmpty()
+                ? selectedDestinationAddress
+                : formatCoordinate(selectedDestination);
+        intent.putExtra(DriverMatchActivity.EXTRA_DESTINATION_LABEL, destinationLabel);
         intent.putExtra(DriverMatchActivity.EXTRA_REF_LATITUDE, selectedDestination.latitude());
         intent.putExtra(DriverMatchActivity.EXTRA_REF_LONGITUDE, selectedDestination.longitude());
         driverMatchLauncher.launch(intent);
@@ -2478,6 +2840,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     if (reservation != null) {
                         int statusId = reservation.optInt("statusId", 0);
+                        passengerReservationStatusId = statusId;
                         if (selectionInstruction != null) {
                             if (statusId == 1) {
                                 selectionInstruction.setText("Pendiente de confirmación");
@@ -2508,6 +2871,9 @@ public class MainActivity extends AppCompatActivity {
                                 statusText.setText(sb.toString());
                             }
                         }
+                        updateDrawerReservationMenu();
+                        refreshPassengerPaymentStateAsync();
+                        refreshDrawerUserInfo();
                     } else {
                         // El servidor retornó 404/null (la reserva ya no está activa, ej: el viaje finalizó)
                         final String finishedTripId = passengerReservedTripId;
@@ -2658,7 +3024,11 @@ public class MainActivity extends AppCompatActivity {
             submitButton.setOnClickListener(v -> {
                 int score = ratingBar != null ? (int) ratingBar.getRating() : 5;
                 if (score < 1 || score > 5) {
-                    Toast.makeText(MainActivity.this, "Por favor selecciona un puntaje entre 1 y 5 estrellas", Toast.LENGTH_SHORT).show();
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Calificación requerida")
+                            .setMessage("Por favor selecciona un puntaje entre 1 y 5 estrellas")
+                            .setPositiveButton("Aceptar", null)
+                            .show();
                     return;
                 }
                 String comment = commentInput != null ? commentInput.getText().toString().trim() : "";
@@ -2681,7 +3051,12 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(String message) {
-                        Toast.makeText(MainActivity.this, "Error al calificar: " + message, Toast.LENGTH_LONG).show();
+                        String cleanError = sanitizeError(message);
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Error al calificar")
+                                .setMessage(cleanError)
+                                .setPositiveButton("Aceptar", null)
+                                .show();
                     }
                 });
             });
@@ -2766,7 +3141,11 @@ public class MainActivity extends AppCompatActivity {
             submitButton.setOnClickListener(v -> {
                 int score = ratingBar != null ? (int) ratingBar.getRating() : 5;
                 if (score < 1 || score > 5) {
-                    Toast.makeText(MainActivity.this, "Por favor selecciona un puntaje entre 1 y 5 estrellas", Toast.LENGTH_SHORT).show();
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Calificación requerida")
+                            .setMessage("Por favor selecciona un puntaje entre 1 y 5 estrellas")
+                            .setPositiveButton("Aceptar", null)
+                            .show();
                     return;
                 }
                 String comment = commentInput != null ? commentInput.getText().toString().trim() : "";
@@ -2789,7 +3168,12 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(String message) {
-                        Toast.makeText(MainActivity.this, "Error al calificar: " + message, Toast.LENGTH_LONG).show();
+                        String cleanError = sanitizeError(message);
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Error al calificar")
+                                .setMessage(cleanError)
+                                .setPositiveButton("Aceptar", null)
+                                .show();
                     }
                 });
             });
@@ -2854,5 +3238,69 @@ public class MainActivity extends AppCompatActivity {
 
             container.addView(chip);
         }
+    }
+
+    private void checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
+
+    private void syncFcmTokenOnStart() {
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                Log.w("MainActivity", "Fetching FCM registration token failed", task.getException());
+                return;
+            }
+            String token = task.getResult();
+            if (token != null && !token.isEmpty()) {
+                sessionManager.saveFcmToken(token);
+                String userId = sessionManager.getUserId();
+                if (userId != null && !userId.isEmpty()) {
+                    backgroundExecutor.execute(() -> {
+                        try {
+                            UserRepository userRepository = ((CarPoolingApplication) getApplication()).getUserRepository();
+                            userRepository.registerFcmToken(userId, token);
+                            Log.d("MainActivity", "FCM token synced successfully on start");
+                        } catch (Exception e) {
+                            Log.e("MainActivity", "Error syncing FCM token on start", e);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    private void handleNotificationIntent(Intent intent) {
+        if (intent == null || !intent.hasExtra("tripId")) {
+            return;
+        }
+        String tripId = intent.getStringExtra("tripId");
+        String type = intent.getStringExtra("type");
+        Log.d("MainActivity", "Handling notification deep-link navigation. Type: " + type + ", TripId: " + tripId);
+        
+        if (tripId != null && !tripId.isEmpty()) {
+            if ("chat_message".equals(type)) {
+                Intent chatIntent = new Intent(this, com.example.proyectocarpooling.presentation.chat.ui.ChatActivity.class);
+                chatIntent.putExtra("trip_id", tripId);
+                chatIntent.putExtra("chat_title", isDriverUser ? "Mis Pasajeros" : "Chat de viaje");
+                startActivity(chatIntent);
+            } else if ("reservation_request".equals(type) && isDriverUser) {
+                Intent requestsIntent = new Intent(this, com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity.class);
+                requestsIntent.putExtra(com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity.EXTRA_TRIP_ID, tripId);
+                startActivity(requestsIntent);
+            } else {
+                if (isDriverUser) {
+                    maybeRestoreDriverActiveTripAsync();
+                } else {
+                    checkPassengerReservationOnStart();
+                }
+            }
+        }
+        // Clear extras so they are not consumed multiple times
+        intent.removeExtra("tripId");
+        intent.removeExtra("type");
     }
 }

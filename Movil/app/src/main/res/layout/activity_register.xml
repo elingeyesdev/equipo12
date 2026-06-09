@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/carpool_surface"
+    android:clipToPadding="false"
     android:fillViewport="true">
 
     <LinearLayout
@@ -11,41 +12,79 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingStart="24dp"
-        android:paddingTop="48dp"
-        android:paddingEnd="24dp"
         android:paddingBottom="40dp">
 
         <LinearLayout
+            android:id="@+id/authHeroLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:background="@drawable/bg_auth_hero"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:paddingBottom="24dp">
+            android:paddingStart="24dp"
+            android:paddingTop="34dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="60dp">
 
-            <FrameLayout
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:background="@drawable/bg_auth_badge"
+                android:gravity="center"
+                android:minWidth="168dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="Cuenta institucional"
+                android:textColor="@color/auth_on_hero"
+                android:tag="auth_on_hero"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/registerProfilePictureContainer"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_marginTop="18dp"
                 android:layout_marginBottom="14dp"
-                android:background="@drawable/avatar_gradient_background">
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardCornerRadius="36dp"
+                app:cardElevation="3dp">
 
-                <TextView
+                <ImageView
+                    android:id="@+id/registerProfilePicture"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="+"
-                    android:textColor="@color/uber_text_inverse"
-                    android:textSize="26sp"
-                    android:textStyle="bold" />
-            </FrameLayout>
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <FrameLayout
+                    android:id="@+id/registerProfilePicturePlaceholder"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_white_circle">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="+"
+                        android:textColor="@color/black"
+                        android:textSize="30sp"
+                        android:textStyle="bold" />
+                </FrameLayout>
+            </androidx.cardview.widget.CardView>
 
             <TextView
                 android:id="@+id/registerTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/register_title"
-                android:textColor="@color/carpool_text_primary"
-                android:textSize="26sp"
+                android:textColor="@color/auth_on_hero"
+                android:tag="auth_on_hero"
+                android:textSize="27sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -53,46 +92,53 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="Completa tus datos para empezar"
-                android:textColor="@color/carpool_text_secondary"
+                android:textColor="@color/auth_on_hero"
+                android:tag="auth_on_hero"
                 android:textSize="14sp" />
         </LinearLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:elevation="4dp"
+            android:layout_marginStart="22dp"
+            android:layout_marginTop="-34dp"
+            android:layout_marginEnd="22dp"
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="24dp"
-            app:cardElevation="4dp"
-            app:strokeWidth="0dp">
+            app:cardElevation="8dp"
+            app:strokeColor="@color/uber_border"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingStart="22dp"
-                android:paddingTop="24dp"
+                android:paddingTop="26dp"
                 android:paddingEnd="22dp"
-                android:paddingBottom="24dp">
+                android:paddingBottom="26dp">
 
                 <TextView
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Información personal"
+                    android:layout_height="28dp"
+                    android:background="@drawable/bg_section_chip"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="INFORMACION PERSONAL"
                     android:textColor="@color/carpool_text_primary"
                     android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.08"
-                    android:layout_marginBottom="14dp" />
+                    android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:layout_marginBottom="8dp"
                     android:text="@string/hint_full_name"
-                    android:textColor="@color/carpool_text_secondary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/registerNameInput"
@@ -101,11 +147,11 @@
                     android:background="@drawable/bg_input_modern"
                     android:hint="Tu nombre completo"
                     android:inputType="textPersonName"
-                    android:minHeight="52dp"
+                    android:minHeight="56dp"
                     android:paddingStart="16dp"
+                    android:paddingTop="16dp"
                     android:paddingEnd="16dp"
-                    android:paddingTop="14dp"
-                    android:paddingBottom="14dp"
+                    android:paddingBottom="16dp"
                     android:textColor="@color/carpool_text_primary"
                     android:textColorHint="@color/carpool_text_secondary"
                     android:textSize="15sp" />
@@ -114,24 +160,24 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
                     android:text="@string/hint_university_email"
-                    android:textColor="@color/carpool_text_secondary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/registerEmailInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_input_modern"
-                    android:hint="usuario@correounivalle.edu.co"
+                    android:hint="usuario@univalle.edu"
                     android:inputType="textEmailAddress"
-                    android:minHeight="52dp"
+                    android:minHeight="56dp"
                     android:paddingStart="16dp"
+                    android:paddingTop="16dp"
                     android:paddingEnd="16dp"
-                    android:paddingTop="14dp"
-                    android:paddingBottom="14dp"
+                    android:paddingBottom="16dp"
                     android:textColor="@color/carpool_text_primary"
                     android:textColorHint="@color/carpool_text_secondary"
                     android:textSize="15sp" />
@@ -140,11 +186,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
                     android:text="@string/hint_phone"
-                    android:textColor="@color/carpool_text_secondary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/registerPhoneInput"
@@ -153,11 +199,11 @@
                     android:background="@drawable/bg_input_modern"
                     android:hint="300 000 0000"
                     android:inputType="phone"
-                    android:minHeight="52dp"
+                    android:minHeight="56dp"
                     android:paddingStart="16dp"
+                    android:paddingTop="16dp"
                     android:paddingEnd="16dp"
-                    android:paddingTop="14dp"
-                    android:paddingBottom="14dp"
+                    android:paddingBottom="16dp"
                     android:textColor="@color/carpool_text_primary"
                     android:textColorHint="@color/carpool_text_secondary"
                     android:textSize="15sp" />
@@ -165,45 +211,39 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginTop="20dp"
-                    android:layout_marginBottom="12dp"
+                    android:layout_marginTop="22dp"
+                    android:layout_marginBottom="14dp"
                     android:background="@color/uber_divider" />
 
-                <CheckBox
+                <androidx.appcompat.widget.AppCompatCheckBox
                     android:id="@+id/registerHasVehicleCheckbox"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_info_field"
+                    android:buttonTint="@color/carpool_primary"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
                     android:text="@string/register_has_vehicle"
                     android:textColor="@color/carpool_text_primary"
-                    android:textSize="14sp"
-                    android:paddingStart="0dp"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp" />
+                    android:textSize="14sp" />
 
                 <LinearLayout
                     android:id="@+id/registerVehicleFieldsContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="8dp"
                     android:orientation="vertical"
                     android:visibility="gone">
 
-                    <EditText
+                    <Spinner
                         android:id="@+id/registerSeatsInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:background="@drawable/bg_input_modern"
-                        android:hint="@string/hint_vehicle_seats"
-                        android:inputType="number"
-                        android:minHeight="52dp"
+                        android:minHeight="56dp"
                         android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp"
-                        android:textColor="@color/carpool_text_primary"
-                        android:textColorHint="@color/carpool_text_secondary"
-                        android:textSize="15sp" />
+                        android:paddingEnd="16dp" />
 
                     <EditText
                         android:id="@+id/registerPlateInput"
@@ -213,16 +253,16 @@
                         android:background="@drawable/bg_input_modern"
                         android:hint="@string/hint_vehicle_plate"
                         android:inputType="textCapCharacters"
-                        android:minHeight="52dp"
+                        android:minHeight="56dp"
                         android:paddingStart="16dp"
+                        android:paddingTop="16dp"
                         android:paddingEnd="16dp"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp"
+                        android:paddingBottom="16dp"
                         android:textColor="@color/carpool_text_primary"
                         android:textColorHint="@color/carpool_text_secondary"
                         android:textSize="15sp" />
 
-                    <EditText
+                    <AutoCompleteTextView
                         android:id="@+id/registerBrandInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -230,16 +270,16 @@
                         android:background="@drawable/bg_input_modern"
                         android:hint="@string/hint_vehicle_brand"
                         android:inputType="textCapWords"
-                        android:minHeight="52dp"
+                        android:minHeight="56dp"
                         android:paddingStart="16dp"
+                        android:paddingTop="16dp"
                         android:paddingEnd="16dp"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp"
+                        android:paddingBottom="16dp"
                         android:textColor="@color/carpool_text_primary"
                         android:textColorHint="@color/carpool_text_secondary"
                         android:textSize="15sp" />
 
-                    <EditText
+                    <AutoCompleteTextView
                         android:id="@+id/registerColorInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -247,11 +287,11 @@
                         android:background="@drawable/bg_input_modern"
                         android:hint="@string/hint_vehicle_color"
                         android:inputType="textCapWords"
-                        android:minHeight="52dp"
+                        android:minHeight="56dp"
                         android:paddingStart="16dp"
+                        android:paddingTop="16dp"
                         android:paddingEnd="16dp"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp"
+                        android:paddingBottom="16dp"
                         android:textColor="@color/carpool_text_primary"
                         android:textColorHint="@color/carpool_text_secondary"
                         android:textSize="15sp" />
@@ -260,41 +300,44 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginTop="20dp"
-                    android:layout_marginBottom="12dp"
+                    android:layout_marginTop="22dp"
+                    android:layout_marginBottom="14dp"
                     android:background="@color/uber_divider" />
 
                 <TextView
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Seguridad"
+                    android:layout_height="28dp"
+                    android:background="@drawable/bg_section_chip"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="SEGURIDAD"
                     android:textColor="@color/carpool_text_primary"
                     android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.08"
-                    android:layout_marginBottom="14dp" />
+                    android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:layout_marginBottom="8dp"
                     android:text="@string/hint_password"
-                    android:textColor="@color/carpool_text_secondary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/registerPasswordInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_input_modern"
-                    android:hint="Mínimo 6 caracteres"
+                    android:hint="Minimo 6 caracteres"
                     android:inputType="textPassword"
-                    android:minHeight="52dp"
+                    android:minHeight="56dp"
                     android:paddingStart="16dp"
+                    android:paddingTop="16dp"
                     android:paddingEnd="16dp"
-                    android:paddingTop="14dp"
-                    android:paddingBottom="14dp"
+                    android:paddingBottom="16dp"
                     android:textColor="@color/carpool_text_primary"
                     android:textColorHint="@color/carpool_text_secondary"
                     android:textSize="15sp" />
@@ -303,24 +346,24 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
                     android:text="@string/hint_confirm_password"
-                    android:textColor="@color/carpool_text_secondary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/registerConfirmPasswordInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_input_modern"
-                    android:hint="Repite tu contraseña"
+                    android:hint="Repite tu contrasena"
                     android:inputType="textPassword"
-                    android:minHeight="52dp"
+                    android:minHeight="56dp"
                     android:paddingStart="16dp"
+                    android:paddingTop="16dp"
                     android:paddingEnd="16dp"
-                    android:paddingTop="14dp"
-                    android:paddingBottom="14dp"
+                    android:paddingBottom="16dp"
                     android:textColor="@color/carpool_text_primary"
                     android:textColorHint="@color/carpool_text_secondary"
                     android:textSize="15sp" />
@@ -328,15 +371,15 @@
                 <Button
                     android:id="@+id/registerButton"
                     android:layout_width="match_parent"
-                    android:layout_height="54dp"
+                    android:layout_height="56dp"
                     android:layout_marginTop="28dp"
                     android:background="@drawable/bg_primary_action"
                     android:backgroundTint="@null"
+                    android:letterSpacing="0"
                     android:text="@string/register_action"
                     android:textColor="@color/button_text_color"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.04" />
+                    android:textStyle="bold" />
 
                 <ProgressBar
                     android:id="@+id/registerLoading"
@@ -351,15 +394,20 @@
         <TextView
             android:id="@+id/backToLoginText"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
             android:layout_marginTop="22dp"
+            android:background="@drawable/bg_auth_footer_action"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:minWidth="210dp"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
             android:text="@string/register_back_login"
             android:textColor="@color/carpool_text_primary"
             android:textSize="14sp"
-            android:textStyle="bold"
-            android:padding="10dp"
-            android:clickable="true"
-            android:focusable="true" />
+            android:textStyle="bold" />
 
     </LinearLayout>
 </ScrollView>

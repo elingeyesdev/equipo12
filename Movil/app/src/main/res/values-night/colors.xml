@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="white">#FF121212</color>
+    <color name="black">#FFFFFFFF</color>
+    
+    <color name="splash_gray">#FF121815</color>
+    <color name="carpool_dark">#FFEDF2EE</color>
+    <color name="carpool_primary">#FF8FAC98</color>
+    <color name="carpool_primary_dark">#FF18211D</color>
+    
+    <!-- Backgrounds -->
+    <color name="carpool_surface">#FF0F1412</color>
+    
+    <!-- Texts -->
+    <color name="carpool_text_primary">#FFEDF2EE</color>
+    <color name="carpool_text_secondary">#FFB2BDB5</color>
+    
+    <!-- Dividers and lines -->
+    <color name="match_card_stroke">#FF2B352F</color>
+    <color name="uber_divider">#FF25302A</color>
+    <color name="uber_border">#FF334138</color>
+    
+    <!-- Surfaces -->
+    <color name="uber_chip_bg">#FF1C2621</color>
+    <color name="uber_stat_cell">#FF151C19</color>
+    <color name="uber_handle">#FF5E6F64</color>
+    <color name="uber_scrim">#AA000000</color>
+    
+    <!-- Others -->
+    <color name="uber_text_inverse">#FF121815</color>
+    <color name="auth_on_hero">#FFFFFFFF</color>
+    <color name="uber_button_disabled">#FF303A34</color>
+    <color name="uber_button_disabled_text">#FF7F8A83</color>
+    <color name="uber_avatar">#FF8FAC98</color>
+    <color name="uber_accent">#FF8FAC98</color>
+    <color name="uber_success">#FF8FAC98</color>
+    <color name="uber_error">#FFFF8A80</color>
+    <color name="match_status_active">#FF8FAC98</color>
+    <color name="match_status_ready">#FFA3B5A9</color>
+    <color name="match_status_in_progress">#FFD0A27D</color>
+    <color name="match_status_cancelled">#FFFF8A80</color>
+    <color name="match_status_finished">#FF87918B</color>
+</resources>

@@ -83,7 +83,7 @@
             android:text="@string/help_go_to_support"
             android:textAllCaps="false"
             app:cornerRadius="14dp"
-            app:strokeColor="@color/carpool_primary"
+            app:strokeColor="?attr/colorPrimary"
             app:strokeWidth="1dp" />
     </LinearLayout>
 </LinearLayout>

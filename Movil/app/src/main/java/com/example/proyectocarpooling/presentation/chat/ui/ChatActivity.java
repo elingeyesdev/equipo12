@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.chat.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ChatActivity extends AppCompatActivity {
+public class ChatActivity extends BaseActivity {
 
     private String tripId;
     private String currentUserId;
@@ -35,6 +36,8 @@ public class ChatActivity extends AppCompatActivity {
     private EditText chatInputText;
     private ImageButton chatSendButton;
     private TextView chatAvatarInitials;
+    private android.widget.ImageView chatAvatarImage;
+    private android.view.View chatAvatarPlaceholder;
     private TextView chatHeaderTitle;
 
     private ChatRemoteDataSource remoteDataSource;
@@ -72,6 +75,8 @@ public class ChatActivity extends AppCompatActivity {
         chatInputText = findViewById(R.id.chatInputText);
         chatSendButton = findViewById(R.id.chatSendButton);
         chatAvatarInitials = findViewById(R.id.chatAvatarInitials);
+        chatAvatarImage = findViewById(R.id.chatAvatarImage);
+        chatAvatarPlaceholder = findViewById(R.id.chatAvatarPlaceholder);
         chatHeaderTitle = findViewById(R.id.chatHeaderTitle);
         ImageButton chatBackButton = findViewById(R.id.chatBackButton);
 
@@ -101,6 +106,7 @@ public class ChatActivity extends AppCompatActivity {
             messageList.addAll(cached);
             chatAdapter.notifyDataSetChanged();
             chatRecyclerView.scrollToPosition(Math.max(0, messageList.size() - 1));
+            updateHeaderAvatar();
         }
 
         // Evento Enviar
@@ -146,7 +152,21 @@ public class ChatActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(List<ChatMessage> result) {
                         // Comparar si hay nuevos mensajes para evitar parpadeos innecesarios
-                        if (result.size() != messageList.size()) {
+                        boolean changed = result.size() != messageList.size();
+                        if (!changed) {
+                            for (int i = 0; i < result.size(); i++) {
+                                ChatMessage rMsg = result.get(i);
+                                ChatMessage mMsg = messageList.get(i);
+                                if (!rMsg.id.equals(mMsg.id) ||
+                                    (rMsg.senderProfilePicture != null && !rMsg.senderProfilePicture.equals(mMsg.senderProfilePicture)) ||
+                                    rMsg.readByUserIds.size() != mMsg.readByUserIds.size()) {
+                                    changed = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (changed) {
                             messageList.clear();
                             messageList.addAll(result);
                             chatAdapter.notifyDataSetChanged();
@@ -154,6 +174,9 @@ public class ChatActivity extends AppCompatActivity {
                             
                             // Guardar en la cache local offline
                             com.example.proyectocarpooling.data.local.ChatLocalCache.saveCache(ChatActivity.this, tripId, result);
+                            
+                            // Actualizar avatar de la cabecera si aplica
+                            updateHeaderAvatar();
                         }
                     }
 
@@ -190,6 +213,8 @@ public class ChatActivity extends AppCompatActivity {
 
                         // Guardar en la cache local offline
                         com.example.proyectocarpooling.data.local.ChatLocalCache.saveCache(ChatActivity.this, tripId, messageList);
+                        
+                        updateHeaderAvatar();
                     }
 
                     @Override
@@ -209,5 +234,27 @@ public class ChatActivity extends AppCompatActivity {
             return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
         }
         return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
+    }
+
+    private void updateHeaderAvatar() {
+        if (messageList.isEmpty()) return;
+        String chatTitle = getIntent().getStringExtra("chat_title");
+        if (chatTitle == null || chatTitle.isBlank()) return;
+        
+        String targetPhoto = null;
+        for (ChatMessage msg : messageList) {
+            if (!msg.senderUserId.equalsIgnoreCase(currentUserId)) {
+                // Si el nombre del emisor está contenido en el título de la cabecera, es la contraparte
+                if (msg.senderFullName != null && !msg.senderFullName.isBlank() && 
+                    chatTitle.toLowerCase().contains(msg.senderFullName.toLowerCase())) {
+                    targetPhoto = msg.senderProfilePicture;
+                    break;
+                }
+            }
+        }
+        
+        if (targetPhoto != null && !targetPhoto.isBlank() && chatAvatarImage != null) {
+            loadBase64Image(targetPhoto, chatAvatarImage, chatAvatarPlaceholder);
+        }
     }
 }

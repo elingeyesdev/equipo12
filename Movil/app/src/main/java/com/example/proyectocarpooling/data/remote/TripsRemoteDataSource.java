@@ -57,7 +57,11 @@ public class TripsRemoteDataSource {
     }
 
     public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull) throws IOException {
-        TripResponse createdTrip = sendOriginRequest(apiBaseUrl + "/api/Trips/origin", origin, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull);
+        return createTrip(origin, destination, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull, 10.0);
+    }
+
+    public TripResponse createTrip(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull, double fareAmount) throws IOException {
+        TripResponse createdTrip = sendOriginRequest(apiBaseUrl + "/api/Trips/origin", origin, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull, fareAmount);
         if (destination != null) {
             createdTrip = sendCoordinateRequest(apiBaseUrl + "/api/Trips/" + createdTrip.id + "/destination", destination);
         }
@@ -342,14 +346,15 @@ public class TripsRemoteDataSource {
     }
 
     private TripResponse sendOriginRequest(String url, Point point, String driverNameOrNull, String driverUserIdOrNull) throws IOException {
-        return sendOriginRequest(url, point, driverNameOrNull, driverUserIdOrNull, null);
+        return sendOriginRequest(url, point, driverNameOrNull, driverUserIdOrNull, null, 10.0);
     }
 
-    private TripResponse sendOriginRequest(String url, Point point, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull) throws IOException {
+    private TripResponse sendOriginRequest(String url, Point point, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull, double fareAmount) throws IOException {
         JSONObject body = new JSONObject();
         try {
             body.put("latitude", point.latitude());
             body.put("longitude", point.longitude());
+            body.put("fareAmount", fareAmount);
             if (driverNameOrNull != null && !driverNameOrNull.trim().isEmpty()) {
                 body.put("driverName", driverNameOrNull.trim());
             }

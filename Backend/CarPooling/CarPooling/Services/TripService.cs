@@ -5,10 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Services;
 
-public class TripService(CarPoolingContext context, GeocodingService geocodingService)
+public class TripService(CarPoolingContext context, GeocodingService geocodingService, INotificationService notificationService)
 {
     private readonly CarPoolingContext _context = context;
     private readonly GeocodingService _geocoding = geocodingService;
+    private readonly INotificationService _notificationService = notificationService;
 
     public async Task<Trip> CreateTripAsync(CoordinateRequest request)
     {
@@ -42,6 +43,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             DriverUserId = request.DriverUserId,
             OfferedSeats = request.OfferedSeats ?? 4,
             AvailableSeats = request.OfferedSeats ?? 4,
+            FareAmount = request.FareAmount ?? 10m,
             VehicleId = request.VehicleId
         };
 
@@ -95,6 +97,22 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         trip.CancelledAt = DateTime.UtcNow;
         trip.UpdatedAt = trip.CancelledAt;
         await _context.SaveChangesAsync();
+
+        var passengerIds = await _context.Reservations
+            .Where(r => r.TripId == tripId && (r.StatusId == 1 || r.StatusId == 2 || r.StatusId == 3))
+            .Select(r => r.PassengerUserId)
+            .ToListAsync();
+
+        if (passengerIds.Count > 0)
+        {
+            await _notificationService.SendNotificationToMultipleAsync(
+                passengerIds,
+                "Viaje Cancelado",
+                $"Lamentamos informarte que {trip.DriverName} ha cancelado el viaje.",
+                new Dictionary<string, string> { { "type", "trip_cancelled" }, { "tripId", trip.Id.ToString() } }
+            );
+        }
+
         return trip;
     }
 
@@ -116,6 +134,22 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         trip.StartedAt ??= DateTime.UtcNow;
         trip.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+
+        var passengerIds = await _context.Reservations
+            .Where(r => r.TripId == tripId && r.StatusId == 2) // confirmed
+            .Select(r => r.PassengerUserId)
+            .ToListAsync();
+
+        if (passengerIds.Count > 0)
+        {
+            await _notificationService.SendNotificationToMultipleAsync(
+                passengerIds,
+                "¡Viaje Iniciado!",
+                $"{trip.DriverName} ha iniciado el viaje. ¡Que tengan un buen recorrido!",
+                new Dictionary<string, string> { { "type", "trip_started" }, { "tripId", trip.Id.ToString() } }
+            );
+        }
+
         return trip;
     }
 
@@ -136,6 +170,22 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         trip.FinishedAt ??= DateTime.UtcNow;
         trip.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+
+        var passengerIds = await _context.Reservations
+            .Where(r => r.TripId == tripId && r.StatusId == 3) // boarded
+            .Select(r => r.PassengerUserId)
+            .ToListAsync();
+
+        if (passengerIds.Count > 0)
+        {
+            await _notificationService.SendNotificationToMultipleAsync(
+                passengerIds,
+                "Viaje Finalizado",
+                $"El viaje con {trip.DriverName} ha finalizado. ¡Gracias por usar Carpooling!",
+                new Dictionary<string, string> { { "type", "trip_finished" }, { "tripId", trip.Id.ToString() } }
+            );
+        }
+
         return trip;
     }
 
@@ -146,6 +196,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.DestinationLocation)
             .Include(t => t.StatusEntity)
             .Include(t => t.Vehicle)
+            .Include(t => t.DriverUser)
             .FirstOrDefaultAsync(t => t.Id == tripId);
     }
 
@@ -162,6 +213,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.DestinationLocation)
             .Include(t => t.StatusEntity)
             .Include(t => t.Vehicle)
+            .Include(t => t.DriverUser)
             .Where(t =>
                 t.Kind == TripKind.Regular
                 && (t.StatusId == 1 || t.StatusId == 2 || t.StatusId == 3) // scheduled, ready, or in progress
@@ -194,6 +246,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             {
                 TripId = t.Id,
                 DriverName = name,
+                DriverProfilePicture = t.DriverUser?.ProfilePicture,
                 Origin = new LocationDto
                 {
                     Id = t.OriginLocation.Id,
@@ -210,6 +263,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
                 },
                 StatusLabel = t.StatusEntity?.LabelEs ?? "",
                 AvailableSeats = t.AvailableSeats,
+                FareAmount = t.FareAmount,
                 DistanceKm = Math.Round(distanceKm, 2, MidpointRounding.AwayFromZero),
                 EtaMinutes = eta,
                 VehicleBrand = t.Vehicle?.Brand ?? "",
@@ -227,6 +281,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.OriginLocation)
             .Include(t => t.DestinationLocation)
             .Include(t => t.StatusEntity)
+            .Include(t => t.DriverUser)
             .Where(t =>
                 t.Kind == TripKind.Regular
                 && t.DriverUserId == driverUserId
@@ -280,9 +335,11 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             StatusId = trip.StatusId,
             OfferedSeats = trip.OfferedSeats,
             AvailableSeats = trip.AvailableSeats,
+            FareAmount = trip.FareAmount,
             VehicleId = trip.VehicleId,
             DriverName = trip.DriverName,
             DriverUserId = trip.DriverUserId,
+            DriverProfilePicture = trip.DriverUser?.ProfilePicture,
             CreatedAt = trip.CreatedAt,
             UpdatedAt = trip.UpdatedAt,
             CancelledAt = trip.CancelledAt

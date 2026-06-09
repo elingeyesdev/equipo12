@@ -21,7 +21,11 @@ public class CreateTripUseCase {
     }
 
     public CreateTripResult execute(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull) throws IOException {
-        TripResponse trip = repository.createTrip(origin, destination, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull);
+        return execute(origin, destination, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull, 10.0);
+    }
+
+    public CreateTripResult execute(Point origin, Point destination, String driverNameOrNull, String driverUserIdOrNull, String vehicleIdOrNull, double fareAmount) throws IOException {
+        TripResponse trip = repository.createTrip(origin, destination, driverNameOrNull, driverUserIdOrNull, vehicleIdOrNull, fareAmount);
         RouteData route = repository.fetchRoute(origin, destination);
         return new CreateTripResult(trip, route);
     }

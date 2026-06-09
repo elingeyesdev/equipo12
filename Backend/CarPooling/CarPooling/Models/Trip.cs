@@ -30,6 +30,9 @@ public class Trip
 
     public int AvailableSeats { get; set; } = 4;
 
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal FareAmount { get; set; } = 10m;
+
     // --- Vehículo ---
     public Guid? VehicleId { get; set; }
 

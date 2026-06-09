@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.history.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -40,7 +41,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-public class TripHistoryActivity extends AppCompatActivity implements TripHistoryAdapter.Listener {
+public class TripHistoryActivity extends BaseActivity implements TripHistoryAdapter.Listener {
 
     private enum Category { STUDENT, DRIVER }
 
@@ -126,7 +127,12 @@ public class TripHistoryActivity extends AppCompatActivity implements TripHistor
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                String cleanError = sanitizeError(error);
+                new AlertDialog.Builder(this)
+                        .setTitle("Historial de Viajes")
+                        .setMessage(cleanError)
+                        .setPositiveButton("Aceptar", null)
+                        .show();
             }
         });
     }

@@ -1,6 +1,10 @@
 package com.example.proyectocarpooling.presentation.support.ui;
 
+<<<<<<< HEAD
 import android.content.Intent;
+=======
+import com.example.proyectocarpooling.presentation.BaseActivity;
+>>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -20,7 +24,7 @@ import com.example.proyectocarpooling.presentation.support.SupportUiHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 
-public class SupportTicketDetailActivity extends AppCompatActivity {
+public class SupportTicketDetailActivity extends BaseActivity {
 
     public static final String EXTRA_TICKET_ID = "extra_support_ticket_id";
 

@@ -20,5 +20,9 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
+    <style name="ShapeAppearanceOverlay.MyApp.FAB.Circle" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
+
     <style name="Theme.ProyectoCarpooling" parent="Base.Theme.ProyectoCarpooling" />
 </resources>

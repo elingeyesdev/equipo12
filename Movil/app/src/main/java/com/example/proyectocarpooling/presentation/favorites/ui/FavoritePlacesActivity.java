@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.favorites.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -22,7 +23,7 @@ import com.example.proyectocarpooling.data.model.user.UserFavoriteItem;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
 
-public class FavoritePlacesActivity extends AppCompatActivity implements FavoritesAdapter.Listener {
+public class FavoritePlacesActivity extends BaseActivity implements FavoritesAdapter.Listener {
 
     public static final String EXTRA_PICK_MODE = "extra_pick_mode";
 
@@ -89,7 +90,12 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                String cleanError = sanitizeError(error);
+                new AlertDialog.Builder(this)
+                        .setTitle("Lugares Favoritos")
+                        .setMessage(cleanError)
+                        .setPositiveButton("Aceptar", null)
+                        .show();
             }
         });
     }
@@ -97,8 +103,12 @@ public class FavoritePlacesActivity extends AppCompatActivity implements Favorit
     private void loadFavorites() {
         String userId = sessionManager.getUserId();
         if (userId == null || userId.isBlank()) {
-            Toast.makeText(this, R.string.favorites_error_session, Toast.LENGTH_SHORT).show();
-            finish();
+            new AlertDialog.Builder(this)
+                    .setTitle("Acceso requerido")
+                    .setMessage(R.string.favorites_error_session)
+                    .setPositiveButton("Aceptar", (d, w) -> finish())
+                    .setCancelable(false)
+                    .show();
             return;
         }
         viewModel.loadFavorites(userId);

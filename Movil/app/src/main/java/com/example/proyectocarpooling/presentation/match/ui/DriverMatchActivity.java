@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.match.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -9,9 +10,11 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
@@ -25,7 +28,7 @@ import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
 import java.util.List;
 import java.util.Locale;
 
-public class DriverMatchActivity extends AppCompatActivity {
+public class DriverMatchActivity extends BaseActivity {
 
     public static final String EXTRA_DESTINATION_LABEL = "extra_destination_label";
     public static final String EXTRA_REF_LATITUDE = "extra_ref_latitude";
@@ -45,6 +48,9 @@ public class DriverMatchActivity extends AppCompatActivity {
     private TextView cardCounterText, swipeHintText, viewRouteHintText;
     private Button rejectButton, acceptButton, viewRouteButton;
     private CardView matchCard;
+    private ImageView driverImageView;
+    private View driverImagePlaceholder;
+    private TextView driverInitialText;
 
     private DriverMatchViewModel viewModel;
     private SessionManager sessionManager;
@@ -101,6 +107,9 @@ public class DriverMatchActivity extends AppCompatActivity {
         distanceHeroHint = findViewById(R.id.distanceHeroHint);
         driverNameText = findViewById(R.id.driverNameText);
         driverRouteText = findViewById(R.id.driverRouteText);
+        driverImageView = findViewById(R.id.driverImageView);
+        driverImagePlaceholder = findViewById(R.id.driverImagePlaceholder);
+        driverInitialText = findViewById(R.id.driverInitialText);
         driverVehicleText = findViewById(R.id.driverVehicleText);
         driverSeatsText = findViewById(R.id.driverSeatsText);
         driverTimeText = findViewById(R.id.driverTimeText);
@@ -143,7 +152,12 @@ public class DriverMatchActivity extends AppCompatActivity {
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                String cleanError = sanitizeError(error);
+                new AlertDialog.Builder(this)
+                        .setTitle("Búsqueda de Chofer")
+                        .setMessage(cleanError)
+                        .setPositiveButton("Aceptar", null)
+                        .show();
                 swipeAnimating = false;
                 resetCardTransformInstant();
                 setButtonsEnabled(true);
@@ -392,6 +406,14 @@ public class DriverMatchActivity extends AppCompatActivity {
         distanceHeroValue.setText(String.format(Locale.US, "%.1f", current.distanceKm));
         distanceHeroHint.setText(R.string.driver_match_distance_hint);
         driverNameText.setText(current.driverName);
+        
+        String initial = current.driverName != null && !current.driverName.isEmpty() ? String.valueOf(current.driverName.charAt(0)).toUpperCase() : "D";
+        if (driverInitialText != null) {
+            driverInitialText.setText(initial);
+        }
+        if (driverImageView != null) {
+            loadBase64Image(current.driverProfilePicture, driverImageView, driverImagePlaceholder);
+        }
         driverRouteText.setText(getString(R.string.driver_match_route_format, current.routeDescription));
         driverVehicleText.setText(current.vehicleInfo);
         driverVehicleText.setVisibility(current.vehicleInfo != null && !current.vehicleInfo.isEmpty() ? View.VISIBLE : View.GONE);

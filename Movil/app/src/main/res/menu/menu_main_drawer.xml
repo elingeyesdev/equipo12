@@ -30,6 +30,12 @@
             android:visible="false" />
 
         <item
+            android:id="@+id/nav_pay_reservation"
+            android:icon="@android:drawable/ic_menu_send"
+            android:title="Pagar reserva"
+            android:visible="false" />
+
+        <item
             android:id="@+id/nav_find_driver"
             android:icon="@android:drawable/ic_menu_search"
             android:title="Buscar conductor"
@@ -75,6 +81,12 @@
             android:id="@+id/nav_driver_passenger_requests"
             android:icon="@android:drawable/ic_menu_agenda"
             android:title="@string/drawer_driver_passenger_requests"
+            android:visible="false" />
+
+        <item
+            android:id="@+id/nav_driver_payments"
+            android:icon="@android:drawable/ic_menu_upload"
+            android:title="Cobros"
             android:visible="false" />
     </group>
 

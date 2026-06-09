@@ -25,5 +25,7 @@ public class UpdateUserDto
 
     public bool RoleChangeRequested { get; set; } = false;
 
+    public string? ProfilePicture { get; set; }
+
     public DriverProfileDto? DriverProfile { get; set; }
 }

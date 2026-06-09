@@ -40,6 +40,7 @@ public final class ChatLocalCache {
                 obj.put("senderFullName", m.senderFullName);
                 obj.put("messageText", m.messageText);
                 obj.put("createdAt", m.createdAt);
+                obj.put("senderProfilePicture", m.senderProfilePicture);
 
                 JSONArray reads = new JSONArray();
                 for (String r : m.readByUserIds) {

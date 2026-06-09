@@ -1,10 +1,11 @@
 <resources>
     <string name="app_name">ProyectoCarpooling</string>
     <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
+    <string name="main_safe_zones_legend">Zonas seguras (paradas tranquilas)</string>
+    <string name="safe_zone_marker_toast">Zona segura: %1$s</string>
 
-    <string name="api_base_url_emulator">http://10.0.2.2:5005</string>
-    <!-- Celular físico + USB: adb reverse tcp:5005 tcp:5005 (el API en PC debe escuchar en 0.0.0.0:5005, pero la app usa 127.0.0.1) -->
-    <string name="api_base_url_device">http://127.0.0.1:5005/</string>
+    <string name="api_base_url_emulator">http://10.0.2.2:5000</string>
+    <string name="api_base_url_device">http://127.0.0.1:5000/</string>
 
     <string name="origin_placeholder">Recogida: sin seleccionar</string>
     <string name="destination_placeholder">Destino: a donde quieres ir</string>
@@ -305,7 +306,7 @@
     <string name="hint_university_email">Correo institucional @univalle.edu</string>
     <string name="hint_password">Contraseña</string>
     <string name="hint_full_name">Nombre completo</string>
-    <string name="hint_phone">Teléfono (opcional)</string>
+    <string name="hint_phone">Teléfono</string>
     <string name="hint_confirm_password">Confirmar contraseña</string>
     <string name="hint_new_password_optional">Nueva contraseña (opcional)</string>
     <string name="hint_vehicle_seats">Número de pasajeros que puedes llevar</string>
@@ -325,6 +326,7 @@
     <string name="validation_plate_min">La placa debe tener al menos 5 caracteres.</string>
     <string name="validation_brand_min">La marca debe tener al menos 2 caracteres.</string>
     <string name="validation_color_min">El color debe tener al menos 2 caracteres.</string>
+    <string name="validation_plate_format">La placa debe tener 4 números y 3 letras (ej: 4216FDY).</string>
 
     <string name="button_save_favorite">Guardar favorito</string>
     <string name="favorites_title_manage">Tus lugares y viajes favoritos</string>

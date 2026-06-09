@@ -22,7 +22,9 @@ public class User
     [MaxLength(25)]
     public string? PhoneNumber { get; set; }
 
-    public UserRole Role { get; set; } = UserRole.Student;
+    public string? ProfilePicture { get; set; }
+
+    public ICollection<UserRole> UserRoles { get; set; } = [];
 
     public DriverProfile? DriverProfile { get; set; }
 

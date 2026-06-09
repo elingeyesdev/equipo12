@@ -34,7 +34,7 @@
                 android:layout_height="24dp"
                 android:layout_gravity="center"
                 android:src="@android:drawable/ic_menu_sort_by_size"
-                android:tint="@color/uber_accent" />
+                android:tint="?attr/colorPrimary" />
         </FrameLayout>
 
         <com.google.android.material.card.MaterialCardView
@@ -68,7 +68,7 @@
                         android:layout_height="20dp"
                         android:layout_marginEnd="10dp"
                         android:src="@android:drawable/ic_menu_directions"
-                        android:tint="@color/uber_accent" />
+                        android:tint="?attr/colorPrimary" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -145,7 +145,45 @@
                     android:layout_gravity="end"
                     android:text="@string/main_driver_route_banner_dismiss"
                     android:textAllCaps="false"
-                    android:textColor="@color/uber_accent" />
+                    android:textColor="?attr/colorPrimary" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/safeZonesLegendCard"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="228dp"
+            android:elevation="6dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="20dp"
+            app:strokeColor="#2E7D32"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingTop="6dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="6dp">
+
+                <View
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_safe_zone_legend_dot" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/main_safe_zones_legend"
+                    android:textColor="@color/carpool_text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -196,6 +234,7 @@
                 android:gravity="center_vertical">
 
                 <View
+                    android:id="@+id/originDot"
                     android:layout_width="12dp"
                     android:layout_height="12dp"
                     android:background="@drawable/online_indicator_background"
@@ -229,6 +268,7 @@
                 android:gravity="center_vertical">
 
                 <View
+                    android:id="@+id/destinationDot"
                     android:layout_width="12dp"
                     android:layout_height="12dp"
                     android:background="@drawable/role_badge_background"
@@ -315,6 +355,21 @@
                     android:textSize="14sp"
                     android:textStyle="bold" />
             </LinearLayout>
+
+            <EditText
+                android:id="@+id/fareAmountInput"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_input_modern"
+                android:hint="Tarifa por pasajero (Bs)"
+                android:inputType="numberDecimal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:text="10.00"
+                android:textColor="@color/carpool_text_primary"
+                android:textSize="14sp"
+                android:visibility="gone" />
 
             <Button
                 android:id="@+id/findDriverButton"
@@ -435,12 +490,26 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="220dp"
+            android:layout_marginBottom="284dp"
             android:contentDescription="Abrir chat de viaje"
             android:src="@android:drawable/stat_notify_chat"
             android:visibility="gone"
-            app:backgroundTint="@color/uber_accent"
-            app:tint="@color/white" />
+            app:backgroundTint="?attr/colorPrimary"
+            app:tint="@color/white"
+            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MyApp.FAB.Circle" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/myLocationFloatingButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="220dp"
+            android:contentDescription="Centrar en mi ubicación"
+            android:src="@android:drawable/ic_menu_mylocation"
+            app:backgroundTint="?attr/colorPrimary"
+            app:tint="@color/white"
+            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MyApp.FAB.Circle" />
 
         <ProgressBar
             android:id="@+id/loadingIndicator"

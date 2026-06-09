@@ -418,7 +418,7 @@
                 android:layout_marginTop="8dp"
                 android:text="@string/history_detail_view_route"
                 android:textAllCaps="false"
-                app:backgroundTint="@color/uber_accent"
+                app:backgroundTint="?attr/colorPrimary"
                 app:cornerRadius="14dp" />
 
             <com.google.android.material.button.MaterialButton
@@ -429,9 +429,9 @@
                 android:layout_marginTop="8dp"
                 android:text="@string/history_detail_view_participants"
                 android:textAllCaps="false"
-                android:textColor="@color/uber_accent"
+                android:textColor="?attr/colorPrimary"
                 app:cornerRadius="14dp"
-                app:strokeColor="@color/uber_accent"
+                app:strokeColor="?attr/colorPrimary"
                 app:strokeWidth="1dp" />
         </LinearLayout>
     </FrameLayout>

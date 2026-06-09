@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "953634287097",
+    "project_id": "carpooling-univalle",
+    "storage_bucket": "carpooling-univalle.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:953634287097:android:7a8631622809d1f5c06128",
+        "android_client_info": {
+          "package_name": "com.example.proyectocarpooling"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXnjbbuVd3SIfLfaotuObpnEufRTCVUEI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -13,6 +13,7 @@ const state = {
     reservations: [],
     supportTickets: []
   },
+  adminPayments: [],
   isLoadingSupportTickets: false,
   supportChatTicketId: null,
   supportChatPollId: null,
@@ -33,7 +34,18 @@ const state = {
   detailTripOriginMarker: null,
   detailTripDestinationMarker: null,
   tripDrivers: [],
-  isLoadingTripDrivers: false
+  isLoadingTripDrivers: false,
+  safeZones: [],
+  publicSafeZones: [],
+  safeZoneOverviewMap: null,
+  safeZoneOverviewMapReady: false,
+  safeZoneOverviewMarkers: [],
+  safeZoneEditMap: null,
+  safeZoneEditMapReady: false,
+  safeZoneDraftPoint: null,
+  safeZoneEditMarker: null,
+  createTripSafeZoneMarkers: [],
+  detailTripSafeZoneMarkers: []
 };
 
 const authShell = document.getElementById("authShell");
@@ -74,17 +86,56 @@ const supportFilterInput = document.getElementById("supportFilterInput");
 const supportStatusFilter = document.getElementById("supportStatusFilter");
 const supportCategoryFilter = document.getElementById("supportCategoryFilter");
 const supportReloadBtn = document.getElementById("supportReloadBtn");
+const adminPaymentsBody = document.getElementById("adminPaymentsBody");
+const paymentsFilterInput = document.getElementById("paymentsFilterInput");
+const paymentsStatusFilter = document.getElementById("paymentsStatusFilter");
+const paymentsReloadBtn = document.getElementById("paymentsReloadBtn");
+const adminSafeZonesBody = document.getElementById("adminSafeZonesBody");
+const safeZonesDataMessage = document.getElementById("safeZonesDataMessage");
+const safeZonesFilterInput = document.getElementById("safeZonesFilterInput");
+const safeZonesReloadBtn = document.getElementById("safeZonesReloadBtn");
+const safeZoneCreateBtn = document.getElementById("safeZoneCreateBtn");
+const safeZoneModalOverlay = document.getElementById("safeZoneModalOverlay");
+const safeZoneModalForm = document.getElementById("safeZoneModalForm");
+const safeZoneModalTitle = document.getElementById("safeZoneModalTitle");
+const safeZoneModalCloseBtn = document.getElementById("safeZoneModalCloseBtn");
+const safeZoneModalMessage = document.getElementById("safeZoneModalMessage");
+const safeZoneCoordsHint = document.getElementById("safeZoneCoordsHint");
 
 function getCreateTripMapContainer() {
   return createModalForm?.querySelector("#createTripMap") || null;
 }
 
+<<<<<<< HEAD
+=======
+document.getElementById("apiBaseUrl").value = state.apiBaseUrl;
+
+function sanitizeWebError(rawError) {
+  if (!rawError) {
+    return "Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.";
+  }
+  const errorMsg = String(rawError).trim();
+  const lower = errorMsg.toLowerCase();
+  if (lower.includes("fetch") || lower.includes("connect") || lower.includes("network") || 
+      lower.includes("timeout") || lower.includes("socket") || lower.includes("unable to resolve host") ||
+      lower.includes("http") || lower.includes("connection")) {
+    return "No se pudo establecer conexión con el servidor. Por favor, verifica tu conexión a internet o la URL base del backend.";
+  }
+  return errorMsg;
+}
+
+>>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 function setMessage(element, text, kind = "") {
   if (!element) {
     return;
   }
 
-  element.textContent = text;
+  let displayText = text;
+  if (kind === "error") {
+    displayText = sanitizeWebError(text);
+  }
+
+  element.textContent = displayText;
   element.classList.remove("success", "error");
 
   if (kind) {
@@ -138,9 +189,13 @@ function isDriverUser(user) {
 function getReservationStatusKey(value) {
   const normalized = String(value ?? "").trim().toLowerCase();
 
-  if (normalized === "0" || normalized === "active") return "active";
-  if (normalized === "1" || normalized === "cancelled") return "cancelled";
-  if (normalized === "2" || normalized === "boarded") return "boarded";
+  if (normalized === "1" || normalized === "pending" || normalized === "pendiente") return "pending";
+  if (normalized === "2" || normalized === "confirmed" || normalized === "confirmado") return "confirmed";
+  if (normalized === "3" || normalized === "boarded" || normalized === "abordado") return "boarded";
+  if (normalized === "4" || normalized === "cancelled" || normalized === "cancelado") return "cancelled";
+
+  // legacy mapping if any
+  if (normalized === "active") return "confirmed";
 
   return "unknown";
 }
@@ -148,9 +203,10 @@ function getReservationStatusKey(value) {
 function formatReservationStatus(value) {
   const key = getReservationStatusKey(value);
 
-  if (key === "active") return "Activo";
-  if (key === "cancelled") return "Cancelado";
+  if (key === "pending") return "Pendiente";
+  if (key === "confirmed") return "Confirmado";
   if (key === "boarded") return "Abordado";
+  if (key === "cancelled") return "Cancelado";
 
   return "Sin estado";
 }
@@ -490,12 +546,24 @@ function openSection(section) {
 
   document.getElementById(`section-${section}`).classList.remove("hidden");
 
-  if (["users", "trips", "reservations", "reports"].includes(section) && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+  if (["users", "trips", "reservations", "reports", "admins"].includes(section) && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
     loadAdminData();
   }
 
   if (section === "support" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
     loadSupportTickets();
+  }
+
+  if (section === "payments" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+    loadAdminPayments();
+  }
+
+  if (section === "settings" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+    loadThemeSettings();
+  }
+
+  if (section === "safe-zones" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+    loadSafeZonesAdmin();
   }
 }
 
@@ -524,6 +592,22 @@ function getSectionMeta(section) {
     support: {
       name: "Soporte",
       description: "Revisa quejas de usuarios y actualiza el estado de cada reporte."
+    },
+    "safe-zones": {
+      name: "Zonas seguras",
+      description: "Administra paradas tranquilas visibles en el mapa de la app movil."
+    },
+    admins: {
+      name: "Admins",
+      description: "Gestiona las cuentas administrativas y define sus roles y permisos."
+    },
+    payments: {
+      name: "Pagos",
+      description: "Consulta todos los pagos y reembolsos registrados en el sistema." 
+    },
+    settings: {
+      name: "Ajustes",
+      description: "Personaliza la identidad visual y los colores corporativos de tu negocio."
     }
   };
 
@@ -643,7 +727,15 @@ function getCreateModalMarkup(type) {
       </label>
       <label class="field"><span>Nombre del conductor</span><input type="text" id="createTripDriverName" placeholder="Ej: Ana Perez" required /></label>
       <label class="field"><span>Driver User ID</span><input type="text" id="createTripDriverUserIdDisplay" placeholder="Se completa automaticamente" readonly /></label>
-      <label class="field"><span>Asientos ofrecidos</span><input type="number" id="createOfferedSeats" min="1" max="50" value="4" required /></label>
+      <label class="field"><span>Asientos ofrecidos</span>
+        <select id="createOfferedSeats">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
       <div class="trip-map-shell">
         <div class="trip-map-actions">
           <button type="button" class="btn ghost active" data-trip-point="origin">Marcar origen</button>
@@ -684,7 +776,15 @@ function getCreateModalMarkup(type) {
         </select>
       </label>
       <label class="field"><span>Passenger User ID</span><input type="text" id="createReservationPassengerUserIdDisplay" placeholder="Se completa automaticamente" readonly /></label>
-      <label class="field"><span>Asientos reservados</span><input type="number" id="createReservationSeatsReserved" min="1" max="50" value="1" required /></label>
+      <label class="field"><span>Asientos reservados</span>
+        <select id="createReservationSeatsReserved">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
       <div class="modal-actions">
         <button type="button" class="btn ghost" data-create-action="cancel">Cancelar</button>
         <button type="submit" class="btn primary">Crear reserva</button>
@@ -704,7 +804,15 @@ function getCreateModalMarkup(type) {
       </select>
     </label>
     <div id="createDriverFields" class="driver-fields hidden">
-      <label class="field"><span>Cantidad de personas (asientos)</span><input type="number" id="createSeats" min="1" max="12" placeholder="1 a 12" /></label>
+      <label class="field"><span>Cantidad de personas (asientos)</span>
+        <select id="createSeats">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
       <label class="field"><span>Placa del auto</span><input type="text" id="createPlate" minlength="5" placeholder="Ej: 1234-ABC" /></label>
       <label class="field"><span>Marca del auto</span><input type="text" id="createBrand" minlength="2" placeholder="Ej: Toyota" /></label>
       <label class="field"><span>Modelo del auto</span><input type="text" id="createModel" minlength="2" placeholder="Ej: Corolla" /></label>
@@ -766,6 +874,8 @@ function destroyCreateTripMap() {
     state.tripDestinationMarker = null;
   }
 
+  clearSafeZoneMarkers(state.createTripSafeZoneMarkers);
+
   if (state.tripMap) {
     state.tripMap.remove();
     state.tripMap = null;
@@ -820,7 +930,7 @@ async function updateCreateTripMapLayers() {
       source: "create-trip-route",
       layout: { "line-join": "round", "line-cap": "round" },
       paint: {
-        "line-color": "#1f8a86",
+        "line-color": "#5f7f6c",
         "line-width": 4
       }
     });
@@ -876,7 +986,7 @@ async function updateCreateTripMapLayers() {
 
   if (state.tripOrigin) {
     if (!state.tripOriginMarker) {
-      state.tripOriginMarker = new mapboxgl.Marker({ color: "#f29d55" })
+      state.tripOriginMarker = new mapboxgl.Marker({ color: "#b67a52" })
         .setLngLat(originCoordinates)
         .addTo(state.tripMap);
     } else {
@@ -889,7 +999,7 @@ async function updateCreateTripMapLayers() {
 
   if (state.tripDestination) {
     if (!state.tripDestinationMarker) {
-      state.tripDestinationMarker = new mapboxgl.Marker({ color: "#2ea7a0" })
+      state.tripDestinationMarker = new mapboxgl.Marker({ color: "#5f7f6c" })
         .setLngLat(destinationCoordinates)
         .addTo(state.tripMap);
     } else {
@@ -952,6 +1062,7 @@ function initializeCreateTripMap() {
     state.tripMapReady = true;
     updateCreateTripMapPanels();
     updateCreateTripMapLayers();
+    void refreshPublicSafeZoneMarkersOnMap(state.tripMap, "createTripSafeZoneMarkers");
 
     if (navigator.geolocation && !state.tripOrigin && !state.tripDestination) {
       navigator.geolocation.getCurrentPosition((position) => {
@@ -1190,6 +1301,8 @@ function destroyDetailTripMap() {
     state.detailTripDestinationMarker = null;
   }
 
+  clearSafeZoneMarkers(state.detailTripSafeZoneMarkers);
+
   if (state.detailTripMap) {
     state.detailTripMap.remove();
     state.detailTripMap = null;
@@ -1226,7 +1339,7 @@ async function updateDetailTripMapLayers(trip) {
       source: "detail-trip-route",
       layout: { "line-join": "round", "line-cap": "round" },
       paint: {
-        "line-color": "#1f8a86",
+        "line-color": "#5f7f6c",
         "line-width": 4
       }
     });
@@ -1282,7 +1395,7 @@ async function updateDetailTripMapLayers(trip) {
 
   if (hasTripCoordinates(origin)) {
     if (!state.detailTripOriginMarker) {
-      state.detailTripOriginMarker = new mapboxgl.Marker({ color: "#f29d55" })
+      state.detailTripOriginMarker = new mapboxgl.Marker({ color: "#b67a52" })
         .setLngLat(originCoordinates)
         .addTo(state.detailTripMap);
     } else {
@@ -1295,7 +1408,7 @@ async function updateDetailTripMapLayers(trip) {
 
   if (hasTripCoordinates(destination)) {
     if (!state.detailTripDestinationMarker) {
-      state.detailTripDestinationMarker = new mapboxgl.Marker({ color: "#2ea7a0" })
+      state.detailTripDestinationMarker = new mapboxgl.Marker({ color: "#5f7f6c" })
         .setLngLat(destinationCoordinates)
         .addTo(state.detailTripMap);
     } else {
@@ -1338,6 +1451,7 @@ function initializeDetailTripMap(trip) {
   state.detailTripMap.on("load", () => {
     state.detailTripMapReady = true;
     updateDetailTripMapLayers(trip);
+    void refreshPublicSafeZoneMarkersOnMap(state.detailTripMap, "detailTripSafeZoneMarkers");
   });
 }
 
@@ -1354,6 +1468,10 @@ function renderDetailsModalContent(type, entity) {
     return renderSupportDetails(entity);
   }
 
+  if (type === "payment") {
+    return renderPaymentDetails(entity);
+  }
+
   return renderUserDetails(entity);
 }
 
@@ -1368,7 +1486,8 @@ function openDetailsModal(type, entity) {
     user: "Ver detalles de usuario",
     trip: "Ver detalles de viaje",
     reservation: "Ver detalles de reserva",
-    support: "Ver detalles del reporte"
+    support: "Ver detalles del reporte",
+    payment: "Ver detalles de pago"
   };
 
   state.detailContext = { type, id: entity.id };
@@ -1443,9 +1562,11 @@ function getTripStatusValue(status) {
 
 function getReservationStatusValue(status) {
   const key = getReservationStatusKey(status);
-  if (key === "cancelled") return "1";
-  if (key === "boarded") return "2";
-  return "0";
+  if (key === "pending") return "1";
+  if (key === "confirmed") return "2";
+  if (key === "boarded") return "3";
+  if (key === "cancelled") return "4";
+  return "1";
 }
 
 function getNullableNumber(rawValue) {
@@ -1463,7 +1584,8 @@ function getEntityFromState(type, id) {
     user: state.adminData.users,
     trip: state.adminData.trips,
     reservation: state.adminData.reservations,
-    support: state.adminData.supportTickets
+    support: state.adminData.supportTickets,
+    payment: state.adminPayments
   }[type] || [];
 
   return source.find((item) => String(item.id) === String(id));
@@ -1552,7 +1674,16 @@ function getEditFormMarkup(type, entity) {
       <label class="field"><span>Longitud origen</span><input type="number" step="any" name="originLongitude" value="${escapeHtml(origin.lng ?? "")}" required /></label>
       <label class="field"><span>Latitud destino (opcional)</span><input type="number" step="any" name="destinationLatitude" value="${escapeHtml(destination.lat ?? "")}" /></label>
       <label class="field"><span>Longitud destino (opcional)</span><input type="number" step="any" name="destinationLongitude" value="${escapeHtml(destination.lng ?? "")}" /></label>
-      <label class="field"><span>Cupos disponibles</span><input type="number" min="0" name="availableSeats" value="${escapeHtml(entity.availableSeats ?? 0)}" required /></label>
+      <label class="field"><span>Cupos disponibles</span>
+        <select name="availableSeats">
+          <option value="0" ${Number(entity.availableSeats) === 0 ? "selected" : ""}>0</option>
+          <option value="1" ${Number(entity.availableSeats) === 1 ? "selected" : ""}>1</option>
+          <option value="2" ${Number(entity.availableSeats) === 2 ? "selected" : ""}>2</option>
+          <option value="3" ${Number(entity.availableSeats) === 3 ? "selected" : ""}>3</option>
+          <option value="4" ${Number(entity.availableSeats) === 4 ? "selected" : ""}>4</option>
+          <option value="5" ${Number(entity.availableSeats) === 5 ? "selected" : ""}>5</option>
+        </select>
+      </label>
       <label class="field"><span>Estado</span>
         <select name="status">
           <option value="1" ${getTripStatusValue(statusValue) === "1" ? "selected" : ""}>Esperando destino</option>
@@ -1575,9 +1706,10 @@ function getEditFormMarkup(type, entity) {
     <label class="field"><span>Nombre del pasajero</span><input type="text" name="passengerName" value="${escapeHtml(entity.passengerName || "")}" required /></label>
     <label class="field"><span>Estado</span>
       <select name="status">
-        <option value="0" ${getReservationStatusValue(entity.status) === "0" ? "selected" : ""}>Activo</option>
-        <option value="1" ${getReservationStatusValue(entity.status) === "1" ? "selected" : ""}>Cancelado</option>
-        <option value="2" ${getReservationStatusValue(entity.status) === "2" ? "selected" : ""}>Abordado</option>
+        <option value="1" ${getReservationStatusValue(entity.status) === "1" ? "selected" : ""}>Pendiente</option>
+        <option value="2" ${getReservationStatusValue(entity.status) === "2" ? "selected" : ""}>Confirmado</option>
+        <option value="3" ${getReservationStatusValue(entity.status) === "3" ? "selected" : ""}>Abordado</option>
+        <option value="4" ${getReservationStatusValue(entity.status) === "4" ? "selected" : ""}>Cancelado</option>
       </select>
     </label>
     <div class="modal-actions">
@@ -1585,6 +1717,92 @@ function getEditFormMarkup(type, entity) {
       <button type="submit" class="btn primary">Guardar cambios</button>
     </div>
   `;
+}
+
+function hasPermission(permissionId) {
+  if (!state.currentUser) return false;
+  if (state.currentUser.rawRoles && state.currentUser.rawRoles.includes("SuperAdmin")) {
+    return true;
+  }
+  return state.currentUser.permissions && state.currentUser.permissions.includes(permissionId);
+}
+
+function updateNavVisibility() {
+  const menuNav = document.getElementById("menuNav");
+  if (!menuNav) return;
+
+  const mapping = {
+    overview: "metrics:view",
+    users: "users:read",
+    trips: "trips:read",
+    reservations: "reservations:read",
+    support: "support:read",
+    "safe-zones": "trips:read",
+    admins: "roles:manage",
+    settings: "roles:manage"
+  };
+
+  for (const [section, permission] of Object.entries(mapping)) {
+    const btn = menuNav.querySelector(`[data-section="${section}"]`);
+    if (btn) {
+      if (hasPermission(permission)) {
+        btn.classList.remove("hidden");
+      } else {
+        btn.classList.add("hidden");
+      }
+    }
+  }
+}
+
+function updateOverviewQuickActionsVisibility() {
+  const quickActionsContainer = document.getElementById("overviewQuickActions");
+  if (!quickActionsContainer) return;
+
+  const btnUser = quickActionsContainer.querySelector('[data-section="users"]');
+  if (btnUser) {
+    btnUser.classList.toggle("hidden", !hasPermission("users:write"));
+  }
+
+  const btnTrip = quickActionsContainer.querySelector('[data-section="trips"]');
+  if (btnTrip) {
+    btnTrip.classList.toggle("hidden", !hasPermission("trips:write"));
+  }
+
+  const btnRes = quickActionsContainer.querySelector('[data-section="reservations"]');
+  if (btnRes) {
+    btnRes.classList.toggle("hidden", !hasPermission("reservations:read"));
+  }
+
+  const btnSup = quickActionsContainer.querySelector('[data-section="support"]');
+  if (btnSup) {
+    btnSup.classList.toggle("hidden", !hasPermission("support:read"));
+  }
+
+  // Hide the entire Quick Actions card if user has none of the permissions
+  const hasAnyAction = hasPermission("users:write") || hasPermission("trips:write") || hasPermission("reservations:read") || hasPermission("support:read");
+  const quickActionsCard = document.getElementById("quickActionsCard");
+  if (quickActionsCard) {
+    quickActionsCard.classList.toggle("hidden", !hasAnyAction);
+  }
+}
+
+function updateActionButtonsVisibility() {
+  document.querySelectorAll('[data-create-type="user"]').forEach(btn => {
+    btn.classList.toggle("hidden", !hasPermission("users:write"));
+  });
+  document.querySelectorAll('[data-create-type="trip"]').forEach(btn => {
+    btn.classList.toggle("hidden", !hasPermission("trips:write"));
+  });
+  document.querySelectorAll('[data-create-type="reservation"]').forEach(btn => {
+    btn.classList.toggle("hidden", !hasPermission("reservations:write"));
+  });
+  
+  const safeZoneCreateBtn = document.getElementById("safeZoneCreateBtn");
+  if (safeZoneCreateBtn) {
+    safeZoneCreateBtn.classList.toggle("hidden", !hasPermission("trips:write"));
+  }
+
+  updateOverviewQuickActionsVisibility();
 }
 
 function startSession(user) {
@@ -1599,7 +1817,27 @@ function startSession(user) {
   kpiSession.textContent = "Activa";
   updateApiStatus(true, "login exitoso");
   startAdminAutoRefresh();
-  openSection("overview");
+
+  updateNavVisibility();
+  updateActionButtonsVisibility();
+
+  // Find first allowed section based on permissions
+  const order = ["overview", "users", "trips", "reservations", "support", "safe-zones", "admins", "settings"];
+  const allowed = order.find(sec => {
+    const mapping = {
+      overview: "metrics:view",
+      users: "users:read",
+      trips: "trips:read",
+      reservations: "reservations:read",
+      support: "support:read",
+      "safe-zones": "trips:read",
+      admins: "roles:manage",
+      settings: "roles:manage"
+    };
+    return hasPermission(mapping[sec]);
+  });
+  
+  openSection(allowed || "overview");
 }
 
 function logout() {
@@ -1687,6 +1925,7 @@ async function loadAdminData() {
     renderUsersTable(users);
     renderTripsTable(trips);
     renderReservationsTable(reservations);
+    renderAdminsTable(users);
     applyAllTableFilters();
 
     const issueMessages = [];
@@ -1801,11 +2040,179 @@ function renderSupportTable(tickets) {
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="support" data-id="${escapeHtml(ticket.id)}">Ver detalles</button>
-          <button class="btn tiny secondary admin-view-support" data-id="${escapeHtml(ticket.id)}">Ver / Atender</button>
+          ${hasPermission('support:write') ? `<button class="btn tiny secondary admin-view-support" data-id="${escapeHtml(ticket.id)}">Ver / Atender</button>` : ''}
         </div>
       </td>
     </tr>
   `).join("");
+}
+
+async function loadAdminPayments() {
+  const msgElement = document.getElementById("adminPaymentsMessage");
+  if (msgElement) setMessage(msgElement, "");
+  try {
+    const payments = await apiFetch("/api/payments", {
+      headers: getAdminHeaders()
+    });
+    state.adminPayments = payments || [];
+    renderPaymentsTable(state.adminPayments);
+  } catch (err) {
+    console.error("Error al cargar pagos:", err);
+    if (msgElement) {
+      setMessage(msgElement, `Error al cargar pagos: ${err.message}`, "error");
+    }
+  }
+}
+
+function renderPaymentsTable(payments) {
+  if (!adminPaymentsBody) return;
+  if (!payments || !payments.length) {
+    adminPaymentsBody.innerHTML = '<tr><td colspan="7">Sin pagos registrados.</td></tr>';
+    return;
+  }
+
+  adminPaymentsBody.innerHTML = payments.map((payment) => {
+    let statusLabel = "Desconocido";
+    let statusClass = "";
+    switch (payment.status) {
+      case 1: statusLabel = "Pendiente"; statusClass = "pending"; break;
+      case 2: statusLabel = "Aprobado"; statusClass = "approved"; break;
+      case 3: statusLabel = "Rechazado"; statusClass = "rejected"; break;
+      case 4: statusLabel = "Cancelado"; statusClass = "cancelled"; break;
+      case 5: statusLabel = "Expirado"; statusClass = "expired"; break;
+      case 6: statusLabel = "Devuelto"; statusClass = "refunded"; break;
+      case 7: statusLabel = "Devuelto parcial"; statusClass = "partially-refunded"; break;
+    }
+
+    return `
+    <tr data-status="${payment.status}">
+      <td>${escapeHtml(payment.id.substring(0, 8))}</td>
+      <td>${escapeHtml(payment.passengerName || "-")}</td>
+      <td>${escapeHtml(payment.driverName || "-")}</td>
+      <td>${escapeHtml(payment.paymentMethodName || "-")}</td>
+      <td>${escapeHtml(payment.amount.toFixed(2))} ${escapeHtml(payment.currency)}</td>
+      <td><span class="status-pill ${statusClass}">${escapeHtml(statusLabel)}</span></td>
+      <td>
+        <div class="action-row">
+          <button class="btn tiny secondary admin-view-details" data-type="payment" data-id="${escapeHtml(payment.id)}">Ver detalles</button>
+        </div>
+      </td>
+    </tr>
+    `;
+  }).join("");
+  applyPaymentsFilter();
+}
+
+function applyPaymentsFilter() {
+  const textVal = (paymentsFilterInput?.value || "").toLowerCase();
+  const statusVal = paymentsStatusFilter?.value || "";
+  const tbody = adminPaymentsBody;
+  if (!tbody) return;
+  const rows = tbody.querySelectorAll("tr");
+  rows.forEach((row) => {
+    if (row.cells.length === 1) return;
+    const matchesText = (row.textContent || "").toLowerCase().includes(textVal);
+    const matchesStatus = statusVal === "" || row.dataset.status === statusVal;
+    row.style.display = (matchesText && matchesStatus) ? "" : "none";
+  });
+}
+
+function renderPaymentDetails(payment) {
+  if (!payment) {
+    return `
+      <div class="empty-state">
+        <strong>Sin resultados</strong>
+        <p>Consulta un pago para ver todos sus datos.</p>
+      </div>
+    `;
+  }
+
+  let statusLabel = "Desconocido";
+  let statusClass = "unknown";
+  switch (payment.status) {
+    case 1: statusLabel = "Pendiente"; statusClass = "pending"; break;
+    case 2: statusLabel = "Aprobado"; statusClass = "approved"; break;
+    case 3: statusLabel = "Rechazado"; statusClass = "rejected"; break;
+    case 4: statusLabel = "Cancelado"; statusClass = "cancelled"; break;
+    case 5: statusLabel = "Expirado"; statusClass = "expired"; break;
+    case 6: statusLabel = "Devuelto"; statusClass = "refunded"; break;
+    case 7: statusLabel = "Devuelto parcial"; statusClass = "partially-refunded"; break;
+  }
+
+  let refundsHtml = "";
+  if (payment.refunds && payment.refunds.length > 0) {
+    refundsHtml = `
+      <div class="detail-section" style="margin-top: 16px;">
+        <h5 style="margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Historial de Reembolsos</h5>
+        <div class="table-wrap">
+          <table class="admin-table" style="font-size: 13px;">
+            <thead>
+              <tr>
+                <th>Monto</th>
+                <th>Estado</th>
+                <th>Motivo</th>
+                <th>Rechazo Motivo</th>
+                <th>Solicitado</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${payment.refunds.map(refund => {
+                let rStatus = "Desconocido";
+                if (refund.status === 1) rStatus = "Solicitado";
+                else if (refund.status === 2) rStatus = "Aprobado";
+                else if (refund.status === 3) rStatus = "Rechazado";
+                return `
+                  <tr>
+                    <td>${escapeHtml(refund.amount.toFixed(2))} ${escapeHtml(payment.currency)}</td>
+                    <td>${escapeHtml(rStatus)}</td>
+                    <td>${escapeHtml(refund.reason || "-")}</td>
+                    <td>${escapeHtml(refund.rejectionReason || "-")}</td>
+                    <td>${escapeHtml(formatDateTime(refund.requestedAt))}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } else {
+    refundsHtml = `
+      <div class="detail-section" style="margin-top: 16px;">
+        <h5 style="margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Historial de Reembolsos</h5>
+        <p style="color: var(--text-secondary); font-size: 13px;">No hay reembolsos registrados para este pago.</p>
+      </div>
+    `;
+  }
+
+  return `
+    <article class="detail-card">
+      <div class="detail-card__header">
+        <div>
+          <h4>Pago #${escapeHtml(payment.id.substring(0, 8))}</h4>
+          <p>Reserva: ${escapeHtml(payment.reservationId || "-")}</p>
+        </div>
+        <span class="status-badge status-badge--${statusClass}">
+          ${escapeHtml(statusLabel)}
+        </span>
+      </div>
+
+      <div class="detail-grid">
+        <div><strong>Monto:</strong> ${escapeHtml(payment.amount.toFixed(2))} ${escapeHtml(payment.currency)}</div>
+        <div><strong>Monto Devuelto:</strong> ${escapeHtml(payment.refundedAmount.toFixed(2))} ${escapeHtml(payment.currency)}</div>
+        <div><strong>Pasajero:</strong> ${escapeHtml(payment.passengerName || "-")}</div>
+        <div><strong>Conductor:</strong> ${escapeHtml(payment.driverName || "-")}</div>
+        <div><strong>Método de Pago:</strong> ${escapeHtml(payment.paymentMethodName || "-")}</div>
+        <div><strong>Referencia Externa:</strong> ${escapeHtml(payment.externalReference || "-")}</div>
+        <div><strong>Descripción:</strong> ${escapeHtml(payment.description || "-")}</div>
+        <div><strong>Nro. Comprobante:</strong> ${escapeHtml(payment.receiptNumber || "-")}</div>
+        <div><strong>Fecha Creación:</strong> ${escapeHtml(formatDateTime(payment.createdAt))}</div>
+        <div><strong>Fecha Confirmación:</strong> ${escapeHtml(formatDateTime(payment.confirmedAt))}</div>
+      </div>
+
+      ${refundsHtml}
+    </article>
+  `;
 }
 
 function renderUsersTable(users) {
@@ -1823,8 +2230,8 @@ function renderUsersTable(users) {
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="user" data-id="${escapeHtml(user.id)}">Ver detalles</button>
-          <button class="btn tiny secondary admin-edit" data-type="user" data-id="${escapeHtml(user.id)}">Editar</button>
-          <button class="btn tiny danger admin-delete" data-type="user" data-id="${escapeHtml(user.id)}">Eliminar</button>
+          ${hasPermission('users:write') ? `<button class="btn tiny secondary admin-edit" data-type="user" data-id="${escapeHtml(user.id)}">Editar</button>` : ''}
+          ${hasPermission('users:delete') ? `<button class="btn tiny danger admin-delete" data-type="user" data-id="${escapeHtml(user.id)}">Eliminar</button>` : ''}
         </div>
       </td>
     </tr>
@@ -1854,8 +2261,8 @@ function renderTripsTable(trips) {
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="trip" data-id="${escapeHtml(trip.id)}">Ver detalles</button>
-          <button class="btn tiny secondary admin-edit" data-type="trip" data-id="${escapeHtml(trip.id)}">Editar</button>
-          <button class="btn tiny danger admin-delete" data-type="trip" data-id="${escapeHtml(trip.id)}">Eliminar</button>
+          ${hasPermission('trips:write') ? `<button class="btn tiny secondary admin-edit" data-type="trip" data-id="${escapeHtml(trip.id)}">Editar</button>` : ''}
+          ${hasPermission('trips:delete') ? `<button class="btn tiny danger admin-delete" data-type="trip" data-id="${escapeHtml(trip.id)}">Eliminar</button>` : ''}
         </div>
       </td>
     </tr>
@@ -1879,8 +2286,8 @@ function renderReservationsTable(reservations) {
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Ver detalles</button>
-          <button class="btn tiny secondary admin-edit" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Editar</button>
-          <button class="btn tiny danger admin-delete" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Eliminar</button>
+          ${hasPermission('reservations:write') ? `<button class="btn tiny secondary admin-edit" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Editar</button>` : ''}
+          ${hasPermission('reservations:delete') ? `<button class="btn tiny danger admin-delete" data-type="reservation" data-id="${escapeHtml(reservation.id)}">Eliminar</button>` : ''}
         </div>
       </td>
     </tr>
@@ -2039,8 +2446,8 @@ createModalForm?.addEventListener("submit", async (event) => {
         const year = Number(createModalForm.querySelector("#createYear")?.value || 0);
         const color = createModalForm.querySelector("#createColor")?.value.trim() || "";
 
-        if (!Number.isInteger(seats) || seats < 1 || seats > 12) {
-          throw new Error("Para chofer, la cantidad de personas debe estar entre 1 y 12.");
+        if (!Number.isInteger(seats) || seats < 1 || seats > 5) {
+          throw new Error("Para chofer, la cantidad de personas debe estar entre 1 y 5.");
         }
 
         if (!model) {
@@ -2337,13 +2744,949 @@ document.getElementById("section-support")?.addEventListener("click", async (eve
   }
 });
 
-if (state.currentUser) {
-  if (Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
-    startSession(state.currentUser);
-  } else {
-    logout();
-    setMessage(loginMessage, "La sesion guardada no corresponde a un administrador.", "error");
+// --- Ajustes / Apariencia (Temas Pastel Dinámicos) ---
+const presets = {
+  Custom: {
+    primaryLight: "#5f7f6c",
+    secondaryLight: "#b67a52",
+    textLight: "#24302b",
+    primaryDark: "#8fac98",
+    secondaryDark: "#d0a27d",
+    textDark: "#edf2ee"
+  },
+  Natural: {
+    primaryLight: "#5f7f6c",
+    secondaryLight: "#b67a52",
+    textLight: "#24302b",
+    primaryDark: "#8fac98",
+    secondaryDark: "#d0a27d",
+    textDark: "#edf2ee"
+  },
+  Emerald: {
+    primaryLight: "#7abfa6",
+    secondaryLight: "#5a8777",
+    textLight: "#1c2e28",
+    primaryDark: "#67b095",
+    secondaryDark: "#78ab98",
+    textDark: "#e2e9e6"
+  },
+  Ocean: {
+    primaryLight: "#7bb0db",
+    secondaryLight: "#8496ab",
+    textLight: "#18232e",
+    primaryDark: "#62a1d3",
+    secondaryDark: "#9cb1c9",
+    textDark: "#e2e8ee"
+  },
+  Orchid: {
+    primaryLight: "#a397db",
+    secondaryLight: "#9e7fa6",
+    textLight: "#231e33",
+    primaryDark: "#9485d4",
+    secondaryDark: "#bca4c4",
+    textDark: "#edeaf5"
+  },
+  Univalle: {
+    primaryLight: "#7a1c31",
+    secondaryLight: "#D3D3D3",
+    textLight: "#111827",
+    primaryDark: "#a12b42",
+    secondaryDark: "#9ca3af",
+    textDark: "#ffffff"
   }
-} else {
-  updateApiStatus(false);
+};
+
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 95, g: 127, b: 108 };
 }
+
+const THEME_MODES = {
+  light: {
+    bg: "#f7f5ef",
+    bgDeep: "#24302b",
+    panelAlt: "#eff3ed",
+    panel: "#ffffff"
+  },
+  dark: {
+    bg: "#0f1412",
+    bgDeep: "#121815",
+    panelAlt: "#1c2621",
+    panel: "#151c19"
+  }
+};
+
+function applyClientTheme(colors) {
+  if (!colors) return;
+  const root = document.documentElement;
+  
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const primary = isDarkMode ? (colors.primaryDark || "#8fac98") : (colors.primaryLight || "#5f7f6c");
+  const secondary = isDarkMode ? (colors.secondaryDark || "#d0a27d") : (colors.secondaryLight || "#b67a52");
+  const text = isDarkMode ? (colors.textDark || "#edf2ee") : (colors.textLight || "#24302b");
+  
+  root.style.setProperty("--accent", primary);
+  root.style.setProperty("--accent-2", secondary);
+  
+  const mode = THEME_MODES[isDarkMode ? 'dark' : 'light'];
+  root.style.setProperty("--bg", mode.bg);
+  root.style.setProperty("--bg-deep", mode.bgDeep);
+  root.style.setProperty("--panel-alt", mode.panelAlt);
+  root.style.setProperty("--panel", mode.panel);
+  root.style.setProperty("--text", text);
+  
+  // Calcular y establecer el color de texto secundario (muted) al 60% de opacidad
+  const textRgb = hexToRgb(text);
+  root.style.setProperty("--muted", `rgba(${textRgb.r}, ${textRgb.g}, ${textRgb.b}, 0.6)`);
+  
+  const secondaryRgb = hexToRgb(secondary);
+  root.style.setProperty("--ring-color", `rgba(${secondaryRgb.r}, ${secondaryRgb.g}, ${secondaryRgb.b}, 0.22)`);
+  
+  // Calcular contraste para el texto del sidebar
+  const luminance = (secondaryRgb.r * 0.299 + secondaryRgb.g * 0.587 + secondaryRgb.b * 0.114) / 255;
+  root.style.setProperty("--sidebar-text", luminance > 0.6 ? "#1a1a1a" : "#ffffff");
+}
+
+function updateHexLabels() {
+  const pl = document.getElementById("themePrimaryLight")?.value;
+  const sl = document.getElementById("themeSecondaryLight")?.value;
+  const tl = document.getElementById("themeTextLight")?.value;
+  const pd = document.getElementById("themePrimaryDark")?.value;
+  const sd = document.getElementById("themeSecondaryDark")?.value;
+  const td = document.getElementById("themeTextDark")?.value;
+
+  if (pl) document.getElementById("themePrimaryLightHex").textContent = pl;
+  if (sl) document.getElementById("themeSecondaryLightHex").textContent = sl;
+  if (tl) document.getElementById("themeTextLightHex").textContent = tl;
+  if (pd) document.getElementById("themePrimaryDarkHex").textContent = pd;
+  if (sd) document.getElementById("themeSecondaryDarkHex").textContent = sd;
+  if (td) document.getElementById("themeTextDarkHex").textContent = td;
+}
+
+function updatePresetActiveState(presetName) {
+  document.querySelectorAll(".preset-card").forEach(card => {
+    card.classList.toggle("active", card.dataset.preset === presetName);
+  });
+}
+
+// Sincronizar previsualización de burbujas en la tarjeta Personalizado (Custom)
+function updateCustomPresetVisuals(colors) {
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const prim = isDarkMode ? colors.primaryDark : colors.primaryLight;
+  const sec = isDarkMode ? colors.secondaryDark : colors.secondaryLight;
+  const text = isDarkMode ? colors.textDark : colors.textLight;
+
+  const dotPrimary = document.getElementById("presetDotCustomPrimary");
+  const dotSecondary = document.getElementById("presetDotCustomSecondary");
+  const dotText = document.getElementById("presetDotCustomText");
+
+  if (dotPrimary) dotPrimary.style.backgroundColor = prim;
+  if (dotSecondary) dotSecondary.style.backgroundColor = sec;
+  if (dotText) dotText.style.backgroundColor = text;
+}
+
+document.querySelectorAll(".preset-card").forEach(card => {
+  card.addEventListener("click", () => {
+    const presetName = card.dataset.preset;
+    const colors = presets[presetName];
+    if (colors) {
+      if (document.getElementById("themePrimaryLight")) document.getElementById("themePrimaryLight").value = colors.primaryLight;
+      if (document.getElementById("themeSecondaryLight")) document.getElementById("themeSecondaryLight").value = colors.secondaryLight;
+      if (document.getElementById("themeTextLight")) document.getElementById("themeTextLight").value = colors.textLight;
+      if (document.getElementById("themePrimaryDark")) document.getElementById("themePrimaryDark").value = colors.primaryDark;
+      if (document.getElementById("themeSecondaryDark")) document.getElementById("themeSecondaryDark").value = colors.secondaryDark;
+      if (document.getElementById("themeTextDark")) document.getElementById("themeTextDark").value = colors.textDark;
+      
+      updateHexLabels();
+      updatePresetActiveState(presetName);
+      applyClientTheme(colors);
+      if (presetName === "Custom") {
+        updateCustomPresetVisuals(colors);
+      }
+    }
+  });
+});
+
+const getCurrentThemeColors = () => ({
+  primaryLight: document.getElementById("themePrimaryLight")?.value || "#5f7f6c",
+  secondaryLight: document.getElementById("themeSecondaryLight")?.value || "#b67a52",
+  textLight: document.getElementById("themeTextLight")?.value || "#24302b",
+  primaryDark: document.getElementById("themePrimaryDark")?.value || "#8fac98",
+  secondaryDark: document.getElementById("themeSecondaryDark")?.value || "#d0a27d",
+  textDark: document.getElementById("themeTextDark")?.value || "#edf2ee"
+});
+
+["themePrimaryLight", "themeSecondaryLight", "themeTextLight", "themePrimaryDark", "themeSecondaryDark", "themeTextDark"].forEach(id => {
+  document.getElementById(id)?.addEventListener("input", () => {
+    const val = document.getElementById(id).value;
+    const hexEl = document.getElementById(id + "Hex");
+    if (hexEl) hexEl.textContent = val;
+    
+    const currentColors = getCurrentThemeColors();
+    
+    // Guardar dinámicamente en presets.Custom
+    presets.Custom = { ...currentColors };
+    updateCustomPresetVisuals(currentColors);
+    
+    applyClientTheme(currentColors);
+    updatePresetActiveState("Custom");
+  });
+});
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  const currentColors = getCurrentThemeColors();
+  updateCustomPresetVisuals(currentColors);
+  applyClientTheme(currentColors);
+});
+
+async function fetchThemeOnStartup() {
+  try {
+    const response = await fetch(`${normalizeUrl(state.apiBaseUrl)}/api/settings/theme`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    });
+    if (response.ok) {
+      const colors = await response.json();
+      applyClientTheme(colors);
+    }
+  } catch (error) {
+    console.warn("No se pudo cargar el tema dinámico del backend. Usando tema natural por defecto.", error);
+    applyClientTheme(presets.Natural);
+  }
+}
+
+async function loadThemeSettings() {
+  const messageEl = document.getElementById("settingsMessage");
+  setMessage(messageEl, "Cargando colores de tema...");
+  try {
+    const colors = await apiFetch("/api/settings/theme", {
+      method: "GET",
+      headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {}
+    });
+    
+    const primaryLight = colors.primaryLight || "#5f7f6c";
+    const secondaryLight = colors.secondaryLight || "#b67a52";
+    const textLight = colors.textLight || "#24302b";
+    const primaryDark = colors.primaryDark || "#8fac98";
+    const secondaryDark = colors.secondaryDark || "#d0a27d";
+    const textDark = colors.textDark || "#edf2ee";
+
+    if (document.getElementById("themePrimaryLight")) document.getElementById("themePrimaryLight").value = primaryLight;
+    if (document.getElementById("themeSecondaryLight")) document.getElementById("themeSecondaryLight").value = secondaryLight;
+    if (document.getElementById("themeTextLight")) document.getElementById("themeTextLight").value = textLight;
+    if (document.getElementById("themePrimaryDark")) document.getElementById("themePrimaryDark").value = primaryDark;
+    if (document.getElementById("themeSecondaryDark")) document.getElementById("themeSecondaryDark").value = secondaryDark;
+    if (document.getElementById("themeTextDark")) document.getElementById("themeTextDark").value = textDark;
+    
+    updateHexLabels();
+
+    // Actualizar el preset Custom con los colores cargados de la BD
+    presets.Custom = {
+      primaryLight,
+      secondaryLight,
+      textLight,
+      primaryDark,
+      secondaryDark,
+      textDark
+    };
+    updateCustomPresetVisuals(presets.Custom);
+    
+    let matchedPreset = null;
+    for (const [name, pColors] of Object.entries(presets)) {
+      if (name === "Custom") continue;
+      if (pColors.primaryLight.toLowerCase() === primaryLight.toLowerCase() &&
+          pColors.secondaryLight.toLowerCase() === secondaryLight.toLowerCase() &&
+          pColors.textLight.toLowerCase() === textLight.toLowerCase() &&
+          pColors.primaryDark.toLowerCase() === primaryDark.toLowerCase() &&
+          pColors.secondaryDark.toLowerCase() === secondaryDark.toLowerCase() &&
+          pColors.textDark.toLowerCase() === textDark.toLowerCase()) {
+        matchedPreset = name;
+        break;
+      }
+    }
+    
+    if (!matchedPreset) {
+      matchedPreset = "Custom";
+    }
+    
+    updatePresetActiveState(matchedPreset);
+    applyClientTheme(presets[matchedPreset]);
+    setMessage(messageEl, "Configuración cargada correctamente.", "success");
+  } catch (error) {
+    setMessage(messageEl, `Error al cargar la configuración: ${error.message}`, "error");
+  }
+}
+
+document.getElementById("themeSettingsForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const messageEl = document.getElementById("settingsMessage");
+  setMessage(messageEl, "Guardando colores...");
+  
+  const colors = getCurrentThemeColors();
+  
+  try {
+    await apiFetch("/api/settings/theme", {
+      method: "PUT",
+      headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {},
+      body: JSON.stringify(colors)
+    });
+    
+    presets.Custom = { ...colors };
+    updateCustomPresetVisuals(colors);
+    applyClientTheme(colors);
+    
+    // Determinar si corresponde a algún preset predefinido o es Personalizado
+    let matchedPreset = null;
+    for (const [name, pColors] of Object.entries(presets)) {
+      if (name === "Custom") continue;
+      if (pColors.primaryLight.toLowerCase() === colors.primaryLight.toLowerCase() &&
+          pColors.secondaryLight.toLowerCase() === colors.secondaryLight.toLowerCase() &&
+          pColors.textLight.toLowerCase() === colors.textLight.toLowerCase() &&
+          pColors.primaryDark.toLowerCase() === colors.primaryDark.toLowerCase() &&
+          pColors.secondaryDark.toLowerCase() === colors.secondaryDark.toLowerCase() &&
+          pColors.textDark.toLowerCase() === colors.textDark.toLowerCase()) {
+        matchedPreset = name;
+        break;
+      }
+    }
+    
+    if (!matchedPreset) {
+      matchedPreset = "Custom";
+    }
+    
+    updatePresetActiveState(matchedPreset);
+    setMessage(messageEl, "¡Colores guardados exitosamente! Se han propagado al sistema.", "success");
+  } catch (error) {
+    setMessage(messageEl, `Error al guardar los colores: ${error.message}`, "error");
+  }
+});
+
+function createSafeZoneMarkerElement(isActive = true) {
+  const element = document.createElement("div");
+  element.className = isActive ? "safe-zone-pin" : "safe-zone-pin safe-zone-pin--inactive";
+  element.innerHTML = '<span class="safe-zone-pin__icon">🛡️</span>';
+  return element;
+}
+
+function clearSafeZoneMarkers(markers) {
+  markers.forEach((marker) => marker.remove());
+  markers.length = 0;
+}
+
+async function ensurePublicSafeZonesLoaded() {
+  if (state.publicSafeZones.length) {
+    return state.publicSafeZones;
+  }
+
+  const zones = await apiFetch("/api/safe-zones");
+  state.publicSafeZones = Array.isArray(zones) ? zones : [];
+  return state.publicSafeZones;
+}
+
+async function refreshPublicSafeZoneMarkersOnMap(map, markersKey) {
+  if (!map || typeof mapboxgl === "undefined") {
+    return;
+  }
+
+  const markers = state[markersKey];
+  if (!markers) {
+    return;
+  }
+
+  clearSafeZoneMarkers(markers);
+
+  try {
+    const zones = await ensurePublicSafeZonesLoaded();
+    zones.filter((zone) => zone.isActive !== false).forEach((zone) => {
+      const marker = new mapboxgl.Marker({
+        element: createSafeZoneMarkerElement(true),
+        anchor: "bottom"
+      })
+        .setLngLat([zone.longitude, zone.latitude])
+        .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(
+          `<strong>${escapeHtml(zone.name)}</strong><br/><small>${escapeHtml(zone.purposeLabel || "")}</small>`
+        ))
+        .addTo(map);
+      markers.push(marker);
+    });
+  } catch (error) {
+    console.warn("No se pudieron cargar zonas seguras en el mapa:", error.message);
+  }
+}
+
+function getSafeZonePurposeLabel(purpose) {
+  const value = Number(purpose);
+  if (value === 1) {
+    return "Solo recogida";
+  }
+  if (value === 2) {
+    return "Solo destino";
+  }
+  return "Recogida y destino";
+}
+
+function renderSafeZonesTable(zones) {
+  if (!adminSafeZonesBody) {
+    return;
+  }
+
+  if (!zones.length) {
+    adminSafeZonesBody.innerHTML = `<tr><td colspan="6">No hay zonas seguras registradas.</td></tr>`;
+    return;
+  }
+
+  adminSafeZonesBody.innerHTML = zones.map((zone) => `
+    <tr data-search="${escapeHtml(`${zone.name} ${zone.campusArea || ""} ${zone.addressLabel || ""}`.toLowerCase())}">
+      <td>${escapeHtml(zone.name)}</td>
+      <td>${escapeHtml(zone.campusArea || "-")}</td>
+      <td>${escapeHtml(zone.purposeLabel || getSafeZonePurposeLabel(zone.purpose))}</td>
+      <td>${zone.isActive ? "Activa" : "Inactiva"}</td>
+      <td>${zone.latitude?.toFixed?.(5) ?? zone.latitude}, ${zone.longitude?.toFixed?.(5) ?? zone.longitude}</td>
+      <td class="table-actions">
+        ${hasPermission('trips:write') ? `
+          <button type="button" class="btn tiny" data-safe-zone-action="edit" data-id="${zone.id}">Editar</button>
+          <button type="button" class="btn tiny danger" data-safe-zone-action="delete" data-id="${zone.id}">Eliminar</button>
+        ` : ''}
+      </td>
+    </tr>
+  `).join("");
+}
+
+function applySafeZonesTableFilter() {
+  applyTableFilter("adminSafeZonesBody", safeZonesFilterInput?.value || "");
+}
+
+async function loadSafeZonesAdmin() {
+  if (!safeZonesDataMessage) {
+    return;
+  }
+
+  setMessage(safeZonesDataMessage, "Cargando zonas seguras...", "");
+
+  try {
+    const zones = await apiFetch("/api/admin/safe-zones", {
+      headers: getAdminHeaders()
+    });
+    state.safeZones = Array.isArray(zones) ? zones : [];
+    state.publicSafeZones = state.safeZones.filter((zone) => zone.isActive);
+    renderSafeZonesTable(state.safeZones);
+    applySafeZonesTableFilter();
+    setMessage(safeZonesDataMessage, `${state.safeZones.length} zona(s) cargada(s).`, "success");
+    window.requestAnimationFrame(() => initializeSafeZonesOverviewMap());
+  } catch (error) {
+    state.safeZones = [];
+    renderSafeZonesTable([]);
+    setMessage(safeZonesDataMessage, error.message, "error");
+  }
+}
+
+function destroySafeZonesOverviewMap() {
+  clearSafeZoneMarkers(state.safeZoneOverviewMarkers);
+  if (state.safeZoneOverviewMap) {
+    state.safeZoneOverviewMap.remove();
+    state.safeZoneOverviewMap = null;
+  }
+  state.safeZoneOverviewMapReady = false;
+}
+
+function renderSafeZonesOnOverviewMap() {
+  if (!state.safeZoneOverviewMap || !state.safeZoneOverviewMapReady) {
+    return;
+  }
+
+  clearSafeZoneMarkers(state.safeZoneOverviewMarkers);
+
+  state.safeZones.forEach((zone) => {
+    const marker = new mapboxgl.Marker({
+      element: createSafeZoneMarkerElement(zone.isActive),
+      anchor: "bottom"
+    })
+      .setLngLat([zone.longitude, zone.latitude])
+      .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(
+        `<strong>${escapeHtml(zone.name)}</strong><br/><small>${escapeHtml(zone.purposeLabel || getSafeZonePurposeLabel(zone.purpose))}</small>`
+      ))
+      .addTo(state.safeZoneOverviewMap);
+    state.safeZoneOverviewMarkers.push(marker);
+  });
+
+  if (state.safeZones.length) {
+    const bounds = new mapboxgl.LngLatBounds();
+    state.safeZones.forEach((zone) => bounds.extend([zone.longitude, zone.latitude]));
+    state.safeZoneOverviewMap.fitBounds(bounds, { padding: 48, maxZoom: 14 });
+  }
+}
+
+function initializeSafeZonesOverviewMap() {
+  const container = document.getElementById("safeZonesOverviewMap");
+  if (!container || typeof mapboxgl === "undefined") {
+    return;
+  }
+
+  if (state.safeZoneOverviewMap) {
+    renderSafeZonesOnOverviewMap();
+    return;
+  }
+
+  mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+  const fallbackCenter = state.safeZones[0]
+    ? [state.safeZones[0].longitude, state.safeZones[0].latitude]
+    : [-74.0721, 4.7110];
+
+  state.safeZoneOverviewMap = new mapboxgl.Map({
+    container,
+    style: "mapbox://styles/mapbox/streets-v12",
+    center: fallbackCenter,
+    zoom: 12
+  });
+
+  state.safeZoneOverviewMap.addControl(new mapboxgl.NavigationControl(), "top-right");
+  state.safeZoneOverviewMap.on("load", () => {
+    state.safeZoneOverviewMapReady = true;
+    renderSafeZonesOnOverviewMap();
+  });
+}
+
+function destroySafeZoneEditMap() {
+  if (state.safeZoneEditMarker) {
+    state.safeZoneEditMarker.remove();
+    state.safeZoneEditMarker = null;
+  }
+
+  if (state.safeZoneEditMap) {
+    state.safeZoneEditMap.remove();
+    state.safeZoneEditMap = null;
+  }
+
+  state.safeZoneEditMapReady = false;
+  state.safeZoneDraftPoint = null;
+}
+
+function updateSafeZoneCoordsHint() {
+  if (!safeZoneCoordsHint) {
+    return;
+  }
+
+  if (!state.safeZoneDraftPoint) {
+    safeZoneCoordsHint.textContent = "Coordenadas: sin definir";
+    return;
+  }
+
+  safeZoneCoordsHint.textContent = `Coordenadas: ${state.safeZoneDraftPoint.lat.toFixed(6)}, ${state.safeZoneDraftPoint.lng.toFixed(6)}`;
+}
+
+function updateSafeZoneEditMapMarker() {
+  if (!state.safeZoneEditMap || !state.safeZoneDraftPoint) {
+    return;
+  }
+
+  const coordinates = [state.safeZoneDraftPoint.lng, state.safeZoneDraftPoint.lat];
+  if (!state.safeZoneEditMarker) {
+    state.safeZoneEditMarker = new mapboxgl.Marker({
+      element: createSafeZoneMarkerElement(true),
+      anchor: "bottom",
+      draggable: true
+    })
+      .setLngLat(coordinates)
+      .addTo(state.safeZoneEditMap);
+
+    state.safeZoneEditMarker.on("dragend", () => {
+      const lngLat = state.safeZoneEditMarker.getLngLat();
+      state.safeZoneDraftPoint = {
+        lng: Number(lngLat.lng.toFixed(6)),
+        lat: Number(lngLat.lat.toFixed(6))
+      };
+      updateSafeZoneCoordsHint();
+    });
+  } else {
+    state.safeZoneEditMarker.setLngLat(coordinates);
+  }
+}
+
+function initializeSafeZoneEditMap() {
+  const container = document.getElementById("safeZoneEditMap");
+  if (!container || typeof mapboxgl === "undefined") {
+    setMessage(safeZoneModalMessage, "El mapa no pudo inicializarse.", "error");
+    return;
+  }
+
+  destroySafeZoneEditMap();
+  mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+
+  const fallbackCenter = state.safeZoneDraftPoint
+    ? [state.safeZoneDraftPoint.lng, state.safeZoneDraftPoint.lat]
+    : [-74.0721, 4.7110];
+
+  state.safeZoneEditMap = new mapboxgl.Map({
+    container,
+    style: "mapbox://styles/mapbox/streets-v12",
+    center: fallbackCenter,
+    zoom: 13
+  });
+
+  state.safeZoneEditMap.addControl(new mapboxgl.NavigationControl(), "top-right");
+  state.safeZoneEditMap.on("load", () => {
+    state.safeZoneEditMapReady = true;
+    updateSafeZoneEditMapMarker();
+  });
+
+  state.safeZoneEditMap.on("click", (event) => {
+    state.safeZoneDraftPoint = {
+      lng: Number(event.lngLat.lng.toFixed(6)),
+      lat: Number(event.lngLat.lat.toFixed(6))
+    };
+    updateSafeZoneCoordsHint();
+    updateSafeZoneEditMapMarker();
+  });
+}
+
+function openSafeZoneModal(zone = null) {
+  if (!safeZoneModalOverlay || !safeZoneModalForm) {
+    return;
+  }
+
+  destroySafeZoneEditMap();
+  setMessage(safeZoneModalMessage, "");
+
+  const isEdit = Boolean(zone);
+  safeZoneModalTitle.textContent = isEdit ? "Editar zona segura" : "Nueva zona segura";
+  document.getElementById("safeZoneEditId").value = isEdit ? zone.id : "";
+  document.getElementById("safeZoneName").value = zone?.name || "";
+  document.getElementById("safeZoneCampusArea").value = zone?.campusArea || "";
+  document.getElementById("safeZoneDescription").value = zone?.description || "";
+  document.getElementById("safeZonePurpose").value = String(zone?.purpose ?? 0);
+  document.getElementById("safeZoneDisplayOrder").value = String(zone?.displayOrder ?? 0);
+  document.getElementById("safeZoneIsActive").checked = zone?.isActive !== false;
+
+  state.safeZoneDraftPoint = zone
+    ? { lat: zone.latitude, lng: zone.longitude }
+    : null;
+  updateSafeZoneCoordsHint();
+
+  safeZoneModalOverlay.classList.remove("hidden");
+  safeZoneModalOverlay.setAttribute("aria-hidden", "false");
+
+  window.requestAnimationFrame(() => initializeSafeZoneEditMap());
+}
+
+function closeSafeZoneModal() {
+  destroySafeZoneEditMap();
+  if (safeZoneModalOverlay) {
+    safeZoneModalOverlay.classList.add("hidden");
+    safeZoneModalOverlay.setAttribute("aria-hidden", "true");
+  }
+  setMessage(safeZoneModalMessage, "");
+}
+
+async function deleteSafeZone(id) {
+  const confirmed = confirm("Eliminar esta zona segura? Los usuarios dejaran de verla en el mapa.");
+  if (!confirmed) {
+    return;
+  }
+
+  await apiFetch(`/api/admin/safe-zones/${id}`, {
+    method: "DELETE",
+    headers: getAdminHeaders()
+  });
+
+  state.publicSafeZones = [];
+  await loadSafeZonesAdmin();
+}
+
+safeZonesReloadBtn?.addEventListener("click", () => loadSafeZonesAdmin());
+safeZoneCreateBtn?.addEventListener("click", () => openSafeZoneModal());
+safeZonesFilterInput?.addEventListener("input", applySafeZonesTableFilter);
+safeZoneModalCloseBtn?.addEventListener("click", closeSafeZoneModal);
+
+safeZoneModalOverlay?.addEventListener("click", (event) => {
+  if (event.target === safeZoneModalOverlay) {
+    closeSafeZoneModal();
+  }
+});
+
+safeZoneModalForm?.addEventListener("click", (event) => {
+  const action = event.target.closest("[data-safe-zone-action]")?.dataset.safeZoneAction;
+  if (action === "cancel") {
+    closeSafeZoneModal();
+  }
+  if (action === "clear-point") {
+    state.safeZoneDraftPoint = null;
+    if (state.safeZoneEditMarker) {
+      state.safeZoneEditMarker.remove();
+      state.safeZoneEditMarker = null;
+    }
+    updateSafeZoneCoordsHint();
+  }
+});
+
+safeZoneModalForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const id = document.getElementById("safeZoneEditId")?.value.trim() || "";
+  const name = document.getElementById("safeZoneName")?.value.trim() || "";
+  const campusArea = document.getElementById("safeZoneCampusArea")?.value.trim() || null;
+  const description = document.getElementById("safeZoneDescription")?.value.trim() || null;
+  const purpose = Number(document.getElementById("safeZonePurpose")?.value || 0);
+  const displayOrder = Number(document.getElementById("safeZoneDisplayOrder")?.value || 0);
+  const isActive = document.getElementById("safeZoneIsActive")?.checked ?? true;
+
+  if (!name) {
+    setMessage(safeZoneModalMessage, "El nombre es obligatorio.", "error");
+    return;
+  }
+
+  if (!state.safeZoneDraftPoint) {
+    setMessage(safeZoneModalMessage, "Marca la ubicacion en el mapa.", "error");
+    return;
+  }
+
+  const payload = {
+    name,
+    description,
+    campusArea,
+    purpose,
+    displayOrder,
+    isActive,
+    latitude: state.safeZoneDraftPoint.lat,
+    longitude: state.safeZoneDraftPoint.lng
+  };
+
+  try {
+    if (id) {
+      await apiFetch(`/api/admin/safe-zones/${id}`, {
+        method: "PUT",
+        headers: getAdminHeaders(),
+        body: JSON.stringify(payload)
+      });
+    } else {
+      await apiFetch("/api/admin/safe-zones", {
+        method: "POST",
+        headers: getAdminHeaders(),
+        body: JSON.stringify(payload)
+      });
+    }
+
+    state.publicSafeZones = [];
+    closeSafeZoneModal();
+    await loadSafeZonesAdmin();
+  } catch (error) {
+    setMessage(safeZoneModalMessage, error.message, "error");
+  }
+});
+
+document.addEventListener("click", (event) => {
+  const safeZoneButton = event.target.closest("[data-safe-zone-action]");
+  if (!safeZoneButton || !safeZoneButton.dataset.id) {
+    return;
+  }
+
+  const zone = state.safeZones.find((item) => String(item.id) === String(safeZoneButton.dataset.id));
+  if (!zone) {
+    return;
+  }
+
+  if (safeZoneButton.dataset.safeZoneAction === "edit") {
+    openSafeZoneModal(zone);
+  }
+
+  if (safeZoneButton.dataset.safeZoneAction === "delete") {
+    deleteSafeZone(zone.id).catch((error) => setMessage(safeZonesDataMessage, error.message, "error"));
+  }
+});
+
+// --- Admins Management & Modal logic ---
+const adminCreateBtn = document.getElementById("adminCreateBtn");
+const adminModalOverlay = document.getElementById("adminModalOverlay");
+const adminModalCloseBtn = document.getElementById("adminModalCloseBtn");
+const adminModalCancelBtn = document.getElementById("adminModalCancelBtn");
+const adminModalForm = document.getElementById("adminModalForm");
+const adminModalMessage = document.getElementById("adminModalMessage");
+const adminRolePreset = document.getElementById("adminRolePreset");
+const adminCustomRoleNameContainer = document.getElementById("adminCustomRoleNameContainer");
+const adminCustomRoleName = document.getElementById("adminCustomRoleName");
+const permissionCheckboxes = document.querySelectorAll('#adminModalForm input[name="permissions"]');
+
+function formatRoleNameCleanly(roleName) {
+  if (!roleName) return "Admin";
+  if (roleName === "SuperAdmin") return "Super Administrador";
+  
+  const match = roleName.match(/^Admin\s*-\s*(.+?)\s*\([^\)]+\)$/);
+  if (match) {
+    return match[1];
+  }
+  
+  if (roleName.startsWith("Admin - ")) {
+    return roleName.substring(8);
+  }
+  
+  return roleName;
+}
+
+function renderAdminsTable(users) {
+  const adminAdminsBody = document.getElementById("adminAdminsBody");
+  if (!adminAdminsBody) {
+    return;
+  }
+
+  const admins = users.filter(u => u.role === "admin");
+
+  if (!admins.length) {
+    adminAdminsBody.innerHTML = '<tr><td colspan="5">Sin administradores.</td></tr>';
+    return;
+  }
+
+  adminAdminsBody.innerHTML = admins.map((user) => {
+    const cleanRoles = (user.rawRoles && user.rawRoles.length > 0) 
+      ? user.rawRoles.map(formatRoleNameCleanly).join(", ") 
+      : "Admin";
+    const permsText = (user.permissions && user.permissions.length > 0) 
+      ? user.permissions.join(", ") 
+      : "Ninguno";
+
+    return `
+      <tr>
+        <td>${escapeHtml(user.fullName)}</td>
+        <td>${escapeHtml(user.email)}</td>
+        <td>${escapeHtml(cleanRoles)}</td>
+        <td><small style="color: var(--muted);">${escapeHtml(permsText)}</small></td>
+        <td>${escapeHtml(formatDateTime(user.createdAt))}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function handlePresetChange() {
+  const preset = adminRolePreset.value;
+  const adminPresets = {
+    Soporte: ["support:read", "support:write", "users:read", "metrics:view"],
+    Analista: ["metrics:view", "users:read", "trips:read", "reservations:read"],
+    Secretariado: ["users:read", "users:write", "trips:read", "reservations:read"],
+    Personalizado: []
+  };
+
+  if (preset === "Personalizado") {
+    adminCustomRoleNameContainer.classList.remove("hidden");
+    adminCustomRoleName.required = true;
+    permissionCheckboxes.forEach(cb => {
+      cb.disabled = false;
+    });
+  } else {
+    adminCustomRoleNameContainer.classList.add("hidden");
+    adminCustomRoleName.required = false;
+    adminCustomRoleName.value = "";
+    const allowedPerms = adminPresets[preset] || [];
+    permissionCheckboxes.forEach(cb => {
+      cb.checked = allowedPerms.includes(cb.value);
+      cb.disabled = true;
+    });
+  }
+}
+
+adminRolePreset?.addEventListener("change", handlePresetChange);
+
+adminCreateBtn?.addEventListener("click", () => {
+  if (adminModalForm) {
+    adminModalForm.reset();
+  }
+  if (adminModalMessage) {
+    setMessage(adminModalMessage, "");
+  }
+  
+  if (adminRolePreset) {
+    adminRolePreset.value = "Soporte";
+    handlePresetChange();
+  }
+
+  adminModalOverlay?.classList.remove("hidden");
+  adminModalOverlay?.setAttribute("aria-hidden", "false");
+});
+
+function closeAdminModal() {
+  adminModalOverlay?.classList.add("hidden");
+  adminModalOverlay?.setAttribute("aria-hidden", "true");
+  if (adminModalMessage) {
+    setMessage(adminModalMessage, "");
+  }
+}
+
+adminModalCloseBtn?.addEventListener("click", closeAdminModal);
+adminModalCancelBtn?.addEventListener("click", closeAdminModal);
+
+adminModalForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const fullName = document.getElementById("adminFullName").value.trim();
+  const email = document.getElementById("adminEmail").value.trim().toLowerCase();
+  const password = document.getElementById("adminPassword").value;
+  const preset = adminRolePreset.value;
+  
+  let roleName = "";
+  if (preset === "Personalizado") {
+    roleName = adminCustomRoleName.value.trim();
+  } else {
+    roleName = preset;
+  }
+
+  const permissions = Array.from(permissionCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+
+  if (!fullName || !email || !password) {
+    setMessage(adminModalMessage, "Todos los campos son obligatorios.", "error");
+    return;
+  }
+
+  if (!email.endsWith("@univalle.edu")) {
+    setMessage(adminModalMessage, "Solo se permiten correos institucionales @univalle.edu", "error");
+    return;
+  }
+
+  setMessage(adminModalMessage, "Creando cuenta de administrador...", "");
+
+  try {
+    const payload = {
+      fullName,
+      email,
+      password,
+      roleName,
+      permissions
+    };
+
+    await apiFetch("/api/admin/users/create-web-admin", {
+      method: "POST",
+      headers: getAdminHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    setMessage(adminModalMessage, "Administrador creado correctamente.", "success");
+    setTimeout(() => {
+      closeAdminModal();
+      loadAdminData();
+    }, 1500);
+  } catch (error) {
+    setMessage(adminModalMessage, error.message, "error");
+  }
+});
+
+document.getElementById("adminsFilterInput")?.addEventListener("input", (event) => {
+  applyTableFilter("adminAdminsBody", event.target.value);
+});
+
+paymentsFilterInput?.addEventListener("input", applyPaymentsFilter);
+paymentsStatusFilter?.addEventListener("change", applyPaymentsFilter);
+paymentsReloadBtn?.addEventListener("click", loadAdminPayments);
+
+// Startup Execution
+fetchThemeOnStartup().finally(() => {
+  if (state.currentUser) {
+    if (Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+      startSession(state.currentUser);
+    } else {
+      logout();
+      setMessage(loginMessage, "La sesion guardada no corresponde a un administrador.", "error");
+    }
+  } else {
+    updateApiStatus(false);
+  }
+});

@@ -2,7 +2,7 @@ Panel Administrativo Web - CarPooling
 
 Este modulo implementa:
 - Layout principal (sidebar + topbar + dashboard)
-- Navegacion por secciones: Resumen, Usuarios, Viajes y Reportes
+- Navegacion por secciones: Resumen, Usuarios, Viajes, Reservas, Soporte, Zonas seguras y Ajustes
 - Login administrativo
 - Conexion a endpoints basicos del backend
 
@@ -24,6 +24,7 @@ Como usar:
 	- Registrar y buscar usuarios
 	- Crear y gestionar viajes
 	- Consultar reportes de reservas por viaje
+	- Crear, editar y eliminar zonas seguras en el mapa (visibles en la app movil)
 
 Notas:
 - El panel usa localStorage para recordar sesion y URL base de API.

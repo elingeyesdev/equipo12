@@ -2,6 +2,7 @@ using CarPooling.Data;
 using CarPooling.Dtos;
 using CarPooling.Models;
 using CarPooling.Services;
+using CarPooling.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,17 +12,23 @@ namespace CarPooling.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+<<<<<<< HEAD
 [Authorize(Roles = "Admin")]
 public class AdminController(
     CarPoolingContext context,
     SupportTicketService supportTicketService,
     SupportTicketMessagingService supportTicketMessagingService) : ControllerBase
+=======
+[Authorize]
+public class AdminController(CarPoolingContext context, SupportTicketService supportTicketService) : ControllerBase
+>>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 {
     private readonly CarPoolingContext _context = context;
     private readonly SupportTicketService _supportTicketService = supportTicketService;
     private readonly SupportTicketMessagingService _supportTicketMessagingService = supportTicketMessagingService;
 
     [HttpGet("users")]
+    [RequirePermission(AppPermissions.ReadUsers)]
     public async Task<ActionResult<IReadOnlyList<UserResponseDto>>> GetAllUsersAsync(
         [FromQuery] string? name,
         [FromQuery] string? email)
@@ -29,6 +36,9 @@ public class AdminController(
         var usersQuery = _context.Users
             .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(name))
@@ -51,10 +61,14 @@ public class AdminController(
     }
 
     [HttpPut("users/{id:guid}")]
+    [RequirePermission(AppPermissions.WriteUsers)]
     public async Task<ActionResult<UserResponseDto>> UpdateUserAsync(Guid id, [FromBody] AdminUpdateUserDto dto)
     {
         var user = await _context.Users
             .Include(u => u.DriverProfile)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null)
         {
@@ -73,16 +87,33 @@ public class AdminController(
             return Conflict("El email ingresado ya esta en uso por otro usuario.");
         }
 
-        if (!TryParseAdminRoleId(dto.RoleId, out var role))
+        Role? targetRole = null;
+        if (dto.CustomRoleId.HasValue && dto.CustomRoleId.Value != Guid.Empty)
         {
-            return BadRequest("RoleId invalido. Usa 1 (student), 2 (driver) o 3 (admin).");
+            targetRole = await _context.Roles.FirstOrDefaultAsync(r => r.Id == dto.CustomRoleId.Value);
+        }
+        else
+        {
+            string roleName = dto.RoleId switch
+            {
+                1 => "Student",
+                2 => "Driver",
+                3 => "SuperAdmin",
+                _ => "Student"
+            };
+            targetRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
+        }
+
+        if (targetRole == null)
+        {
+            return BadRequest("El Rol especificado no existe.");
         }
 
         user.FullName = dto.FullName.Trim();
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
-        user.Role = role;
 
+<<<<<<< HEAD
         if (!string.IsNullOrWhiteSpace(dto.Password))
         {
             var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(dto.Password));
@@ -90,6 +121,17 @@ public class AdminController(
         }
 
         if (role == UserRole.Driver)
+=======
+        // Clear existing and assign new role
+        var oldUserRoles = user.UserRoles.ToList();
+        foreach (var ur in oldUserRoles)
+        {
+            _context.UserRoles.Remove(ur);
+        }
+        _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = targetRole.Id });
+
+        if (targetRole.Name == "Driver")
+>>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
         {
             if (user.DriverProfile is null)
             {
@@ -118,10 +160,14 @@ public class AdminController(
 
         await _context.SaveChangesAsync();
 
+        // Force load vehicles for UserResponseDto
+        await _context.Entry(user).Collection(u => u.Vehicles).LoadAsync();
+
         return Ok(UserResponseDto.FromEntity(user));
     }
 
     [HttpDelete("users/{id:guid}")]
+    [RequirePermission(AppPermissions.DeleteUsers)]
     public async Task<IActionResult> DeleteUserAsync(Guid id)
     {
         var user = await _context.Users
@@ -139,6 +185,7 @@ public class AdminController(
     }
 
     [HttpGet("trips")]
+    [RequirePermission(AppPermissions.ReadTrips)]
     public async Task<ActionResult<IReadOnlyList<TripResponse>>> GetAllTripsAsync()
     {
         var trips = await _context.Trips
@@ -153,6 +200,7 @@ public class AdminController(
     }
 
     [HttpPut("trips/{id:guid}")]
+    [RequirePermission(AppPermissions.WriteTrips)]
     public async Task<ActionResult<TripResponse>> UpdateTripAsync(Guid id, [FromBody] AdminUpdateTripDto dto)
     {
         var trip = await _context.Trips
@@ -225,6 +273,7 @@ public class AdminController(
     }
 
     [HttpDelete("trips/{id:guid}")]
+    [RequirePermission(AppPermissions.DeleteTrips)]
     public async Task<IActionResult> DeleteTripAsync(Guid id)
     {
         var trip = await _context.Trips.FirstOrDefaultAsync(t => t.Id == id);
@@ -246,6 +295,7 @@ public class AdminController(
     }
 
     [HttpGet("reservations")]
+    [RequirePermission(AppPermissions.ReadReservations)]
     public async Task<ActionResult<IReadOnlyList<ReservationDto>>> GetAllReservationsAsync()
     {
         var reservations = await _context.Reservations
@@ -259,6 +309,7 @@ public class AdminController(
     }
 
     [HttpPut("reservations/{id:guid}")]
+    [RequirePermission(AppPermissions.WriteReservations)]
     public async Task<ActionResult<ReservationDto>> UpdateReservationAsync(Guid id, [FromBody] AdminUpdateReservationDto dto)
     {
         var reservation = await _context.Reservations
@@ -297,6 +348,7 @@ public class AdminController(
     }
 
     [HttpDelete("reservations/{id:guid}")]
+    [RequirePermission(AppPermissions.DeleteReservations)]
     public async Task<IActionResult> DeleteReservationAsync(Guid id)
     {
         var reservation = await _context.Reservations.FirstOrDefaultAsync(r => r.Id == id);
@@ -312,6 +364,7 @@ public class AdminController(
     }
 
     [HttpGet("support-tickets")]
+    [RequirePermission(AppPermissions.ReadSupport)]
     public async Task<ActionResult<SupportTicketListResponseDto>> GetSupportTicketsAsync(
         [FromQuery] int? status,
         [FromQuery] int? category)
@@ -321,6 +374,7 @@ public class AdminController(
     }
 
     [HttpGet("support-tickets/{id:guid}")]
+    [RequirePermission(AppPermissions.ReadSupport)]
     public async Task<ActionResult<SupportTicketResponseDto>> GetSupportTicketAsync(Guid id)
     {
         var ticket = await _supportTicketService.GetByIdForAdminAsync(id);
@@ -373,6 +427,7 @@ public class AdminController(
     }
 
     [HttpPatch("support-tickets/{id:guid}/status")]
+    [RequirePermission(AppPermissions.WriteSupport)]
     public async Task<ActionResult<SupportTicketResponseDto>> UpdateSupportTicketStatusAsync(
         Guid id,
         [FromBody] AdminUpdateSupportTicketStatusDto dto)
@@ -393,11 +448,15 @@ public class AdminController(
     }
 
     [HttpGet("all-data")]
+    [RequirePermission(AppPermissions.ViewMetrics)]
     public async Task<ActionResult<object>> GetAllDataAsync()
     {
         var users = await _context.Users
             .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
             .AsNoTracking()
             .OrderByDescending(u => u.CreatedAt)
             .ToListAsync();
@@ -425,23 +484,100 @@ public class AdminController(
         });
     }
 
+    [HttpPost("users/create-web-admin")]
+    [RequirePermission(AppPermissions.ManageRoles)]
+    public async Task<ActionResult<UserResponseDto>> CreateWebAdminAsync([FromBody] CreateWebAdminDto dto)
+    {
+        var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+        if (!IsUniversityEmail(normalizedEmail))
+        {
+            return BadRequest("Solo se permiten correos institucionales @univalle.edu");
+        }
+
+        var emailExists = await _context.Users.AnyAsync(u => u.Email == normalizedEmail);
+        if (emailExists)
+        {
+            return Conflict("El email ingresado ya esta en uso.");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.FullName))
+        {
+            return BadRequest("El nombre completo es obligatorio.");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
+        {
+            return BadRequest("La contraseña es obligatoria y debe tener al menos 6 caracteres.");
+        }
+
+        // 1. Create a custom Role for this admin user
+        var cleanRoleName = string.IsNullOrWhiteSpace(dto.RoleName) ? dto.FullName.Trim() : dto.RoleName.Trim();
+        var roleName = $"Admin - {cleanRoleName} ({normalizedEmail})";
+        if (roleName.Length > 100)
+        {
+            roleName = roleName.Substring(0, 100);
+        }
+
+        var customRole = new Role
+        {
+            Id = Guid.NewGuid(),
+            Name = roleName,
+            Description = $"Rol administrativo personalizado para {dto.FullName}",
+            IsSystemRole = false
+        };
+
+        _context.Roles.Add(customRole);
+
+        // 2. Add selected permissions
+        if (dto.Permissions != null && dto.Permissions.Count > 0)
+        {
+            foreach (var permissionId in dto.Permissions)
+            {
+                var permExists = await _context.Permissions.AnyAsync(p => p.Id == permissionId);
+                if (permExists)
+                {
+                    _context.RolePermissions.Add(new RolePermission
+                    {
+                        RoleId = customRole.Id,
+                        PermissionId = permissionId
+                    });
+                }
+            }
+        }
+
+        // 3. Create the User with hashed password
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = dto.FullName.Trim(),
+            Email = normalizedEmail,
+            PasswordHash = UsersController.HashPassword(dto.Password),
+            PhoneNumber = null
+        };
+
+        _context.Users.Add(user);
+
+        // 4. Link User to Custom Role
+        _context.UserRoles.Add(new UserRole
+        {
+            UserId = user.Id,
+            RoleId = customRole.Id
+        });
+
+        await _context.SaveChangesAsync();
+
+        // Load relations for mapper
+        await _context.Entry(user).Collection(u => u.UserRoles).Query().Include(ur => ur.Role).LoadAsync();
+
+        return Ok(UserResponseDto.FromEntity(user));
+    }
+
     private static bool IsUniversityEmail(string email)
     {
         return email.EndsWith("@univalle.edu", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool TryParseAdminRoleId(int roleId, out UserRole role)
-    {
-        role = roleId switch
-        {
-            1 => UserRole.Student,
-            2 => UserRole.Driver,
-            3 => UserRole.Admin,
-            _ => UserRole.Student
-        };
 
-        return roleId is 1 or 2 or 3;
-    }
 
     private static bool TryParseTripStatusId(string value, out int statusId)
     {
@@ -502,7 +638,11 @@ public class AdminController(
         public string Email { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
         public int RoleId { get; set; }
+<<<<<<< HEAD
         public string? Password { get; set; }
+=======
+        public Guid? CustomRoleId { get; set; }
+>>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
     }
 
     public sealed class AdminUpdateTripDto
@@ -522,5 +662,14 @@ public class AdminController(
         public Guid TripId { get; set; }
         public Guid PassengerUserId { get; set; }
         public string Status { get; set; } = string.Empty;
+    }
+
+    public sealed class CreateWebAdminDto
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string? RoleName { get; set; }
+        public List<string> Permissions { get; set; } = [];
     }
 }

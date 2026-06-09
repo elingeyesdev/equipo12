@@ -83,11 +83,12 @@ public class DriverMatchViewModel extends AndroidViewModel {
         public final double originLatitude, originLongitude;
         public final double destinationLatitude, destinationLongitude;
         public final String vehicleInfo;
+        public final String driverProfilePicture;
 
         public DriverCandidate(String tripId, String driverName, String routeDescription, int availableSeats,
                          double distanceKm, int etaMinutes, String tripStatusKey,
                          double originLatitude, double originLongitude,
-                         double destinationLatitude, double destinationLongitude, String vehicleInfo) {
+                         double destinationLatitude, double destinationLongitude, String vehicleInfo, String driverProfilePicture) {
             this.tripId = tripId;
             this.driverName = driverName;
             this.routeDescription = routeDescription;
@@ -100,6 +101,7 @@ public class DriverMatchViewModel extends AndroidViewModel {
             this.destinationLatitude = destinationLatitude;
             this.destinationLongitude = destinationLongitude;
             this.vehicleInfo = vehicleInfo;
+            this.driverProfilePicture = driverProfilePicture;
         }
 
         public boolean hasRouteEndpoints() {

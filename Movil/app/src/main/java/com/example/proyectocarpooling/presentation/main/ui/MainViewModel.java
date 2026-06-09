@@ -44,6 +44,8 @@ public class MainViewModel extends AndroidViewModel {
 
     private Point selectedOrigin;
     private Point selectedDestination;
+    private String selectedOriginAddress;
+    private String selectedDestinationAddress;
     private String activeTripId;
     private String lastTripStatusLabel;
     private int activeTripAvailableSeats;
@@ -66,8 +68,12 @@ public class MainViewModel extends AndroidViewModel {
 
     public Point getSelectedOrigin() { return selectedOrigin; }
     public void setSelectedOrigin(Point p) { this.selectedOrigin = p; }
+    public String getSelectedOriginAddress() { return selectedOriginAddress; }
+    public void setSelectedOriginAddress(String s) { this.selectedOriginAddress = s; }
     public Point getSelectedDestination() { return selectedDestination; }
     public void setSelectedDestination(Point p) { this.selectedDestination = p; }
+    public String getSelectedDestinationAddress() { return selectedDestinationAddress; }
+    public void setSelectedDestinationAddress(String s) { this.selectedDestinationAddress = s; }
     public String getActiveTripId() { return activeTripId; }
     public void setActiveTripId(String id) { this.activeTripId = id; }
     public String getLastTripStatusLabel() { return lastTripStatusLabel; }
@@ -82,10 +88,14 @@ public class MainViewModel extends AndroidViewModel {
     }
 
     public void createTrip(Point origin, Point destination, String vehicleId, ResultCallback<CreateTripResult> callback) {
+        createTrip(origin, destination, vehicleId, 10.0, callback);
+    }
+
+    public void createTrip(Point origin, Point destination, String vehicleId, double fareAmount, ResultCallback<CreateTripResult> callback) {
         String driverName = sessionManager.isDriver() ? sessionManager.getFullName() : null;
         String driverUserId = sessionManager.isDriver() ? sessionManager.getUserId() : null;
         taskRunner.runWithResult(
-                () -> createTripUseCase.execute(origin, destination, driverName, driverUserId, vehicleId),
+                () -> createTripUseCase.execute(origin, destination, driverName, driverUserId, vehicleId, fareAmount),
                 adapt(callback));
     }
 

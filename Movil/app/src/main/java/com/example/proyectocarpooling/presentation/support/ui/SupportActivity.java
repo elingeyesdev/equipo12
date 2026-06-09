@@ -1,5 +1,6 @@
 package com.example.proyectocarpooling.presentation.support.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -29,8 +30,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
-public class SupportActivity extends AppCompatActivity implements SupportTicketsAdapter.Listener {
+public class SupportActivity extends BaseActivity implements SupportTicketsAdapter.Listener {
 
     public static final String EXTRA_TRIP_ID = "extra_support_trip_id";
     public static final String EXTRA_RESERVATION_ID = "extra_support_reservation_id";
@@ -126,7 +128,12 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
 
         viewModel.getErrorEvent().observe(this, msg -> {
             if (msg != null && !msg.isEmpty()) {
-                Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                String cleanError = sanitizeError(msg);
+                new AlertDialog.Builder(this)
+                        .setTitle("Error de soporte")
+                        .setMessage(cleanError)
+                        .setPositiveButton("Aceptar", null)
+                        .show();
             }
         });
 
@@ -155,6 +162,8 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
         Spinner categorySpinner = dialogView.findViewById(R.id.supportDialogCategory);
         TextInputEditText subjectInput = dialogView.findViewById(R.id.supportDialogSubject);
         TextInputEditText descriptionInput = dialogView.findViewById(R.id.supportDialogDescription);
+        final TextInputLayout subjectLayout = dialogView.findViewById(R.id.supportDialogSubjectLayout);
+        final TextInputLayout descriptionLayout = dialogView.findViewById(R.id.supportDialogDescriptionLayout);
         TextView linkInfo = dialogView.findViewById(R.id.supportDialogLinkInfo);
 
         String[] categoryLabels = getResources().getStringArray(R.array.support_category_labels);
@@ -167,6 +176,22 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
         } else if (preselectedCategory == CATEGORY_RESERVATION) {
             categorySpinner.setSelection(1);
         }
+
+        subjectInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (subjectLayout != null) subjectLayout.setError(null);
+            }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
+
+        descriptionInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (descriptionLayout != null) descriptionLayout.setError(null);
+            }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
 
         AdapterView.OnItemSelectedListener linkListener = new AdapterView.OnItemSelectedListener() {
             @Override
@@ -195,11 +220,19 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
                     ? descriptionInput.getText().toString().trim() : "";
 
             if (subject.length() < 3) {
-                Toast.makeText(this, R.string.support_error_subject_min, Toast.LENGTH_LONG).show();
+                if (subjectLayout != null) {
+                    subjectLayout.setError(getString(R.string.support_error_subject_min));
+                } else {
+                    subjectInput.setError(getString(R.string.support_error_subject_min));
+                }
                 return;
             }
             if (description.length() < 10) {
-                Toast.makeText(this, R.string.support_error_description_min, Toast.LENGTH_LONG).show();
+                if (descriptionLayout != null) {
+                    descriptionLayout.setError(getString(R.string.support_error_description_min));
+                } else {
+                    descriptionInput.setError(getString(R.string.support_error_description_min));
+                }
                 return;
             }
 
@@ -211,13 +244,21 @@ public class SupportActivity extends AppCompatActivity implements SupportTickets
             if (category == CATEGORY_TRIP) {
                 tripId = linkedTripId;
                 if (tripId == null) {
-                    Toast.makeText(this, R.string.support_error_trip_required, Toast.LENGTH_LONG).show();
+                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(SupportActivity.this)
+                            .setTitle("Selección requerida")
+                            .setMessage(R.string.support_error_trip_required)
+                            .setPositiveButton(R.string.dialog_button_close, null)
+                            .show();
                     return;
                 }
             } else if (category == CATEGORY_RESERVATION) {
                 reservationId = linkedReservationId;
                 if (reservationId == null) {
-                    Toast.makeText(this, R.string.support_error_reservation_required, Toast.LENGTH_LONG).show();
+                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(SupportActivity.this)
+                            .setTitle("Selección requerida")
+                            .setMessage(R.string.support_error_reservation_required)
+                            .setPositiveButton(R.string.dialog_button_close, null)
+                            .show();
                     return;
                 }
             }

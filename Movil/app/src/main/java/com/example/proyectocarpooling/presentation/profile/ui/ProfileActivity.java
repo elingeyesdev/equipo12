@@ -1,6 +1,8 @@
 package com.example.proyectocarpooling.presentation.profile.ui;
 
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.os.Bundle;
+import android.content.Intent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -11,6 +13,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.widget.ImageView;
+import android.graphics.Bitmap;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -25,9 +31,11 @@ import com.example.proyectocarpooling.data.model.user.VehicleResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProfileActivity extends AppCompatActivity {
+public class ProfileActivity extends BaseActivity {
 
-    private EditText nameInput, emailInput, phoneInput, seatsInput, plateInput, brandInput, colorInput, newPasswordInput;
+    private EditText nameInput, emailInput, phoneInput, plateInput, newPasswordInput;
+    private android.widget.AutoCompleteTextView brandInput, colorInput;
+    private android.widget.Spinner seatsInput;
     private CheckBox hasVehicleCheckbox;
     private LinearLayout vehicleFieldsContainer;
     private Button saveButton, manageVehiclesButton, saveVehicleButton;
@@ -38,6 +46,36 @@ public class ProfileActivity extends AppCompatActivity {
     private String originalRole = "student";
     private String editingVehicleId = null;
     private ViewGroup vehicleFieldsParent;
+    private View profilePictureContainer;
+    private ImageView profilePicture;
+    private View profilePicturePlaceholder;
+    private TextView profilePictureInitials;
+    private String newBase64Image = "";
+
+    private final ActivityResultLauncher<Intent> cameraLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Bundle extras = result.getData().getExtras();
+                    if (extras != null) {
+                        Bitmap bitmap = (Bitmap) extras.get("data");
+                        processAndSetImage(bitmap);
+                    }
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<Intent> galleryLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    android.net.Uri selectedImage = result.getData().getData();
+                    if (selectedImage != null) {
+                        processGalleryUri(selectedImage);
+                    }
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +97,9 @@ public class ProfileActivity extends AppCompatActivity {
 
         loadCurrentProfile();
         saveButton.setOnClickListener(v -> saveProfile());
+        if (profilePictureContainer != null) {
+            profilePictureContainer.setOnClickListener(v -> showImagePickerDialog());
+        }
         observeViewModel();
     }
 
@@ -69,12 +110,42 @@ public class ProfileActivity extends AppCompatActivity {
         hasVehicleCheckbox = findViewById(R.id.profileHasVehicleCheckbox);
         vehicleFieldsContainer = findViewById(R.id.profileVehicleFieldsContainer);
         seatsInput = findViewById(R.id.profileSeatsInput);
+        android.widget.ArrayAdapter<String> seatsAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"1", "2", "3", "4", "5"});
+        seatsInput.setAdapter(seatsAdapter);
+        seatsInput.setSelection(3); // default to 4 seats
         plateInput = findViewById(R.id.profilePlateInput);
         brandInput = findViewById(R.id.profileBrandInput);
         colorInput = findViewById(R.id.profileColorInput);
         newPasswordInput = findViewById(R.id.profileNewPasswordInput);
         saveButton = findViewById(R.id.profileSaveButton);
+
+        String[] vehicleBrands = new String[]{
+            "Toyota", "Suzuki", "Nissan", "Honda", "Hyundai", "Kia", "Chevrolet", "Ford", 
+            "Fiat", "Volkswagen", "GAC", "BYD", "Changan", "Chery", "Great Wall", "Mitsubishi", "Mazda", "Renault", "Peugeot"
+        };
+        String[] vehicleColors = new String[]{
+            "Blanco", "Negro", "Gris", "Plateado", "Rojo", "Azul", "Verde", "Dorado", "Café", "Marrón", "Beige"
+        };
+        android.widget.ArrayAdapter<String> brandAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, vehicleBrands);
+        brandInput.setAdapter(brandAdapter);
+        brandInput.setThreshold(1);
+        android.widget.ArrayAdapter<String> colorAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, vehicleColors);
+        colorInput.setAdapter(colorAdapter);
+        colorInput.setThreshold(1);
         loading = findViewById(R.id.profileLoading);
+
+        profilePictureContainer = findViewById(R.id.profilePictureContainer);
+        profilePicture = findViewById(R.id.profilePicture);
+        profilePicturePlaceholder = findViewById(R.id.profilePicturePlaceholder);
+        profilePictureInitials = findViewById(R.id.profilePictureInitials);
+
+        setupErrorClearer(nameInput);
+        setupErrorClearer(emailInput);
+        setupErrorClearer(phoneInput);
+        setupErrorClearer(plateInput);
+        setupErrorClearer(brandInput);
+        setupErrorClearer(colorInput);
+        setupErrorClearer(newPasswordInput);
     }
 
     private void populateInitialFields() {
@@ -84,6 +155,12 @@ public class ProfileActivity extends AppCompatActivity {
         hasVehicleCheckbox.setChecked(sessionManager.isDriver());
         originalRole = sessionManager.getRole();
         vehicleFieldsContainer.setVisibility(hasVehicleCheckbox.isChecked() ? View.VISIBLE : View.GONE);
+
+        newBase64Image = sessionManager.getProfilePicture();
+        loadBase64Image(newBase64Image, profilePicture, profilePicturePlaceholder);
+        if (profilePictureInitials != null) {
+            profilePictureInitials.setText(generateInitials(sessionManager.getFullName()));
+        }
     }
 
     private void setupVehicleButtons() {
@@ -132,7 +209,12 @@ public class ProfileActivity extends AppCompatActivity {
                 originalRole = user.role;
                 if (user.driverProfile != null && user.vehicles != null && !user.vehicles.isEmpty()) {
                     VehicleResponse v = user.vehicles.get(0);
-                    seatsInput.setText(String.valueOf(v.totalSeats));
+                    int totalSeats = v.totalSeats;
+                    if (totalSeats >= 1 && totalSeats <= 5) {
+                        seatsInput.setSelection(totalSeats - 1);
+                    } else {
+                        seatsInput.setSelection(3); // default 4 seats
+                    }
                     plateInput.setText(v.licensePlate);
                     brandInput.setText(v.brand);
                     colorInput.setText(v.color);
@@ -162,7 +244,15 @@ public class ProfileActivity extends AppCompatActivity {
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                if (error.toLowerCase().contains("email") || error.toLowerCase().contains("correo")) {
+                    setErrorState(emailInput, true, error);
+                } else {
+                    new androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle("Error de perfil")
+                            .setMessage(error)
+                            .setPositiveButton("Aceptar", null)
+                            .show();
+                }
             }
         });
 
@@ -216,7 +306,12 @@ public class ProfileActivity extends AppCompatActivity {
                 int smallPad = (int) (6 * getResources().getDisplayMetrics().density);
                 editBtn.setPadding(smallPad * 2, smallPad, smallPad * 2, smallPad);
                 editBtn.setOnClickListener(ev -> {
-                    seatsInput.setText(String.valueOf(v.totalSeats));
+                    int totalSeats = v.totalSeats;
+                    if (totalSeats >= 1 && totalSeats <= 5) {
+                        seatsInput.setSelection(totalSeats - 1);
+                    } else {
+                        seatsInput.setSelection(3); // default 4 seats
+                    }
                     plateInput.setText(v.licensePlate);
                     brandInput.setText(v.brand);
                     colorInput.setText(v.color);
@@ -247,7 +342,7 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         builder.setPositiveButton("Agregar nuevo", (d, w) -> {
-            seatsInput.setText("");
+            seatsInput.setSelection(3); // default to 4 seats
             plateInput.setText("");
             brandInput.setText("");
             colorInput.setText("");
@@ -266,21 +361,21 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
 
-        String plate = plateInput.getText().toString().trim().toUpperCase();
+        String plate = plateInput.getText().toString().trim();
         String brand = brandInput.getText().toString().trim();
         String color = colorInput.getText().toString().trim();
-        String seatsRaw = seatsInput.getText().toString().trim();
+        String seatsRaw = seatsInput.getSelectedItem().toString();
 
-        if (plate.length() < 5) { plateInput.setError(getString(R.string.validation_plate_min)); return; }
+        String cleanPlate = plate.replaceAll("[\\s-]", "").toUpperCase();
+        if (!cleanPlate.matches("^[0-9]{4}[A-Z]{3}$")) {
+            plateInput.setError(getString(R.string.validation_plate_format));
+            return;
+        }
         if (brand.length() < 2) { brandInput.setError(getString(R.string.validation_brand_min)); return; }
         if (color.length() < 2) { colorInput.setError(getString(R.string.validation_color_min)); return; }
-        int seats;
-        try { seats = Integer.parseInt(seatsRaw); } catch (NumberFormatException e) {
-            seatsInput.setError(getString(R.string.validation_seats_number)); return;
-        }
-        if (seats < 1 || seats > 12) { seatsInput.setError(getString(R.string.validation_seats_range)); return; }
+        int seats = Integer.parseInt(seatsRaw);
 
-        viewModel.saveVehicle(userId, editingVehicleId, plate, brand, color, seats);
+        viewModel.saveVehicle(userId, editingVehicleId, cleanPlate, brand, color, seats);
     }
 
     private void saveProfile() {
@@ -288,7 +383,7 @@ public class ProfileActivity extends AppCompatActivity {
         String email = emailInput.getText().toString().trim().toLowerCase();
         String phone = phoneInput.getText().toString().trim();
         boolean hasVehicle = hasVehicleCheckbox.isChecked();
-        String seatsRaw = seatsInput.getText().toString().trim();
+        String seatsRaw = seatsInput.getSelectedItem().toString();
         String plate = plateInput.getText().toString().trim();
         String brand = brandInput.getText().toString().trim();
         String color = colorInput.getText().toString().trim();
@@ -301,7 +396,7 @@ public class ProfileActivity extends AppCompatActivity {
         String role = hasVehicle ? "driver" : "student";
         boolean roleChangeRequested = !role.equalsIgnoreCase(originalRole);
         DriverProfileRequest driverProfile = hasVehicle
-                ? new DriverProfileRequest(Integer.parseInt(seatsRaw), plate.toUpperCase(), brand, color)
+                ? new DriverProfileRequest(Integer.parseInt(seatsRaw), plate.replaceAll("[\\s-]", "").toUpperCase(), brand, color)
                 : null;
 
         String userId = sessionManager.getUserId();
@@ -310,35 +405,117 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
 
-        viewModel.updateProfile(userId, new UpdateUserRequest(fullName, email, phone, newPassword, role, roleChangeRequested, driverProfile));
+        viewModel.updateProfile(userId, new UpdateUserRequest(fullName, email, phone, newPassword, role, roleChangeRequested, newBase64Image, driverProfile));
     }
 
     private boolean validate(String fullName, String email, String phone, String newPassword,
                               boolean hasVehicle, String seatsRaw, String plate, String brand, String color) {
-        if (fullName.length() < 3) { nameInput.setError(getString(R.string.validation_name_min)); return false; }
+        if (fullName.length() < 3) {
+            setErrorState(nameInput, true, getString(R.string.validation_name_min));
+            return false;
+        }
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailInput.setError(getString(R.string.validation_invalid_email)); return false;
+            setErrorState(emailInput, true, getString(R.string.validation_invalid_email));
+            return false;
         }
         if (!email.endsWith("@univalle.edu")) {
-            emailInput.setError(getString(R.string.validation_univalle_email)); return false;
+            setErrorState(emailInput, true, getString(R.string.validation_univalle_email));
+            return false;
         }
         if (!phone.isEmpty() && phone.length() < 7) {
-            phoneInput.setError(getString(R.string.validation_phone_min)); return false;
+            setErrorState(phoneInput, true, getString(R.string.validation_phone_min));
+            return false;
         }
         if (!newPassword.isEmpty() && newPassword.length() < 6) {
-            newPasswordInput.setError(getString(R.string.validation_password_min)); return false;
+            setErrorState(newPasswordInput, true, getString(R.string.validation_password_min));
+            return false;
         }
         if (hasVehicle) {
-            if (seatsRaw.isEmpty()) { seatsInput.setError(getString(R.string.validation_required)); return false; }
-            int seats;
-            try { seats = Integer.parseInt(seatsRaw); } catch (NumberFormatException e) {
-                seatsInput.setError(getString(R.string.validation_seats_number)); return false;
+            int seats = Integer.parseInt(seatsRaw);
+            String cleanPlate = plate.replaceAll("[\\s-]", "").toUpperCase();
+            if (!cleanPlate.matches("^[0-9]{4}[A-Z]{3}$")) {
+                setErrorState(plateInput, true, getString(R.string.validation_plate_format));
+                return false;
             }
-            if (seats < 1 || seats > 12) { seatsInput.setError(getString(R.string.validation_seats_range)); return false; }
-            if (plate.length() < 5) { plateInput.setError(getString(R.string.validation_plate_min)); return false; }
-            if (brand.length() < 2) { brandInput.setError(getString(R.string.validation_brand_min)); return false; }
-            if (color.length() < 2) { colorInput.setError(getString(R.string.validation_color_min)); return false; }
+            if (brand.length() < 2) {
+                setErrorState(brandInput, true, getString(R.string.validation_brand_min));
+                return false;
+            }
+            if (color.length() < 2) {
+                setErrorState(colorInput, true, getString(R.string.validation_color_min));
+                return false;
+            }
         }
         return true;
+    }
+
+    private void showImagePickerDialog() {
+        CharSequence[] options = {"Tomar foto", "Seleccionar de la galería", "Cancelar"};
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Foto de perfil");
+        builder.setItems(options, (dialog, item) -> {
+            if (options[item].equals("Tomar foto")) {
+                Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                cameraLauncher.launch(intent);
+            } else if (options[item].equals("Seleccionar de la galería")) {
+                Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                galleryLauncher.launch(intent);
+            } else {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    private void processAndSetImage(Bitmap bitmap) {
+        if (bitmap == null) return;
+        
+        int maxDimension = 300;
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        if (width > maxDimension || height > maxDimension) {
+            float ratio = (float) width / (float) height;
+            if (ratio > 1) {
+                width = maxDimension;
+                height = (int) (maxDimension / ratio);
+            } else {
+                height = maxDimension;
+                width = (int) (maxDimension * ratio);
+            }
+            bitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);
+        }
+
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+        byte[] imageBytes = baos.toByteArray();
+        newBase64Image = android.util.Base64.encodeToString(imageBytes, android.util.Base64.DEFAULT);
+
+        if (profilePicture != null) {
+            profilePicture.setImageBitmap(bitmap);
+            profilePicture.setVisibility(View.VISIBLE);
+        }
+        if (profilePicturePlaceholder != null) {
+            profilePicturePlaceholder.setVisibility(View.GONE);
+        }
+    }
+
+    private void processGalleryUri(android.net.Uri uri) {
+        try {
+            Bitmap bitmap = android.provider.MediaStore.Images.Media.getBitmap(this.getContentResolver(), uri);
+            processAndSetImage(bitmap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error al cargar imagen", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private static String generateInitials(String fullName) {
+        if (fullName == null || fullName.isEmpty()) return "U";
+        String[] parts = fullName.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+        for (int i = 0; i < Math.min(2, parts.length); i++) {
+            if (parts[i].length() > 0) initials.append(parts[i].charAt(0));
+        }
+        return initials.length() > 0 ? initials.toString().toUpperCase() : "U";
     }
 }

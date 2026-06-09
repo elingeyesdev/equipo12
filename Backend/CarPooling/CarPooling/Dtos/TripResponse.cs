@@ -12,9 +12,11 @@ public class TripResponse
     public int StatusId { get; init; }
     public int OfferedSeats { get; init; }
     public int AvailableSeats { get; init; }
+    public decimal FareAmount { get; init; }
     public Guid? VehicleId { get; init; }
     public string DriverName { get; init; } = "";
     public Guid? DriverUserId { get; init; }
+    public string? DriverProfilePicture { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public DateTime? CancelledAt { get; init; }
