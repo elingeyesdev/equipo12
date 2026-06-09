@@ -239,4 +239,14 @@ public class SessionManager {
     public String getThemeTextDark() {
         return preferences.getString(KEY_THEME_TEXT_DARK, "#edf2ee");
     }
+
+    private static final String KEY_FCM_TOKEN = "fcm_token";
+
+    public void saveFcmToken(String token) {
+        preferences.edit().putString(KEY_FCM_TOKEN, token).apply();
+    }
+
+    public String getFcmToken() {
+        return preferences.getString(KEY_FCM_TOKEN, "");
+    }
 }

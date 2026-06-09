@@ -5,6 +5,9 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.example.proyectocarpooling.domain.repository.user.UserRepository;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -257,6 +260,15 @@ public class MainActivity extends BaseActivity {
                 }
             });
 
+    private final ActivityResultLauncher<String> requestNotificationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    Toast.makeText(this, "Permiso de notificaciones concedido", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Las notificaciones están desactivadas. No recibirás alertas de tus viajes.", Toast.LENGTH_LONG).show();
+                }
+            });
+
     private final OnIndicatorPositionChangedListener onIndicatorPositionChangedListener = point -> {
         runOnUiThread(() -> {
             currentDriverPosition = point;
@@ -311,6 +323,10 @@ public class MainActivity extends BaseActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        checkNotificationPermission();
+        syncFcmTokenOnStart();
+        handleNotificationIntent(getIntent());
     }
 
     private void restoreStateFromViewModel() {
@@ -567,6 +583,7 @@ public class MainActivity extends BaseActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         consumeApplyFavoriteIntent(intent);
+        handleNotificationIntent(intent);
     }
 
     private void checkPassengerReservationOnStart() {
@@ -1201,7 +1218,17 @@ public class MainActivity extends BaseActivity {
     }
 
     private void logout() {
+        final String fcmToken = sessionManager.getFcmToken();
         new Thread(() -> {
+            try {
+                if (fcmToken != null && !fcmToken.isEmpty()) {
+                    UserRepository userRepository = ((CarPoolingApplication) getApplication()).getUserRepository();
+                    userRepository.logoutDevice(fcmToken);
+                    Log.d("MainActivity", "FCM token pruned on logout");
+                }
+            } catch (Exception e) {
+                Log.e("MainActivity", "Error pruning FCM token on logout", e);
+            }
             try {
                 userAccessUseCase.logout();
             } catch (Exception ignored) {
@@ -3169,5 +3196,69 @@ public class MainActivity extends BaseActivity {
 
             container.addView(chip);
         }
+    }
+
+    private void checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
+
+    private void syncFcmTokenOnStart() {
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                Log.w("MainActivity", "Fetching FCM registration token failed", task.getException());
+                return;
+            }
+            String token = task.getResult();
+            if (token != null && !token.isEmpty()) {
+                sessionManager.saveFcmToken(token);
+                String userId = sessionManager.getUserId();
+                if (userId != null && !userId.isEmpty()) {
+                    backgroundExecutor.execute(() -> {
+                        try {
+                            UserRepository userRepository = ((CarPoolingApplication) getApplication()).getUserRepository();
+                            userRepository.registerFcmToken(userId, token);
+                            Log.d("MainActivity", "FCM token synced successfully on start");
+                        } catch (Exception e) {
+                            Log.e("MainActivity", "Error syncing FCM token on start", e);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    private void handleNotificationIntent(Intent intent) {
+        if (intent == null || !intent.hasExtra("tripId")) {
+            return;
+        }
+        String tripId = intent.getStringExtra("tripId");
+        String type = intent.getStringExtra("type");
+        Log.d("MainActivity", "Handling notification deep-link navigation. Type: " + type + ", TripId: " + tripId);
+        
+        if (tripId != null && !tripId.isEmpty()) {
+            if ("chat_message".equals(type)) {
+                Intent chatIntent = new Intent(this, com.example.proyectocarpooling.presentation.chat.ui.ChatActivity.class);
+                chatIntent.putExtra("trip_id", tripId);
+                chatIntent.putExtra("chat_title", isDriverUser ? "Mis Pasajeros" : "Chat de viaje");
+                startActivity(chatIntent);
+            } else if ("reservation_request".equals(type) && isDriverUser) {
+                Intent requestsIntent = new Intent(this, com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity.class);
+                requestsIntent.putExtra(com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity.EXTRA_TRIP_ID, tripId);
+                startActivity(requestsIntent);
+            } else {
+                if (isDriverUser) {
+                    maybeRestoreDriverActiveTripAsync();
+                } else {
+                    checkPassengerReservationOnStart();
+                }
+            }
+        }
+        // Clear extras so they are not consumed multiple times
+        intent.removeExtra("tripId");
+        intent.removeExtra("type");
     }
 }

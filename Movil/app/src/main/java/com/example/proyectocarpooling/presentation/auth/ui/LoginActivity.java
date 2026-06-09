@@ -15,6 +15,10 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
+import com.google.firebase.messaging.FirebaseMessaging;
+import android.util.Log;
+import com.example.proyectocarpooling.CarPoolingApplication;
+import com.example.proyectocarpooling.domain.repository.user.UserRepository;
 
 public class LoginActivity extends BaseActivity {
 
@@ -63,6 +67,7 @@ public class LoginActivity extends BaseActivity {
         authViewModel.getLoginSuccess().observe(this, user -> {
             if (user != null) {
                 sessionManager.saveUser(user);
+                syncFcmToken(user.id);
                 Toast.makeText(this, R.string.login_success, Toast.LENGTH_SHORT).show();
                 navigateToMain();
             }
@@ -116,5 +121,27 @@ public class LoginActivity extends BaseActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    private void syncFcmToken(String userId) {
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                Log.w("LoginActivity", "Fetching FCM registration token failed", task.getException());
+                return;
+            }
+            String token = task.getResult();
+            if (token != null && !token.isEmpty()) {
+                sessionManager.saveFcmToken(token);
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                app.getTaskRunner().execute(() -> {
+                    try {
+                        app.getUserRepository().registerFcmToken(userId, token);
+                        Log.d("LoginActivity", "FCM token synced successfully on login");
+                    } catch (Exception e) {
+                        Log.e("LoginActivity", "Error syncing FCM token on login", e);
+                    }
+                });
+            }
+        });
     }
 }

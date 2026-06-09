@@ -64,11 +64,17 @@ public class SplashActivity extends BaseActivity {
         }
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Intent intent = sessionManager.hasActiveSession()
-                    ? new Intent(SplashActivity.this, MainActivity.class)
-                    : new Intent(SplashActivity.this, LoginActivity.class);
+            Intent intent;
+            if (sessionManager.hasActiveSession()) {
+                intent = new Intent(SplashActivity.this, MainActivity.class);
+                if (getIntent() != null && getIntent().getExtras() != null) {
+                    intent.putExtras(getIntent().getExtras());
+                }
+            } else {
+                intent = new Intent(SplashActivity.this, LoginActivity.class);
+            }
             startActivity(intent);
             finish();
-        }, 2000);
+        }, 5000);
     }
 }
