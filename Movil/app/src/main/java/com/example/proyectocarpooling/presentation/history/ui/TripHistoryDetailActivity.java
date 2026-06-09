@@ -230,6 +230,7 @@ public class TripHistoryDetailActivity extends AppCompatActivity {
         intent.putExtra(MainActivity.EXTRA_APPLY_DEST_LAT, d.destinationLatitude);
         intent.putExtra(MainActivity.EXTRA_APPLY_DEST_LNG, d.destinationLongitude);
         intent.putExtra(MainActivity.EXTRA_HISTORY_ROUTE_PREVIEW, true);
+        intent.putExtra(MainActivity.EXTRA_ROUTE_PREVIEW_CONTEXT, MainActivity.ROUTE_PREVIEW_CONTEXT_HISTORY);
         startActivity(intent);
         finish();
     }

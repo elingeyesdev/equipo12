@@ -1522,7 +1522,8 @@ function getEditFormMarkup(type, entity) {
     return `
       <label class="field"><span>ID</span><input type="text" value="${escapeHtml(entity.id || "")}" disabled /></label>
       <label class="field"><span>Nombre completo</span><input type="text" name="fullName" value="${escapeHtml(entity.fullName || "")}" required /></label>
-      <label class="field"><span>Email institucional</span><input type="email" name="email" value="${escapeHtml(entity.email || "")}" required /></label>
+      <label class="field"><span>Email institucional</span><input type="email" name="email" value="${escapeHtml(entity.email || "")}" readonly /></label>
+      <label class="field"><span>Contrasena (dejar vacio para mantener la actual)</span><input type="password" name="password" placeholder="******" /></label>
       <label class="field"><span>Telefono</span><input type="text" name="phoneNumber" value="${escapeHtml(entity.phoneNumber || "")}" /></label>
       <label class="field"><span>Rol</span>
         <select name="roleId">
@@ -2159,6 +2160,7 @@ editModalForm?.addEventListener("submit", async (event) => {
 
   try {
     if (type === "user") {
+      const password = String(formData.get("password") || "").trim();
       await apiFetch(`/api/admin/users/${id}`, {
         method: "PUT",
         headers: getAdminHeaders(),
@@ -2166,7 +2168,8 @@ editModalForm?.addEventListener("submit", async (event) => {
           fullName: String(formData.get("fullName") || "").trim(),
           email: String(formData.get("email") || "").trim().toLowerCase(),
           phoneNumber: String(formData.get("phoneNumber") || "").trim() || null,
-          roleId: Number(formData.get("roleId") || 1)
+          roleId: Number(formData.get("roleId") || 1),
+          password: password || null
         })
       });
     }

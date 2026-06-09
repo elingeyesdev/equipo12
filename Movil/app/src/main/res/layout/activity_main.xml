@@ -425,7 +425,7 @@
                 android:background="@drawable/bg_info_field"
                 android:enabled="false"
                 android:text="@string/button_save_favorite"
-                android:textColor="@color/carpool_text_primary"
+                android:textColor="@color/white"
                 android:textSize="13sp" />
         </LinearLayout>
 

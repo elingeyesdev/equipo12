@@ -460,6 +460,7 @@ public class SearchTripActivity extends AppCompatActivity implements SearchTripA
         intent.putExtra(MainActivity.EXTRA_APPLY_DEST_LAT, item.destinationLatitude);
         intent.putExtra(MainActivity.EXTRA_APPLY_DEST_LNG, item.destinationLongitude);
         intent.putExtra(MainActivity.EXTRA_HISTORY_ROUTE_PREVIEW, true);
+        intent.putExtra(MainActivity.EXTRA_ROUTE_PREVIEW_CONTEXT, MainActivity.ROUTE_PREVIEW_CONTEXT_SEARCH_TRIP);
         intent.putExtra(MainActivity.EXTRA_ROUTE_PREVIEW_TRIP_ID, item.tripId);
         intent.putExtra(MainActivity.EXTRA_ROUTE_PREVIEW_DRIVER_NAME, item.driverName);
         startActivity(intent);

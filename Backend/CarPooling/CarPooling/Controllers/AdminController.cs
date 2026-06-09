@@ -83,6 +83,12 @@ public class AdminController(
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
         user.Role = role;
 
+        if (!string.IsNullOrWhiteSpace(dto.Password))
+        {
+            var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(dto.Password));
+            user.PasswordHash = System.Convert.ToHexString(bytes);
+        }
+
         if (role == UserRole.Driver)
         {
             if (user.DriverProfile is null)
@@ -496,6 +502,7 @@ public class AdminController(
         public string Email { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
         public int RoleId { get; set; }
+        public string? Password { get; set; }
     }
 
     public sealed class AdminUpdateTripDto

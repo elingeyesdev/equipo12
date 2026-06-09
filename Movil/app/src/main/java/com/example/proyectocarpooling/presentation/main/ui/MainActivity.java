@@ -99,6 +99,8 @@ public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_ROUTE_PREVIEW_CONTEXT = "route_preview_context";
     public static final String EXTRA_ROUTE_PREVIEW_DRIVER_NAME = "route_preview_driver_name";
     public static final String ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH = "driver_match";
+    public static final String ROUTE_PREVIEW_CONTEXT_SEARCH_TRIP = "search_trip";
+    public static final String ROUTE_PREVIEW_CONTEXT_HISTORY = "history";
     public static final String EXTRA_ROUTE_PREVIEW_TRIP_ID = "route_preview_trip_id";
     public static final String EXTRA_ROUTE_PREVIEW_DRIVER_TRIP_NAME = "route_preview_driver_trip_name";
 
@@ -168,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView driverRoutePreviewBannerBody;
     private String routePreviewTripId;
     private String routePreviewDriverName;
+    private String routePreviewContext;
 
     private boolean hasActivePassengerReservation;
     private String passengerReservedTripId;
@@ -1576,6 +1579,23 @@ public class MainActivity extends AppCompatActivity {
                     .zoom(14.0)
                     .build());
         }
+
+        if (ROUTE_PREVIEW_CONTEXT_SEARCH_TRIP.equals(routePreviewContext)) {
+            Intent intent = new Intent(this, com.example.proyectocarpooling.presentation.search.ui.SearchTripActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+        } else if (ROUTE_PREVIEW_CONTEXT_HISTORY.equals(routePreviewContext)) {
+            Intent intent = new Intent(this, com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+        } else if (ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH.equals(routePreviewContext)) {
+            // Since we don't have the original origin/destination for DriverMatchActivity handy,
+            // we just reopen the activity (it might reset its state, but it goes back to the match screen)
+            Intent intent = new Intent(this, com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+        }
+        routePreviewContext = null;
     }
 
     private void acceptDriverRouteFromBanner() {
@@ -1940,6 +1960,9 @@ public class MainActivity extends AppCompatActivity {
         boolean shouldPreviewRoute = intent.getBooleanExtra(EXTRA_HISTORY_ROUTE_PREVIEW, false);
         
         // Asignar los valores de preview si vienen del intent
+        if (prevContext != null && !prevContext.isEmpty()) {
+            routePreviewContext = prevContext;
+        }
         if (prevTripId != null && !prevTripId.isEmpty()) {
             routePreviewTripId = prevTripId;
         }
