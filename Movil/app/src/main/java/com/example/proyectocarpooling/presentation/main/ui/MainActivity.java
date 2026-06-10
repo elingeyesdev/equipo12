@@ -70,6 +70,7 @@ import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
 import com.mapbox.geojson.Point;
 import com.mapbox.maps.CameraOptions;
 import com.mapbox.maps.MapView;
+import com.mapbox.maps.ScreenCoordinate;
 import com.mapbox.maps.Style;
 import com.mapbox.maps.plugin.Plugin;
 import com.mapbox.maps.plugin.annotation.AnnotationPlugin;
@@ -84,6 +85,8 @@ import com.mapbox.maps.plugin.locationcomponent.LocationComponentUtils;
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -169,8 +172,12 @@ public class MainActivity extends BaseActivity {
     private Bitmap safeZoneMarkerBitmap;
     private final List<PointAnnotation> safeZoneAnnotations = new ArrayList<>();
     private final Map<String, SafeZoneItem> safeZoneByAnnotationId = new HashMap<>();
+    private final List<SafeZoneItem> loadedSafeZones = new ArrayList<>();
     private boolean safeZonesLoaded;
     private boolean safeZoneClickListenerRegistered;
+    private static final double SAFE_ZONE_ICON_SIZE = 1.5;
+    private static final double SAFE_ZONE_SYMBOL_SORT_KEY = 100.0;
+    private static final double SAFE_ZONE_TAP_RADIUS_PX = 56.0;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private TextView drawerUserTitle;
@@ -1304,6 +1311,14 @@ public class MainActivity extends BaseActivity {
             return;
         }
         GesturesUtils.getGestures(mapView).addOnMapClickListener(point -> {
+            if (selectionMode == SelectionMode.NONE) {
+                SafeZoneItem zone = findSafeZoneNearTap(point);
+                if (zone != null) {
+                    runOnUiThread(() -> showSafeZoneDetailBottomSheet(zone));
+                    return true;
+                }
+                return false;
+            }
             runOnUiThread(() -> handleMapClick(point));
             return true;
         });
@@ -1429,6 +1444,35 @@ public class MainActivity extends BaseActivity {
         return bitmap;
     }
 
+    private SafeZoneItem findSafeZoneNearTap(Point tapPoint) {
+        if (mapView == null || loadedSafeZones.isEmpty() || tapPoint == null) {
+            return null;
+        }
+
+        ScreenCoordinate tapScreen = mapView.getMapboxMap().pixelForCoordinate(tapPoint);
+        if (tapScreen == null) {
+            return null;
+        }
+
+        SafeZoneItem closest = null;
+        double closestDistance = Double.MAX_VALUE;
+        for (SafeZoneItem zone : loadedSafeZones) {
+            ScreenCoordinate zoneScreen = mapView.getMapboxMap().pixelForCoordinate(
+                    Point.fromLngLat(zone.longitude, zone.latitude));
+            if (zoneScreen == null) {
+                continue;
+            }
+            double dx = zoneScreen.getX() - tapScreen.getX();
+            double dy = zoneScreen.getY() - tapScreen.getY();
+            double distance = Math.hypot(dx, dy);
+            if (distance <= SAFE_ZONE_TAP_RADIUS_PX && distance < closestDistance) {
+                closest = zone;
+                closestDistance = distance;
+            }
+        }
+        return closest;
+    }
+
     private void registerSafeZoneClickListenerIfNeeded() {
         if (safeZoneClickListenerRegistered || pointAnnotationManager == null) {
             return;
@@ -1437,11 +1481,7 @@ public class MainActivity extends BaseActivity {
         pointAnnotationManager.addClickListener(clicked -> {
             SafeZoneItem zone = safeZoneByAnnotationId.get(clicked.getId());
             if (zone != null) {
-                runOnUiThread(() -> Toast.makeText(
-                        MainActivity.this,
-                        getString(R.string.safe_zone_marker_toast, zone.name),
-                        Toast.LENGTH_SHORT
-                ).show());
+                showSafeZoneDetailBottomSheet(zone);
                 return true;
             }
             return false;
@@ -1472,19 +1512,93 @@ public class MainActivity extends BaseActivity {
         }
 
         clearSafeZoneMarkers();
-        for (SafeZoneItem zone : zones) {
+        loadedSafeZones.clear();
+        if (zones != null) {
+            loadedSafeZones.addAll(zones);
+        }
+        for (SafeZoneItem zone : loadedSafeZones) {
             if (zone.latitude == 0d && zone.longitude == 0d) {
                 continue;
             }
             PointAnnotationOptions options = new PointAnnotationOptions()
                     .withPoint(Point.fromLngLat(zone.longitude, zone.latitude))
                     .withIconImage(safeZoneMarkerBitmap)
-                    .withIconSize(1.2);
+                    .withIconSize(SAFE_ZONE_ICON_SIZE)
+                    .withSymbolSortKey(SAFE_ZONE_SYMBOL_SORT_KEY);
             PointAnnotation annotation = pointAnnotationManager.create(options);
             safeZoneAnnotations.add(annotation);
             safeZoneByAnnotationId.put(annotation.getId(), zone);
         }
         safeZonesLoaded = true;
+    }
+
+    private void showSafeZoneDetailBottomSheet(SafeZoneItem zone) {
+        if (zone == null || isFinishing() || isDestroyed()) {
+            return;
+        }
+
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheet = getLayoutInflater().inflate(R.layout.bottom_sheet_safe_zone_detail, null);
+
+        TextView titleView = sheet.findViewById(R.id.safeZoneDetailTitle);
+        TextView purposeView = sheet.findViewById(R.id.safeZoneDetailPurpose);
+        TextView addressView = sheet.findViewById(R.id.safeZoneDetailAddress);
+        TextView descriptionView = sheet.findViewById(R.id.safeZoneDetailDescription);
+        MaterialButton centerMapButton = sheet.findViewById(R.id.safeZoneDetailCenterMapButton);
+
+        String name = zone.name != null && !zone.name.trim().isEmpty()
+                ? zone.name.trim()
+                : "Zona segura";
+        titleView.setText(name);
+        purposeView.setText(getSafeZonePurposeText(zone));
+
+        String address = zone.addressLabel != null ? zone.addressLabel.trim() : "";
+        addressView.setText(address.isEmpty()
+                ? getString(R.string.safe_zone_detail_no_address)
+                : address);
+
+        String description = zone.description != null ? zone.description.trim() : "";
+        descriptionView.setText(description.isEmpty()
+                ? getString(R.string.safe_zone_detail_no_description)
+                : description);
+
+        centerMapButton.setOnClickListener(v -> {
+            centerMapOnSafeZone(zone);
+            dialog.dismiss();
+        });
+
+        dialog.setContentView(sheet);
+        dialog.show();
+
+        View bottom = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bottom != null) {
+            BottomSheetBehavior.from(bottom).setState(BottomSheetBehavior.STATE_EXPANDED);
+        }
+    }
+
+    private String getSafeZonePurposeText(SafeZoneItem zone) {
+        if (zone.purposeLabel != null && !zone.purposeLabel.trim().isEmpty()) {
+            return zone.purposeLabel.trim();
+        }
+        if (zone.purpose == 1) {
+            return getString(R.string.safe_zone_purpose_pickup);
+        }
+        if (zone.purpose == 2) {
+            return getString(R.string.safe_zone_purpose_dropoff);
+        }
+        return getString(R.string.safe_zone_purpose_both);
+    }
+
+    private void centerMapOnSafeZone(SafeZoneItem zone) {
+        if (mapView == null || zone == null) {
+            return;
+        }
+
+        Point target = Point.fromLngLat(zone.longitude, zone.latitude);
+        mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
+                .center(target)
+                .zoom(16.0)
+                .build());
     }
 
     private void clearSafeZoneMarkers() {
@@ -1497,6 +1611,7 @@ public class MainActivity extends BaseActivity {
         }
         safeZoneAnnotations.clear();
         safeZoneByAnnotationId.clear();
+        loadedSafeZones.clear();
         safeZonesLoaded = false;
     }
 

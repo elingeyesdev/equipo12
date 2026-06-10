@@ -3,6 +3,15 @@
     <string name="mapbox_access_token">pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw</string>
     <string name="main_safe_zones_legend">Zonas seguras (paradas tranquilas)</string>
     <string name="safe_zone_marker_toast">Zona segura: %1$s</string>
+    <string name="safe_zone_detail_purpose_label">Uso permitido</string>
+    <string name="safe_zone_detail_address_label">Direccion</string>
+    <string name="safe_zone_detail_description_label">Descripcion</string>
+    <string name="safe_zone_detail_no_address">Sin direccion registrada</string>
+    <string name="safe_zone_detail_no_description">Sin descripcion adicional</string>
+    <string name="safe_zone_purpose_both">Recogida y destino</string>
+    <string name="safe_zone_purpose_pickup">Solo recogida</string>
+    <string name="safe_zone_purpose_dropoff">Solo destino</string>
+    <string name="safe_zone_center_map_button">Centrar en mapa</string>
 
     <!-- Emulador: 10.0.2.2 apunta al localhost de tu PC -->
     <string name="api_base_url_emulator">http://10.0.2.2:5005</string>
