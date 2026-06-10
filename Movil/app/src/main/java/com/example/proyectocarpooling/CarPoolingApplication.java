@@ -118,7 +118,6 @@ public class CarPoolingApplication extends Application {
         return chatRemoteDataSource;
     }
 
-<<<<<<< HEAD
     private com.example.proyectocarpooling.data.remote.SupportChatRemoteDataSource supportChatRemoteDataSource;
 
     public synchronized com.example.proyectocarpooling.data.remote.SupportChatRemoteDataSource getSupportChatRemoteDataSource() {
@@ -127,7 +126,8 @@ public class CarPoolingApplication extends Application {
                     ApiBaseUrlProvider.get(this));
         }
         return supportChatRemoteDataSource;
-=======
+    }
+
     private com.example.proyectocarpooling.data.remote.SafeZonesRemoteDataSource safeZonesRemoteDataSource;
 
     public synchronized com.example.proyectocarpooling.data.remote.SafeZonesRemoteDataSource getSafeZonesRemoteDataSource() {
@@ -136,7 +136,6 @@ public class CarPoolingApplication extends Application {
                     ApiBaseUrlProvider.get(this));
         }
         return safeZonesRemoteDataSource;
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
     }
 
     private com.example.proyectocarpooling.data.remote.RatingRemoteDataSource ratingRemoteDataSource;

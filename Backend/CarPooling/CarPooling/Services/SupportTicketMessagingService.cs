@@ -68,8 +68,17 @@ public class SupportTicketMessagingService(CarPoolingContext context)
         Guid ticketId,
         SendSupportTicketMessageDto dto)
     {
-        var admin = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == adminUserId);
-        if (admin is null || admin.Role != UserRole.Admin)
+        var admin = await _context.Users
+            .AsNoTracking()
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == adminUserId);
+
+        var isAdmin = admin?.UserRoles.Any(ur =>
+            ur.Role.Name is "SuperAdmin" or "Admin" ||
+            ur.Role.Name.Contains("Admin", StringComparison.OrdinalIgnoreCase)) == true;
+
+        if (admin is null || !isAdmin)
         {
             throw new InvalidOperationException("Solo un administrador puede responder en soporte.");
         }

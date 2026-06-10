@@ -12,16 +12,11 @@ namespace CarPooling.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-<<<<<<< HEAD
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class AdminController(
     CarPoolingContext context,
     SupportTicketService supportTicketService,
     SupportTicketMessagingService supportTicketMessagingService) : ControllerBase
-=======
-[Authorize]
-public class AdminController(CarPoolingContext context, SupportTicketService supportTicketService) : ControllerBase
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 {
     private readonly CarPoolingContext _context = context;
     private readonly SupportTicketService _supportTicketService = supportTicketService;
@@ -113,16 +108,12 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
 
-<<<<<<< HEAD
         if (!string.IsNullOrWhiteSpace(dto.Password))
         {
             var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(dto.Password));
             user.PasswordHash = System.Convert.ToHexString(bytes);
         }
 
-        if (role == UserRole.Driver)
-=======
-        // Clear existing and assign new role
         var oldUserRoles = user.UserRoles.ToList();
         foreach (var ur in oldUserRoles)
         {
@@ -131,7 +122,6 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
         _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = targetRole.Id });
 
         if (targetRole.Name == "Driver")
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
         {
             if (user.DriverProfile is null)
             {
@@ -638,11 +628,8 @@ public class AdminController(CarPoolingContext context, SupportTicketService sup
         public string Email { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
         public int RoleId { get; set; }
-<<<<<<< HEAD
         public string? Password { get; set; }
-=======
         public Guid? CustomRoleId { get; set; }
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
     }
 
     public sealed class AdminUpdateTripDto

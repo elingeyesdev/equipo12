@@ -4,8 +4,10 @@
     <string name="main_safe_zones_legend">Zonas seguras (paradas tranquilas)</string>
     <string name="safe_zone_marker_toast">Zona segura: %1$s</string>
 
-    <string name="api_base_url_emulator">http://10.0.2.2:5000</string>
-    <string name="api_base_url_device">http://127.0.0.1:5000/</string>
+    <!-- Emulador: 10.0.2.2 apunta al localhost de tu PC -->
+    <string name="api_base_url_emulator">http://10.0.2.2:5005</string>
+    <!-- Celular por USB: requiere "adb reverse tcp:5005 tcp:5005" con el cable conectado -->
+    <string name="api_base_url_device">http://127.0.0.1:5005</string>
 
     <string name="origin_placeholder">Recogida: sin seleccionar</string>
     <string name="destination_placeholder">Destino: a donde quieres ir</string>

@@ -1,10 +1,8 @@
 package com.example.proyectocarpooling.presentation.support.ui;
 
-<<<<<<< HEAD
 import android.content.Intent;
-=======
+
 import com.example.proyectocarpooling.presentation.BaseActivity;
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ProgressBar;

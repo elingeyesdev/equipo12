@@ -345,10 +345,18 @@
 
         <article class="card span-3">
           <p id="safeZonesDataMessage" class="message">Cargando zonas seguras...</p>
-          <div class="toolbar">
-            <label class="field grow">
+          <div class="filters-grid form-grid-2">
+            <label class="field filter-field grow">
               <span>Buscar</span>
               <input type="text" id="safeZonesFilterInput" placeholder="Nombre, area o direccion" />
+            </label>
+            <label class="field filter-field">
+              <span>Estado</span>
+              <select id="safeZonesStatusFilter">
+                <option value="">Todas</option>
+                <option value="active">Solo activas</option>
+                <option value="inactive">Solo inactivas</option>
+              </select>
             </label>
           </div>
           <div class="table-wrap">

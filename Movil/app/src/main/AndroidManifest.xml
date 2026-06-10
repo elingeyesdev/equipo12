@@ -109,12 +109,11 @@
             android:theme="@style/Theme.ProyectoCarpooling" />
 
         <activity
-<<<<<<< HEAD
             android:name=".presentation.support.ui.SupportChatActivity"
             android:exported="false"
             android:theme="@style/Theme.ProyectoCarpooling" />
 
-=======
+        <activity
             android:name=".presentation.payment.ui.PaymentActivity"
             android:exported="false"
             android:theme="@style/Theme.ProyectoCarpooling" />
@@ -132,7 +131,6 @@
             </intent-filter>
         </service>
 
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
     </application>
 
 </manifest>

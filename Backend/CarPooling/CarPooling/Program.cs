@@ -37,13 +37,10 @@ builder.Services.AddScoped<DriverService>();
 builder.Services.AddScoped<GeocodingService>();
 builder.Services.AddScoped<RatingService>();
 builder.Services.AddScoped<SupportTicketService>();
-<<<<<<< HEAD
 builder.Services.AddScoped<SupportTicketMessagingService>();
-=======
 builder.Services.AddScoped<SafeZoneService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<INotificationService, FirebaseNotificationService>();
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 builder.Services.AddHttpClient<GeocodingService>();
 
 // Initialize Firebase

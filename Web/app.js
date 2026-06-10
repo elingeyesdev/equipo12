@@ -93,6 +93,7 @@ const paymentsReloadBtn = document.getElementById("paymentsReloadBtn");
 const adminSafeZonesBody = document.getElementById("adminSafeZonesBody");
 const safeZonesDataMessage = document.getElementById("safeZonesDataMessage");
 const safeZonesFilterInput = document.getElementById("safeZonesFilterInput");
+const safeZonesStatusFilter = document.getElementById("safeZonesStatusFilter");
 const safeZonesReloadBtn = document.getElementById("safeZonesReloadBtn");
 const safeZoneCreateBtn = document.getElementById("safeZoneCreateBtn");
 const safeZoneModalOverlay = document.getElementById("safeZoneModalOverlay");
@@ -106,9 +107,7 @@ function getCreateTripMapContainer() {
   return createModalForm?.querySelector("#createTripMap") || null;
 }
 
-<<<<<<< HEAD
-=======
-document.getElementById("apiBaseUrl").value = state.apiBaseUrl;
+document.getElementById("apiBaseUrl")?.value && (document.getElementById("apiBaseUrl").value = state.apiBaseUrl);
 
 function sanitizeWebError(rawError) {
   if (!rawError) {
@@ -116,15 +115,14 @@ function sanitizeWebError(rawError) {
   }
   const errorMsg = String(rawError).trim();
   const lower = errorMsg.toLowerCase();
-  if (lower.includes("fetch") || lower.includes("connect") || lower.includes("network") || 
+  if (lower.includes("fetch") || lower.includes("connect") || lower.includes("network") ||
       lower.includes("timeout") || lower.includes("socket") || lower.includes("unable to resolve host") ||
       lower.includes("http") || lower.includes("connection")) {
-    return "No se pudo establecer conexión con el servidor. Por favor, verifica tu conexión a internet o la URL base del backend.";
+    return "No se pudo establecer conexión con el servidor. Verifica que el backend esté corriendo en http://localhost:5005";
   }
   return errorMsg;
 }
 
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 function setMessage(element, text, kind = "") {
   if (!element) {
     return;
@@ -3072,6 +3070,24 @@ function createSafeZoneMarkerElement(isActive = true) {
   return element;
 }
 
+function getSafeZoneEditIsActive() {
+  return document.getElementById("safeZoneIsActive")?.checked !== false;
+}
+
+function syncSafeZoneEditMarkerStyle() {
+  if (!state.safeZoneEditMarker) {
+    return;
+  }
+
+  const element = state.safeZoneEditMarker.getElement();
+  if (!element) {
+    return;
+  }
+
+  const isActive = getSafeZoneEditIsActive();
+  element.className = isActive ? "safe-zone-pin" : "safe-zone-pin safe-zone-pin--inactive";
+}
+
 function clearSafeZoneMarkers(markers) {
   markers.forEach((marker) => marker.remove());
   markers.length = 0;
@@ -3129,13 +3145,69 @@ function getSafeZonePurposeLabel(purpose) {
   return "Recogida y destino";
 }
 
-function renderSafeZonesTable(zones) {
+function filterSafeZonesList(zones) {
+  const status = safeZonesStatusFilter?.value || "";
+  const search = (safeZonesFilterInput?.value || "").trim().toLowerCase();
+
+  return zones.filter((zone) => {
+    if (status === "active" && !zone.isActive) {
+      return false;
+    }
+    if (status === "inactive" && zone.isActive) {
+      return false;
+    }
+    if (search) {
+      const haystack = `${zone.name} ${zone.campusArea || ""} ${zone.addressLabel || ""}`.toLowerCase();
+      if (!haystack.includes(search)) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function updateSafeZonesStatusMessage() {
+  if (!safeZonesDataMessage) {
+    return;
+  }
+
+  const total = state.safeZones.length;
+  const visible = filterSafeZonesList(state.safeZones);
+
+  if (!total) {
+    setMessage(safeZonesDataMessage, "No hay zonas seguras registradas.", "");
+    return;
+  }
+
+  if (visible.length === total) {
+    setMessage(safeZonesDataMessage, `${total} zona(s) cargada(s).`, "success");
+    return;
+  }
+
+  setMessage(safeZonesDataMessage, `Mostrando ${visible.length} de ${total} zona(s).`, "success");
+}
+
+function refreshSafeZonesDisplay() {
+  const visibleZones = filterSafeZonesList(state.safeZones);
+  renderSafeZonesTable(visibleZones, state.safeZones.length);
+
+  if (state.safeZoneOverviewMapReady) {
+    renderSafeZonesOnOverviewMap(visibleZones);
+  }
+
+  updateSafeZonesStatusMessage();
+}
+
+function renderSafeZonesTable(zones, totalCount = zones.length) {
   if (!adminSafeZonesBody) {
     return;
   }
 
   if (!zones.length) {
-    adminSafeZonesBody.innerHTML = `<tr><td colspan="6">No hay zonas seguras registradas.</td></tr>`;
+    const emptyMessage = totalCount === 0
+      ? "No hay zonas seguras registradas."
+      : "No hay zonas que coincidan con el filtro.";
+    adminSafeZonesBody.innerHTML = `<tr><td colspan="6">${emptyMessage}</td></tr>`;
     return;
   }
 
@@ -3157,7 +3229,7 @@ function renderSafeZonesTable(zones) {
 }
 
 function applySafeZonesTableFilter() {
-  applyTableFilter("adminSafeZonesBody", safeZonesFilterInput?.value || "");
+  refreshSafeZonesDisplay();
 }
 
 async function loadSafeZonesAdmin() {
@@ -3173,13 +3245,11 @@ async function loadSafeZonesAdmin() {
     });
     state.safeZones = Array.isArray(zones) ? zones : [];
     state.publicSafeZones = state.safeZones.filter((zone) => zone.isActive);
-    renderSafeZonesTable(state.safeZones);
-    applySafeZonesTableFilter();
-    setMessage(safeZonesDataMessage, `${state.safeZones.length} zona(s) cargada(s).`, "success");
+    refreshSafeZonesDisplay();
     window.requestAnimationFrame(() => initializeSafeZonesOverviewMap());
   } catch (error) {
     state.safeZones = [];
-    renderSafeZonesTable([]);
+    renderSafeZonesTable([], 0);
     setMessage(safeZonesDataMessage, error.message, "error");
   }
 }
@@ -3193,14 +3263,16 @@ function destroySafeZonesOverviewMap() {
   state.safeZoneOverviewMapReady = false;
 }
 
-function renderSafeZonesOnOverviewMap() {
+function renderSafeZonesOnOverviewMap(zones = null) {
   if (!state.safeZoneOverviewMap || !state.safeZoneOverviewMapReady) {
     return;
   }
 
+  const visibleZones = zones ?? filterSafeZonesList(state.safeZones);
+
   clearSafeZoneMarkers(state.safeZoneOverviewMarkers);
 
-  state.safeZones.forEach((zone) => {
+  visibleZones.forEach((zone) => {
     const marker = new mapboxgl.Marker({
       element: createSafeZoneMarkerElement(zone.isActive),
       anchor: "bottom"
@@ -3213,9 +3285,9 @@ function renderSafeZonesOnOverviewMap() {
     state.safeZoneOverviewMarkers.push(marker);
   });
 
-  if (state.safeZones.length) {
+  if (visibleZones.length) {
     const bounds = new mapboxgl.LngLatBounds();
-    state.safeZones.forEach((zone) => bounds.extend([zone.longitude, zone.latitude]));
+    visibleZones.forEach((zone) => bounds.extend([zone.longitude, zone.latitude]));
     state.safeZoneOverviewMap.fitBounds(bounds, { padding: 48, maxZoom: 14 });
   }
 }
@@ -3227,7 +3299,7 @@ function initializeSafeZonesOverviewMap() {
   }
 
   if (state.safeZoneOverviewMap) {
-    renderSafeZonesOnOverviewMap();
+    renderSafeZonesOnOverviewMap(filterSafeZonesList(state.safeZones));
     return;
   }
 
@@ -3250,7 +3322,7 @@ function initializeSafeZonesOverviewMap() {
   });
 }
 
-function destroySafeZoneEditMap() {
+function destroySafeZoneEditMap(clearDraftPoint = true) {
   if (state.safeZoneEditMarker) {
     state.safeZoneEditMarker.remove();
     state.safeZoneEditMarker = null;
@@ -3262,7 +3334,9 @@ function destroySafeZoneEditMap() {
   }
 
   state.safeZoneEditMapReady = false;
-  state.safeZoneDraftPoint = null;
+  if (clearDraftPoint) {
+    state.safeZoneDraftPoint = null;
+  }
 }
 
 function updateSafeZoneCoordsHint() {
@@ -3284,9 +3358,11 @@ function updateSafeZoneEditMapMarker() {
   }
 
   const coordinates = [state.safeZoneDraftPoint.lng, state.safeZoneDraftPoint.lat];
+  const isActive = getSafeZoneEditIsActive();
+
   if (!state.safeZoneEditMarker) {
     state.safeZoneEditMarker = new mapboxgl.Marker({
-      element: createSafeZoneMarkerElement(true),
+      element: createSafeZoneMarkerElement(isActive),
       anchor: "bottom",
       draggable: true
     })
@@ -3303,6 +3379,7 @@ function updateSafeZoneEditMapMarker() {
     });
   } else {
     state.safeZoneEditMarker.setLngLat(coordinates);
+    syncSafeZoneEditMarkerStyle();
   }
 }
 
@@ -3313,7 +3390,7 @@ function initializeSafeZoneEditMap() {
     return;
   }
 
-  destroySafeZoneEditMap();
+  destroySafeZoneEditMap(false);
   mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 
   const fallbackCenter = state.safeZoneDraftPoint
@@ -3324,13 +3401,20 @@ function initializeSafeZoneEditMap() {
     container,
     style: "mapbox://styles/mapbox/streets-v12",
     center: fallbackCenter,
-    zoom: 13
+    zoom: state.safeZoneDraftPoint ? 15 : 13
   });
 
   state.safeZoneEditMap.addControl(new mapboxgl.NavigationControl(), "top-right");
   state.safeZoneEditMap.on("load", () => {
     state.safeZoneEditMapReady = true;
+    state.safeZoneEditMap.resize();
     updateSafeZoneEditMapMarker();
+    if (state.safeZoneDraftPoint) {
+      state.safeZoneEditMap.flyTo({
+        center: [state.safeZoneDraftPoint.lng, state.safeZoneDraftPoint.lat],
+        zoom: 15
+      });
+    }
   });
 
   state.safeZoneEditMap.on("click", (event) => {
@@ -3348,7 +3432,7 @@ function openSafeZoneModal(zone = null) {
     return;
   }
 
-  destroySafeZoneEditMap();
+  destroySafeZoneEditMap(false);
   setMessage(safeZoneModalMessage, "");
 
   const isEdit = Boolean(zone);
@@ -3399,6 +3483,8 @@ async function deleteSafeZone(id) {
 safeZonesReloadBtn?.addEventListener("click", () => loadSafeZonesAdmin());
 safeZoneCreateBtn?.addEventListener("click", () => openSafeZoneModal());
 safeZonesFilterInput?.addEventListener("input", applySafeZonesTableFilter);
+safeZonesStatusFilter?.addEventListener("change", applySafeZonesTableFilter);
+document.getElementById("safeZoneIsActive")?.addEventListener("change", syncSafeZoneEditMarkerStyle);
 safeZoneModalCloseBtn?.addEventListener("click", closeSafeZoneModal);
 
 safeZoneModalOverlay?.addEventListener("click", (event) => {

@@ -18,10 +18,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<TripChatMessageRead> TripChatMessageReads => Set<TripChatMessageRead>();
     public DbSet<TripRating> TripRatings => Set<TripRating>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
-<<<<<<< HEAD
     public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
     public DbSet<SupportTicketMessageRead> SupportTicketMessageReads => Set<SupportTicketMessageRead>();
-=======
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<SafeZone> SafeZones => Set<SafeZone>();
     public DbSet<Role> Roles => Set<Role>();
@@ -35,7 +33,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<PaymentReceipt> PaymentReceipts => Set<PaymentReceipt>();
     public DbSet<Refund> Refunds => Set<Refund>();
     public DbSet<UserDevice> UserDevices => Set<UserDevice>();
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,10 +49,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureTripChatMessageRead(modelBuilder);
         ConfigureTripRating(modelBuilder);
         ConfigureSupportTicket(modelBuilder);
-<<<<<<< HEAD
         ConfigureSupportTicketMessage(modelBuilder);
         ConfigureSupportTicketMessageRead(modelBuilder);
-=======
         ConfigureAppSetting(modelBuilder);
         ConfigureSafeZone(modelBuilder);
         ConfigureRole(modelBuilder);
@@ -69,7 +64,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigurePaymentReceipt(modelBuilder);
         ConfigureRefund(modelBuilder);
         ConfigureUserDevice(modelBuilder);
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);

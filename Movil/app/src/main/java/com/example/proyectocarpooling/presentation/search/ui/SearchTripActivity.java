@@ -42,9 +42,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -120,8 +117,6 @@ public class SearchTripActivity extends BaseActivity implements SearchTripAdapte
         }
     }
 
-    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
-
     private MaterialToolbar toolbar;
     private ChipGroup categoryGroup;
     private Button searchButton;
@@ -144,7 +139,6 @@ public class SearchTripActivity extends BaseActivity implements SearchTripAdapte
     private com.example.proyectocarpooling.data.remote.RatingRemoteDataSource ratingRemoteDataSource;
     private ExecutorService backgroundExecutor;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -203,24 +197,7 @@ public class SearchTripActivity extends BaseActivity implements SearchTripAdapte
     }
 
     private void setupFilterListeners() {
-<<<<<<< HEAD
-=======
-        minPriceInput.addTextChangedListener(new SimpleTextWatcher() {
-            @Override public void afterTextChanged(Editable s) {
-                minPriceLayout.setError(null);
-                applyFilters();
-            }
-        });
-        maxPriceInput.addTextChangedListener(new SimpleTextWatcher() {
-            @Override public void afterTextChanged(Editable s) {
-                maxPriceLayout.setError(null);
-                applyFilters();
-            }
-        });
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
-        categoryGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            applyFilters();
-        });
+        categoryGroup.setOnCheckedStateChangeListener((group, checkedIds) -> applyFilters());
     }
 
     private void setupActions() {

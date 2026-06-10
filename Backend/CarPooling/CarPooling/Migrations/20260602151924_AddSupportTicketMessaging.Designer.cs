@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarPooling.Migrations
 {
     [DbContext(typeof(CarPoolingContext))]
-    [Migration("20260526034351_AddSupportTicketMessaging")]
+    [Migration("20260602151924_AddSupportTicketMessaging")]
     partial class AddSupportTicketMessaging
     {
         /// <inheritdoc />

@@ -1724,7 +1724,13 @@ namespace CarPooling.Migrations
                     b.Navigation("Reservations");
                 });
 
-<<<<<<< HEAD
+            modelBuilder.Entity("CarPooling.Models.Role", b =>
+                {
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("UserRoles");
+                });
+
             modelBuilder.Entity("CarPooling.Models.SupportTicket", b =>
                 {
                     b.Navigation("Messages");
@@ -1733,13 +1739,6 @@ namespace CarPooling.Migrations
             modelBuilder.Entity("CarPooling.Models.SupportTicketMessage", b =>
                 {
                     b.Navigation("Reads");
-=======
-            modelBuilder.Entity("CarPooling.Models.Role", b =>
-                {
-                    b.Navigation("RolePermissions");
-
-                    b.Navigation("UserRoles");
->>>>>>> f2994777d8fb6d95afab56b84dcd87c7046aa833
                 });
 
             modelBuilder.Entity("CarPooling.Models.Trip", b =>
