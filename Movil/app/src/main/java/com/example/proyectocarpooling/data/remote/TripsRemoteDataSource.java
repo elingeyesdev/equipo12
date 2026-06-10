@@ -164,12 +164,37 @@ public class TripsRemoteDataSource {
     }
 
     public RouteData fetchRoute(Point origin, Point destination) throws IOException {
+        List<Point> points = new ArrayList<>(2);
+        points.add(origin);
+        points.add(destination);
+        return fetchRouteThroughPoints(points);
+    }
+
+    public RouteData fetchRouteWithWaypoint(Point origin, Point waypoint, Point destination) throws IOException {
+        List<Point> points = new ArrayList<>(3);
+        points.add(origin);
+        points.add(waypoint);
+        points.add(destination);
+        return fetchRouteThroughPoints(points);
+    }
+
+    private RouteData fetchRouteThroughPoints(List<Point> points) throws IOException {
+        if (points == null || points.size() < 2) {
+            throw new IOException("Se requieren al menos dos puntos para calcular la ruta");
+        }
+
+        StringBuilder coordinatePath = new StringBuilder();
+        for (int i = 0; i < points.size(); i++) {
+            Point point = points.get(i);
+            if (i > 0) {
+                coordinatePath.append(";");
+            }
+            coordinatePath.append(String.format(Locale.US, "%f,%f", point.longitude(), point.latitude()));
+        }
+
         String routeUrl = String.format(Locale.US,
-                "https://api.mapbox.com/directions/v5/mapbox/driving/%f,%f;%f,%f?geometries=geojson&overview=full&access_token=%s",
-                origin.longitude(),
-                origin.latitude(),
-                destination.longitude(),
-                destination.latitude(),
+                "https://api.mapbox.com/directions/v5/mapbox/driving/%s?geometries=geojson&overview=full&access_token=%s",
+                coordinatePath,
                 mapboxAccessToken);
 
         Request request = new Request.Builder()
@@ -196,15 +221,15 @@ public class TripsRemoteDataSource {
             double distanceMeters = route.optDouble("distance", 0.0);
             JSONArray coordinates = geometry.getJSONArray("coordinates");
 
-            List<Point> points = new ArrayList<>();
+            List<Point> routePoints = new ArrayList<>();
             for (int i = 0; i < coordinates.length(); i++) {
                 JSONArray coordinate = coordinates.getJSONArray(i);
                 double longitude = coordinate.getDouble(0);
                 double latitude = coordinate.getDouble(1);
-                points.add(Point.fromLngLat(longitude, latitude));
+                routePoints.add(Point.fromLngLat(longitude, latitude));
             }
 
-            return new RouteData(points, distanceMeters);
+            return new RouteData(routePoints, distanceMeters);
         } catch (JSONException e) {
             throw new IOException("Respuesta invalida de rutas", e);
         }

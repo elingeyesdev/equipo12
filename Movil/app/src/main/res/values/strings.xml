@@ -12,6 +12,13 @@
     <string name="safe_zone_purpose_pickup">Solo recogida</string>
     <string name="safe_zone_purpose_dropoff">Solo destino</string>
     <string name="safe_zone_center_map_button">Centrar en mapa</string>
+    <string name="safe_zone_suggestion_title">Punto seguro cercano</string>
+    <string name="safe_zone_suggestion_message">Tu ruta pasa cerca de %1$s (%2$s).\n\n¿Quieres agregar una parada en este punto seguro? El origen y destino no cambiaran.</string>
+    <string name="safe_zone_suggestion_add_stop">Agregar parada</string>
+    <string name="safe_zone_suggestion_decline">No, continuar</string>
+    <string name="safe_zone_suggestion_stop_added">Parada agregada en %1$s</string>
+    <string name="safe_zone_suggestion_distance_meters">%1$d m</string>
+    <string name="safe_zone_suggestion_distance_km">%.1f km</string>
 
     <!-- Emulador: 10.0.2.2 apunta al localhost de tu PC -->
     <string name="api_base_url_emulator">http://10.0.2.2:5005</string>

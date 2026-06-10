@@ -46,6 +46,7 @@ import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.ReservationResponse;
+import com.example.proyectocarpooling.data.model.RouteData;
 import com.example.proyectocarpooling.data.model.SafeZoneItem;
 import com.example.proyectocarpooling.data.model.TripResponse;
 import com.example.proyectocarpooling.data.model.payment.PaymentItem;
@@ -53,6 +54,7 @@ import com.example.proyectocarpooling.domain.model.CreateTripResult;
 import com.example.proyectocarpooling.domain.repository.TripRepository;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
+import com.example.proyectocarpooling.presentation.main.SafeZoneRouteMatcher;
 import com.example.proyectocarpooling.presentation.account.ui.AccountOverviewActivity;
 import com.example.proyectocarpooling.presentation.driver.ui.DriverPassengerRequestsActivity;
 import com.example.proyectocarpooling.presentation.favorites.ui.FavoritePlacesActivity;
@@ -178,6 +180,10 @@ public class MainActivity extends BaseActivity {
     private static final double SAFE_ZONE_ICON_SIZE = 1.5;
     private static final double SAFE_ZONE_SYMBOL_SORT_KEY = 100.0;
     private static final double SAFE_ZONE_TAP_RADIUS_PX = 56.0;
+    private List<Point> cachedRoutePreviewPoints;
+    private Point cachedRouteOrigin;
+    private Point cachedRouteDestination;
+    private SafeZoneItem activeSafeZoneRouteStop;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private TextView drawerUserTitle;
@@ -1696,7 +1702,7 @@ public class MainActivity extends BaseActivity {
                     return;
                 }
                 if (vehicles.size() == 1) {
-                    createTripWithVehicle(vehicles.get(0).id);
+                    checkSafeZoneSuggestionAndCreateTrip(vehicles.get(0).id);
                     return;
                 }
                 String[] items = new String[vehicles.size()];
@@ -1706,7 +1712,7 @@ public class MainActivity extends BaseActivity {
                 }
                 new AlertDialog.Builder(MainActivity.this)
                         .setTitle("Seleccionar vehiculo")
-                        .setItems(items, (dialog, which) -> createTripWithVehicle(vehicles.get(which).id))
+                        .setItems(items, (dialog, which) -> checkSafeZoneSuggestionAndCreateTrip(vehicles.get(which).id))
                         .setNegativeButton("Cancelar", null)
                         .show();
             }
@@ -1719,12 +1725,114 @@ public class MainActivity extends BaseActivity {
         });
     }
 
+    private void checkSafeZoneSuggestionAndCreateTrip(String vehicleId) {
+        if (!isDriverUser || loadedSafeZones.isEmpty() || selectedOrigin == null || selectedDestination == null) {
+            createTripWithVehicle(vehicleId);
+            return;
+        }
+
+        setProgressVisible(true);
+        final Point origin = selectedOrigin;
+        final Point destination = selectedDestination;
+        backgroundExecutor.execute(() -> {
+            try {
+                List<Point> routePoints = getRoutePointsForSuggestion(origin, destination);
+                SafeZoneRouteMatcher.Suggestion suggestion = SafeZoneRouteMatcher.findBestSuggestion(
+                        loadedSafeZones, routePoints);
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    if (suggestion == null) {
+                        createTripWithVehicle(vehicleId);
+                    } else {
+                        showSafeZoneSuggestionDialog(suggestion, vehicleId);
+                    }
+                });
+            } catch (IOException exception) {
+                Log.w("MainActivity", "No se pudo evaluar zonas seguras para la ruta", exception);
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    if (!isFinishing() && !isDestroyed()) {
+                        createTripWithVehicle(vehicleId);
+                    }
+                });
+            }
+        });
+    }
+
+    private List<Point> getRoutePointsForSuggestion(Point origin, Point destination) throws IOException {
+        if (cachedRoutePreviewPoints != null
+                && pointsNearlyEqual(cachedRouteOrigin, origin)
+                && pointsNearlyEqual(cachedRouteDestination, destination)) {
+            return cachedRoutePreviewPoints;
+        }
+
+        RouteData route = ((CarPoolingApplication) getApplication()).getTripRepository().fetchRoute(origin, destination);
+        cacheRoutePreview(origin, destination, route.points);
+        return route.points;
+    }
+
+    private void cacheRoutePreview(Point origin, Point destination, List<Point> routePoints) {
+        cachedRouteOrigin = origin;
+        cachedRouteDestination = destination;
+        cachedRoutePreviewPoints = routePoints;
+    }
+
+    private void invalidateRoutePreviewCache() {
+        cachedRouteOrigin = null;
+        cachedRouteDestination = null;
+        cachedRoutePreviewPoints = null;
+    }
+
+    private static boolean pointsNearlyEqual(Point a, Point b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        return Math.abs(a.latitude() - b.latitude()) < 0.000001
+                && Math.abs(a.longitude() - b.longitude()) < 0.000001;
+    }
+
+    private void showSafeZoneSuggestionDialog(SafeZoneRouteMatcher.Suggestion suggestion, String vehicleId) {
+        SafeZoneItem zone = suggestion.zone;
+        String zoneName = zone.name != null && !zone.name.trim().isEmpty()
+                ? zone.name.trim()
+                : "Zona segura";
+        String distanceLabel = formatSafeZoneDistanceLabel(suggestion.distanceMeters);
+        String message = getString(R.string.safe_zone_suggestion_message, zoneName, distanceLabel);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.safe_zone_suggestion_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.safe_zone_suggestion_add_stop,
+                        (dialog, which) -> applySafeZoneStopAndCreateTrip(zone, vehicleId))
+                .setNegativeButton(R.string.safe_zone_suggestion_decline, (dialog, which) -> {
+                    activeSafeZoneRouteStop = null;
+                    createTripWithVehicle(vehicleId);
+                })
+                .show();
+    }
+
+    private String formatSafeZoneDistanceLabel(double distanceMeters) {
+        if (distanceMeters < 1000.0) {
+            return getString(R.string.safe_zone_suggestion_distance_meters, Math.round(distanceMeters));
+        }
+        return getString(R.string.safe_zone_suggestion_distance_km, distanceMeters / 1000.0);
+    }
+
+    private void applySafeZoneStopAndCreateTrip(SafeZoneItem zone, String vehicleId) {
+        activeSafeZoneRouteStop = zone;
+        createTripWithVehicle(vehicleId);
+    }
+
     private void createTripWithVehicle(String vehicleId) {
         setProgressVisible(true);
         createTripButton.setEnabled(false);
 
         final Point origin = selectedOrigin;
         final Point destination = selectedDestination;
+        final SafeZoneItem routeStop = activeSafeZoneRouteStop;
         final double fareAmount = readFareAmount();
         mainViewModel.createTrip(origin, destination, vehicleId, fareAmount, new MainViewModel.ResultCallback<>() {
             @Override
@@ -1738,12 +1846,17 @@ public class MainActivity extends BaseActivity {
                     fareAmountInput.setText(String.format(Locale.US, "%.2f", response.fareAmount));
                     fareAmountInput.setEnabled(false);
                 }
-                lastRouteTimeLabel = buildEstimatedTimeLabel(result.route.distanceMeters);
                 sessionManager.saveDriverActiveTripId(response.id);
                 syncTripStateToViewModel();
 
-                if (result.route.points != null && !result.route.points.isEmpty()) {
-                    drawRoute(result.route.points);
+                drawTripRouteAfterCreate(origin, destination, routeStop, result);
+                if (routeStop != null) {
+                    String zoneName = routeStop.name != null && !routeStop.name.trim().isEmpty()
+                            ? routeStop.name.trim()
+                            : "Zona segura";
+                    Toast.makeText(MainActivity.this,
+                            getString(R.string.safe_zone_suggestion_stop_added, zoneName),
+                            Toast.LENGTH_SHORT).show();
                 }
                 Toast.makeText(MainActivity.this, R.string.toast_trip_created, Toast.LENGTH_SHORT).show();
                 updateStatusText();
@@ -1760,6 +1873,42 @@ public class MainActivity extends BaseActivity {
                 refreshButtons();
             }
         });
+    }
+
+    private void drawTripRouteAfterCreate(Point origin, Point destination, SafeZoneItem routeStop, CreateTripResult result) {
+        if (routeStop != null && origin != null && destination != null) {
+            backgroundExecutor.execute(() -> {
+                try {
+                    Point waypoint = Point.fromLngLat(routeStop.longitude, routeStop.latitude);
+                    RouteData routeWithStop = ((CarPoolingApplication) getApplication())
+                            .getTripRepository()
+                            .fetchRouteWithWaypoint(origin, waypoint, destination);
+                    runOnUiThread(() -> {
+                        if (isFinishing() || isDestroyed()) {
+                            return;
+                        }
+                        lastRouteTimeLabel = buildEstimatedTimeLabel(routeWithStop.distanceMeters);
+                        updateRouteTimeText();
+                        drawRoute(routeWithStop.points);
+                    });
+                } catch (IOException exception) {
+                    Log.w("MainActivity", "No se pudo dibujar ruta con parada segura", exception);
+                    runOnUiThread(() -> drawFallbackTripRoute(result));
+                }
+            });
+            return;
+        }
+        drawFallbackTripRoute(result);
+    }
+
+    private void drawFallbackTripRoute(CreateTripResult result) {
+        if (result.route != null && result.route.distanceMeters > 0) {
+            lastRouteTimeLabel = buildEstimatedTimeLabel(result.route.distanceMeters);
+            updateRouteTimeText();
+        }
+        if (result.route != null && result.route.points != null && !result.route.points.isEmpty()) {
+            drawRoute(result.route.points);
+        }
     }
 
     private double readFareAmount() {
@@ -1908,6 +2057,8 @@ public class MainActivity extends BaseActivity {
     }
 
     private void setSelectedOrigin(Point point, String address) {
+        invalidateRoutePreviewCache();
+        activeSafeZoneRouteStop = null;
         selectedOrigin = point;
         selectedOriginAddress = address;
         if (point != null && (address == null || address.isEmpty())) {
@@ -1916,6 +2067,8 @@ public class MainActivity extends BaseActivity {
     }
 
     private void setSelectedDestination(Point point, String address) {
+        invalidateRoutePreviewCache();
+        activeSafeZoneRouteStop = null;
         selectedDestination = point;
         selectedDestinationAddress = address;
         if (point != null && (address == null || address.isEmpty())) {
@@ -2224,6 +2377,7 @@ public class MainActivity extends BaseActivity {
                     if (isFinishing() || isDestroyed()) {
                         return;
                     }
+                    cacheRoutePreview(origin, destination, route.points);
                     drawRoute(route.points);
                     lastRouteTimeLabel = buildEstimatedTimeLabel(route.distanceMeters);
                     updateRouteTimeText();

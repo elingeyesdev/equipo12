@@ -18,6 +18,7 @@ public interface TripRepository {
     TripResponse findActiveTripForDriver(String driverUserId, String driverDisplayNameForFallback) throws IOException;
     TripResponse cancelTrip(String tripId) throws IOException;
     RouteData fetchRoute(Point origin, Point destination) throws IOException;
+    RouteData fetchRouteWithWaypoint(Point origin, Point waypoint, Point destination) throws IOException;
     TripResponse startTrip(String tripId, Point driverPosition) throws IOException;
     TripResponse finishTrip(String tripId) throws IOException;
     void createReservation(String tripId, String passengerUserId, int seatsReserved) throws IOException;
