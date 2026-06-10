@@ -116,7 +116,8 @@ p {
 
 .field span {
   font-size: 0.9rem;
-  color: var(--muted);
+  color: var(--text);
+  font-weight: 500;
 }
 
 input,
@@ -125,7 +126,7 @@ select {
   border-radius: 12px;
   padding: 11px 12px;
   background: #fff;
-  color: var(--text);
+  color: #111111;
   font: inherit;
   outline: none;
   transition: border-color 160ms ease, box-shadow 160ms ease;
@@ -135,6 +136,14 @@ input:focus,
 select:focus {
   border-color: var(--accent-2);
   box-shadow: var(--ring);
+}
+
+input[type="date"] {
+  color: #111111 !important;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+  color: #111111 !important;
 }
 
 .btn {
@@ -829,7 +838,7 @@ select:focus {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--muted);
+  color: #111111;
   background: #fffaf4;
 }
 
@@ -1137,18 +1146,22 @@ select:focus {
   background: #e6fff2;
   color: var(--ok);
 }
+
 .status-badge--rejected {
   background: #ffe8e8;
   color: var(--danger);
 }
+
 .status-badge--expired {
   background: #f2efe8;
   color: var(--muted);
 }
+
 .status-badge--refunded {
   background: #f3e8ff;
   color: #6b21a8;
 }
+
 .status-badge--partially-refunded {
   background: #faf5ff;
   color: #7e22ce;
@@ -1158,26 +1171,32 @@ select:focus {
   background: #fff4e6;
   color: #b35c00;
 }
+
 .status-pill.approved {
   background: #e6fff2;
   color: var(--ok);
 }
+
 .status-pill.rejected {
   background: #ffe8e8;
   color: var(--danger);
 }
+
 .status-pill.cancelled {
   background: #ffe8e8;
   color: var(--danger);
 }
+
 .status-pill.expired {
   background: #f2efe8;
   color: var(--muted);
 }
+
 .status-pill.refunded {
   background: #f3e8ff;
   color: #6b21a8;
 }
+
 .status-pill.partially-refunded {
   background: #faf5ff;
   color: #7e22ce;

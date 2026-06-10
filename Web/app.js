@@ -54,9 +54,6 @@ const loginMessage = document.getElementById("loginMessage");
 const apiStatus = document.getElementById("apiStatus");
 const sectionTitle = document.getElementById("sectionTitle");
 const sectionDescription = document.getElementById("sectionDescription");
-const kpiSection = document.getElementById("kpiSection");
-const kpiApiBase = document.getElementById("kpiApiBase");
-const kpiSession = document.getElementById("kpiSession");
 const loggedUserInfo = document.getElementById("loggedUserInfo");
 const adminDataMessage = document.getElementById("adminDataMessage");
 const adminUsersBody = document.getElementById("adminUsersBody");
@@ -532,7 +529,6 @@ function openSection(section) {
   const sectionMeta = getSectionMeta(section);
   sectionTitle.textContent = sectionMeta.name;
   sectionDescription.textContent = sectionMeta.description;
-  kpiSection.textContent = sectionMeta.name;
 
   document.querySelectorAll(".menu-item").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.section === section);
@@ -544,7 +540,7 @@ function openSection(section) {
 
   document.getElementById(`section-${section}`).classList.remove("hidden");
 
-  if (["users", "trips", "reservations", "reports", "admins"].includes(section) && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+  if (["overview", "users", "trips", "reservations", "reports", "admins"].includes(section) && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
     loadAdminData();
   }
 
@@ -569,7 +565,7 @@ function getSectionMeta(section) {
   const map = {
     overview: {
       name: "Resumen",
-      description: "Monitorea estado de sesion, API activa y accesos rapidos." 
+      description: "Vista general del estado del panel." 
     },
     users: {
       name: "Usuarios",
@@ -1811,8 +1807,6 @@ function startSession(user) {
   authShell.classList.add("hidden");
   dashboard.classList.remove("hidden");
   loggedUserInfo.textContent = `Admin: ${user.fullName} (${user.email})`;
-  kpiApiBase.textContent = state.apiBaseUrl;
-  kpiSession.textContent = "Activa";
   updateApiStatus(true, "login exitoso");
   startAdminAutoRefresh();
 
@@ -1846,7 +1840,6 @@ function logout() {
   authShell.classList.remove("hidden");
   stopAdminAutoRefresh();
   updateApiStatus(false);
-  kpiSession.textContent = "Inactiva";
 }
 
 function startAdminAutoRefresh() {
@@ -1925,6 +1918,7 @@ async function loadAdminData() {
     renderReservationsTable(reservations);
     renderAdminsTable(users);
     applyAllTableFilters();
+    document.getElementById("analyticsConsultBtn")?.click();
 
     const issueMessages = [];
     if (usersResult.status === "rejected") {
@@ -2331,14 +2325,7 @@ document.getElementById("menuNav").addEventListener("click", (event) => {
   openSection(button.dataset.section);
 });
 
-document.getElementById("overviewQuickActions").addEventListener("click", (event) => {
-  const button = event.target.closest(".quick-link");
-  if (!button) {
-    return;
-  }
 
-  openSection(button.dataset.section);
-});
 
 document.addEventListener("click", (event) => {
   const createButton = event.target.closest("[data-create-type]");
@@ -3762,6 +3749,234 @@ document.getElementById("adminsFilterInput")?.addEventListener("input", (event) 
 paymentsFilterInput?.addEventListener("input", applyPaymentsFilter);
 paymentsStatusFilter?.addEventListener("change", applyPaymentsFilter);
 paymentsReloadBtn?.addEventListener("click", loadAdminPayments);
+
+// --- Export and Analytics Logic ---
+function exportToExcel(data, headers, filename) {
+  if (!data || !data.length) {
+    alert("No hay datos para exportar.");
+    return;
+  }
+  const csvContent = [
+    headers.join(","),
+    ...data.map(row => row.map(val => `"${String(val ?? "").replace(/"/g, '""')}"`).join(","))
+  ].join("\n");
+  const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename + ".csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+document.getElementById("exportUsersBtn")?.addEventListener("click", () => {
+  const users = state.adminData.users || [];
+  const exportType = document.getElementById("exportUserTypeSelect")?.value || "all";
+  
+  let filteredUsers = users;
+  let filename = "usuarios_todos";
+  
+  if (exportType === "students") {
+    filteredUsers = users.filter(u => Number(u.roleId) === 1 || String(u.role || "").toLowerCase().includes("student") || String(u.role || "").toLowerCase().includes("passenger"));
+    filename = "usuarios_estudiantes";
+  } else if (exportType === "drivers") {
+    filteredUsers = users.filter(isDriverUser);
+    filename = "conductores";
+  } else if (exportType === "admins") {
+    filteredUsers = users.filter(u => Number(u.roleId) === 3 || String(u.role || "").toLowerCase().includes("admin"));
+    filename = "administradores";
+  }
+  
+  let headers = ["ID", "Nombre", "Email", "Rol", "Telefono", "Fecha Creacion"];
+  let data = filteredUsers.map(u => [u.id, u.fullName, u.email, u.role, u.phoneNumber, u.createdAt]);
+  
+  if (exportType === "drivers") {
+    headers = ["ID", "Nombre", "Email", "Rol", "Telefono", "Vehiculos", "Placa", "Fecha Creacion"];
+    data = filteredUsers.map(d => {
+      const profile = d.driverProfile || d.DriverProfile;
+      const plate = profile ? profile.licensePlate : (d.vehicles && d.vehicles[0] ? d.vehicles[0].licensePlate : "");
+      return [d.id, d.fullName, d.email, d.role, d.phoneNumber, d.vehicles?.length || 0, plate, d.createdAt];
+    });
+  }
+  
+  exportToExcel(data, headers, filename);
+});
+
+document.getElementById("exportTripsBtn")?.addEventListener("click", () => {
+  const trips = state.adminData.trips || [];
+  const headers = ["ID Viaje", "Conductor", "Estado", "Cupos", "Tipo", "Fecha Creacion"];
+  const data = trips.map(t => {
+    const statusVal = t.statusLabel ?? t.statusId ?? t.status;
+    return [t.id, t.driverName, formatTripStatus(statusVal), t.availableSeats, formatTripKind(t.kind), t.createdAt];
+  });
+  exportToExcel(data, headers, "viajes");
+});
+
+document.getElementById("exportReservationsBtn")?.addEventListener("click", () => {
+  const reservations = state.adminData.reservations || [];
+  const headers = ["ID Reserva", "ID Viaje", "Pasajero", "Asientos", "Estado", "Fecha Creacion"];
+  const data = reservations.map(r => [r.id, r.tripId, r.passengerName, r.seatsReserved, formatReservationStatus(r.status), r.createdAt]);
+  exportToExcel(data, headers, "reservas");
+});
+
+let tripsChartInstance = null;
+let usersChartInstance = null;
+let reservationsChartInstance = null;
+
+function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
+  if (typeof Chart === 'undefined') return;
+
+  const style = getComputedStyle(document.body);
+  const primaryColor = style.getPropertyValue('--primary').trim() || '#5f7f6c';
+  const secondaryColor = style.getPropertyValue('--secondary').trim() || '#b67a52';
+  const textSecondaryColor = style.getPropertyValue('--text-secondary').trim() || '#4d5d56';
+  
+  Chart.defaults.color = textSecondaryColor;
+  Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+
+  // 1. Gráfica de Viajes por Día (Barras)
+  const tripsByDay = {};
+  filteredTrips.forEach(t => {
+    if (!t.createdAt) return;
+    const dateStr = new Date(t.createdAt).toLocaleDateString();
+    tripsByDay[dateStr] = (tripsByDay[dateStr] || 0) + 1;
+  });
+  
+  const tripDates = Object.keys(tripsByDay).sort((a,b) => new Date(a) - new Date(b));
+  const tripCounts = tripDates.map(d => tripsByDay[d]);
+
+  const ctxTrips = document.getElementById('tripsChart')?.getContext('2d');
+  if (ctxTrips) {
+    if (tripsChartInstance) tripsChartInstance.destroy();
+    tripsChartInstance = new Chart(ctxTrips, {
+      type: 'bar',
+      data: {
+        labels: tripDates.length ? tripDates : ['Sin datos'],
+        datasets: [{
+          label: 'Viajes Realizados',
+          data: tripCounts.length ? tripCounts : [0],
+          backgroundColor: primaryColor,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+  }
+
+  // 2. Gráfica Usuarios vs Conductores (Pastel)
+  const totalDrivers = filteredUsers.filter(isDriverUser).length;
+  const totalPassengers = filteredUsers.length - totalDrivers;
+
+  const ctxUsers = document.getElementById('usersChart')?.getContext('2d');
+  if (ctxUsers) {
+    if (usersChartInstance) usersChartInstance.destroy();
+    usersChartInstance = new Chart(ctxUsers, {
+      type: 'pie',
+      data: {
+        labels: ['Pasajeros Promedio', 'Conductores'],
+        datasets: [{
+          data: [totalPassengers, totalDrivers],
+          backgroundColor: [secondaryColor, primaryColor],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  // 3. Gráfica Reservas (Dona)
+  const reservationsStatus = {
+    'Pendientes': 0,
+    'Confirmadas': 0,
+    'Abordadas': 0,
+    'Canceladas': 0
+  };
+  
+  filteredReservations.forEach(r => {
+    const st = Number(r.status);
+    if (st === 1) reservationsStatus['Pendientes']++;
+    else if (st === 2) reservationsStatus['Confirmadas']++;
+    else if (st === 3) reservationsStatus['Abordadas']++;
+    else reservationsStatus['Canceladas']++;
+  });
+
+  const ctxReservations = document.getElementById('reservationsChart')?.getContext('2d');
+  if (ctxReservations) {
+    if (reservationsChartInstance) reservationsChartInstance.destroy();
+    reservationsChartInstance = new Chart(ctxReservations, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(reservationsStatus),
+        datasets: [{
+          data: Object.values(reservationsStatus),
+          backgroundColor: ['#f59e0b', primaryColor, secondaryColor, '#ef4444'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+}
+
+document.getElementById("analyticsConsultBtn")?.addEventListener("click", () => {
+  const startStr = document.getElementById("analyticsStartDate")?.value;
+  const endStr = document.getElementById("analyticsEndDate")?.value;
+  
+  let start = null;
+  let end = null;
+
+  if (startStr) {
+    if (startStr.includes("-") && startStr.split("-")[0].length === 4) {
+      const [y, m, d] = startStr.split("-");
+      start = new Date(y, m - 1, d, 0, 0, 0, 0);
+    } else {
+      start = new Date(startStr);
+      if (!isNaN(start.getTime())) start.setHours(0, 0, 0, 0);
+      else start = null;
+    }
+  }
+  
+  if (endStr) {
+    if (endStr.includes("-") && endStr.split("-")[0].length === 4) {
+      const [y, m, d] = endStr.split("-");
+      end = new Date(y, m - 1, d, 23, 59, 59, 999);
+    } else {
+      end = new Date(endStr);
+      if (!isNaN(end.getTime())) end.setHours(23, 59, 59, 999);
+      else end = null;
+    }
+  }
+
+  const filterByDate = (item) => {
+    if (!item.createdAt) return false;
+    const d = new Date(item.createdAt);
+    let isValid = true;
+    if (start) isValid = isValid && d >= start;
+    if (end) isValid = isValid && d <= end;
+    return isValid;
+  };
+
+  const filteredUsers = (state.adminData.users || []).filter(filterByDate);
+  const filteredTrips = (state.adminData.trips || []).filter(filterByDate);
+  const filteredReservations = (state.adminData.reservations || []).filter(filterByDate);
+
+  document.getElementById("analyticsUsersCount").textContent = filteredUsers.length;
+  document.getElementById("analyticsTripsCount").textContent = filteredTrips.length;
+  document.getElementById("analyticsReservationsCount").textContent = filteredReservations.length;
+  
+  renderAdminCharts(filteredUsers, filteredTrips, filteredReservations);
+});
 
 // Startup Execution
 fetchThemeOnStartup().finally(() => {

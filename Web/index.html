@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="./node_modules/mapbox-gl/dist/mapbox-gl.css" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
@@ -71,42 +72,55 @@
           <p id="loggedUserInfo" class="logged-user">Sesion iniciada</p>
           <p id="adminDataMessage" class="message" aria-live="polite"></p>
         </div>
-        <div class="status-pill" id="apiStatus">API desconectada</div>
+        <div class="status-pill hidden" id="apiStatus">API desconectada</div>
       </header>
 
       <section class="content-grid" id="section-overview">
-        <article class="card kpi">
-          <h3>Estado de sesion</h3>
-          <p id="kpiSession">Activa</p>
-        </article>
-        <article class="card kpi">
-          <h3>Seccion actual</h3>
-          <p id="kpiSection">Resumen</p>
-        </article>
-        <article class="card kpi">
-          <h3>API Base</h3>
-          <p id="kpiApiBase">-</p>
-        </article>
-
-        <article class="card span-3" id="quickActionsCard">
-          <h3>Acciones rapidas</h3>
-          <p class="card-help">Navega a las tareas mas comunes sin buscar en el menu lateral.</p>
-          <div class="quick-actions" id="overviewQuickActions">
-            <button type="button" class="btn secondary quick-link" data-section="users">Crear usuario</button>
-            <button type="button" class="btn secondary quick-link" data-section="trips">Crear viaje</button>
-            <button type="button" class="btn secondary quick-link" data-section="reservations">Ver reservas</button>
-            <button type="button" class="btn secondary quick-link" data-section="support">Ver quejas</button>
+        <article class="card span-3" id="adminAnalyticsCard">
+          <h3>Reportes y Estadísticas</h3>
+          <p class="card-help">Consulta las métricas administrativas en un rango de fechas determinado.</p>
+          <div class="filters-grid form-grid-2">
+            <label class="field filter-field">
+              <span>Fecha Inicio</span>
+              <input type="date" id="analyticsStartDate" />
+            </label>
+            <label class="field filter-field">
+              <span>Fecha Fin</span>
+              <input type="date" id="analyticsEndDate" />
+            </label>
+            <div class="filter-field filter-field--actions" style="display: flex; align-items: flex-end;">
+              <button type="button" class="btn primary" id="analyticsConsultBtn">Consultar</button>
+            </div>
           </div>
-        </article>
-
-        <article class="card span-3">
-          <h3>Checklist implementado</h3>
-          <ul class="checklist">
-            <li>Layout principal con sidebar, navbar y dashboard.</li>
-            <li>Navegacion funcional entre usuarios, viajes y reportes.</li>
-            <li>Autenticacion de administrador con login.</li>
-            <li>Conexion a endpoints basicos del backend.</li>
-          </ul>
+          <div class="quick-actions" style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md); text-align: center;">
+              <strong style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px;">Nuevos Usuarios</strong>
+              <p id="analyticsUsersCount" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0</p>
+            </div>
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md); text-align: center;">
+              <strong style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px;">Viajes Realizados</strong>
+              <p id="analyticsTripsCount" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0</p>
+            </div>
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md); text-align: center;">
+              <strong style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px;">Reservas Hechas</strong>
+              <p id="analyticsReservationsCount" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0</p>
+            </div>
+          </div>
+          
+          <div class="analytics-charts-grid" style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md);">
+              <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-primary);">Viajes por Día</h4>
+              <canvas id="tripsChart"></canvas>
+            </div>
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md);">
+              <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-primary);">Pasajeros vs Conductores</h4>
+              <canvas id="usersChart"></canvas>
+            </div>
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md);">
+              <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-primary);">Estado de Reservas</h4>
+              <canvas id="reservationsChart"></canvas>
+            </div>
+          </div>
         </article>
       </section>
 
@@ -117,7 +131,14 @@
             <h3>Usuarios registrados</h3>
             <p class="card-help">Consulta todos los datos de cada usuario en la tabla inferior.</p>
           </div>
-          <div class="panel-header-actions">
+          <div class="panel-header-actions" style="display: flex; gap: 8px; align-items: center;">
+            <select id="exportUserTypeSelect" class="btn secondary" style="padding: 10px; border: 1px solid rgba(255,255,255,0.3); outline: none;">
+              <option value="all">Todos</option>
+              <option value="students">Usuarios (Pasajeros)</option>
+              <option value="drivers">Conductores</option>
+              <option value="admins">Admins</option>
+            </select>
+            <button type="button" class="btn secondary" id="exportUsersBtn">Exportar</button>
             <button type="button" class="btn secondary" data-create-type="user">Agregar</button>
           </div>
         </article>
@@ -154,6 +175,7 @@
             <p class="card-help">Consulta todos los viajes en la tabla y agrega uno nuevo desde el botón superior.</p>
           </div>
           <div class="panel-header-actions">
+            <button type="button" class="btn secondary" id="exportTripsBtn">Exportar a Excel</button>
             <button type="button" class="btn secondary" data-create-type="trip">Agregar</button>
           </div>
         </article>
@@ -192,6 +214,7 @@
             <p class="card-help">Consulta todos los datos de reservas y crea una nueva desde el botón superior.</p>
           </div>
           <div class="panel-header-actions">
+            <button type="button" class="btn secondary" id="exportReservationsBtn">Exportar a Excel</button>
             <button type="button" class="btn secondary" data-create-type="reservation">Agregar</button>
           </div>
         </article>
