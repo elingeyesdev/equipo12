@@ -4202,7 +4202,6 @@ async function exportToExcel(data, headers, filename) {
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   saveAs(blob, filename + ".xlsx");
 }
-}
 
 function performExport(data, headers, filename, format) {
   if (!data || !data.length) {
