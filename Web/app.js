@@ -2231,6 +2231,7 @@ function renderUsersTable(users) {
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="user" data-id="${escapeHtml(user.id)}">Ver detalles</button>
+          <button class="btn tiny primary admin-view-trips" data-id="${escapeHtml(user.id)}">Consultar viajes</button>
           ${hasPermission('users:write') ? `<button class="btn tiny secondary admin-edit" data-type="user" data-id="${escapeHtml(user.id)}">Editar</button>` : ''}
           ${hasPermission('users:delete') ? `<button class="btn tiny danger admin-delete" data-type="user" data-id="${escapeHtml(user.id)}">Eliminar</button>` : ''}
         </div>
@@ -2632,7 +2633,91 @@ editModalForm?.addEventListener("submit", async (event) => {
   }
 });
 
+document.getElementById("userTripsModalCloseBtn")?.addEventListener("click", () => {
+  document.getElementById("userTripsModalOverlay")?.classList.add("hidden");
+});
+
+function viewUserTrips(userId) {
+  const trips = state.adminData.trips || [];
+  const reservations = state.adminData.reservations || [];
+  const users = state.adminData.users || [];
+  
+  const user = users.find(u => String(u.id) === String(userId));
+  if (!user) return;
+  
+  const userTripsList = [];
+  
+  // Viajes como conductor
+  trips.forEach(t => {
+    if (String(t.driverId) === String(userId)) {
+      const origin = getTripOriginCoordinates(t);
+      const dest = getTripDestinationCoordinates(t);
+      userTripsList.push({
+        role: "Conductor",
+        origin: hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "Desconocido",
+        dest: hasTripCoordinates(dest) ? `${dest.lat}, ${dest.lng}` : "Desconocido",
+        time: t.createdAt,
+        driverName: "Él mismo",
+        status: t.statusLabel ?? t.statusId ?? t.status
+      });
+    }
+  });
+  
+  // Viajes como pasajero
+  reservations.forEach(r => {
+    if (String(r.passengerId) === String(userId)) {
+      const t = trips.find(trip => String(trip.id) === String(r.tripId));
+      if (t) {
+        const origin = getTripOriginCoordinates(t);
+        const dest = getTripDestinationCoordinates(t);
+        userTripsList.push({
+          role: "Pasajero",
+          origin: hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "Desconocido",
+          dest: hasTripCoordinates(dest) ? `${dest.lat}, ${dest.lng}` : "Desconocido",
+          time: t.createdAt,
+          driverName: t.driverName || "Desconocido",
+          status: formatReservationStatus(r.status)
+        });
+      }
+    }
+  });
+  
+  const tbody = document.getElementById("userTripsModalBody");
+  if (!userTripsList.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay viajes registrados para este usuario.</td></tr>';
+  } else {
+    // Ordenar por fecha descendente
+    userTripsList.sort((a, b) => new Date(b.time) - new Date(a.time));
+    
+    tbody.innerHTML = userTripsList.map(item => `
+      <tr>
+        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.origin)}">${escapeHtml(item.origin)}</td>
+        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.dest)}">${escapeHtml(item.dest)}</td>
+        <td>${escapeHtml(item.time ? formatDateTime(item.time) : "Desconocido")}</td>
+        <td>${escapeHtml(item.driverName)}</td>
+        <td>
+          <span class="status-badge status-badge--${escapeHtml(String(item.role).toLowerCase())}">${escapeHtml(item.role)}</span>
+          <br>
+          <span style="font-size: 0.85em; color: var(--text-secondary);">${escapeHtml(item.status)}</span>
+        </td>
+      </tr>
+    `).join("");
+  }
+  
+  const titleEl = document.getElementById("userTripsModalTitle");
+  if (titleEl) titleEl.textContent = `Historial de Viajes: ${user.fullName}`;
+  
+  document.getElementById("userTripsModalOverlay")?.classList.remove("hidden");
+}
+
 document.addEventListener("click", async (event) => {
+  const viewTripsBtn = event.target.closest(".admin-view-trips");
+  if (viewTripsBtn) {
+    const userId = viewTripsBtn.dataset.id;
+    viewUserTrips(userId);
+    return;
+  }
+
   const viewBtn = event.target.closest(".admin-view-details");
   if (viewBtn) {
     try {

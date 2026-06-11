@@ -598,6 +598,32 @@
     </section>
   </div>
 
+  <div class="modal-overlay hidden" id="userTripsModalOverlay" aria-hidden="true">
+    <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="userTripsModalTitle">
+      <div class="modal-header">
+        <h3 id="userTripsModalTitle">Historial de Viajes</h3>
+        <button type="button" class="btn tiny" id="userTripsModalCloseBtn">Cerrar</button>
+      </div>
+      <div class="table-container" style="max-height: 60vh; overflow-y: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Origen</th>
+              <th>Destino</th>
+              <th>Fecha/Hora</th>
+              <th>Conductor</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="userTripsModalBody">
+            <!-- Los viajes se cargarán aquí -->
+          </tbody>
+        </table>
+      </div>
+      <p id="userTripsModalMessage" class="message" aria-live="polite"></p>
+    </section>
+  </div>
+
   <div class="modal-overlay hidden" id="safeZoneModalOverlay" aria-hidden="true">
     <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="safeZoneModalTitle">
       <div class="modal-header">
