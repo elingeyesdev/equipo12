@@ -1,0 +1,136 @@
+{
+  "timestamp": "2026-06-11T04:34:00.956Z",
+  "performance": {
+    "tripSearch": {
+      "successes": 50,
+      "total": 50,
+      "min": 1,
+      "max": 4,
+      "avg": 2,
+      "stdDev": 0,
+      "slaPassed": true
+    },
+    "ratingSummary": {
+      "successes": 50,
+      "total": 50,
+      "min": 1,
+      "max": 34,
+      "avg": 2,
+      "stdDev": 5,
+      "slaPassed": true
+    }
+  },
+  "stress": {
+    "100": {
+      "tripSearch": {
+        "successes": 100,
+        "failures": 0,
+        "avgLatency": 0.5613050000000004,
+        "errorSample": []
+      },
+      "safeZones": {
+        "successes": 100,
+        "failures": 0,
+        "avgLatency": 0.1256639999999999,
+        "errorSample": []
+      }
+    },
+    "250": {
+      "tripSearch": {
+        "successes": 250,
+        "failures": 0,
+        "avgLatency": 0.3689148,
+        "errorSample": []
+      },
+      "safeZones": {
+        "successes": 250,
+        "failures": 0,
+        "avgLatency": 0.11692480000000001,
+        "errorSample": []
+      }
+    },
+    "500": {
+      "tripSearch": {
+        "successes": 500,
+        "failures": 0,
+        "avgLatency": 0.2802121999999999,
+        "errorSample": []
+      },
+      "safeZones": {
+        "successes": 500,
+        "failures": 0,
+        "avgLatency": 0.09942719999999985,
+        "errorSample": []
+      }
+    },
+    "1000": {
+      "tripSearch": {
+        "successes": 1000,
+        "failures": 0,
+        "avgLatency": 0.22422270000000002,
+        "errorSample": []
+      },
+      "safeZones": {
+        "successes": 1000,
+        "failures": 0,
+        "avgLatency": 0.09404229999999995,
+        "errorSample": []
+      }
+    }
+  },
+  "usability": {
+    "html": [
+      {
+        "name": "Viewport Meta Tag",
+        "passed": true,
+        "detail": "El viewport meta tag es obligatorio para responsividad móvil."
+      },
+      {
+        "name": "Atributos ALT en imágenes",
+        "passed": true,
+        "detail": "0 imágenes encontradas, 0 no tienen el atributo ALT para lectores de pantalla."
+      },
+      {
+        "name": "Etiquetas LABEL o descriptores ARIA en Inputs",
+        "passed": false,
+        "detail": "Falta label/aria en 38 de 38 inputs."
+      },
+      {
+        "name": "Estructura Semántica - Encabezado H1",
+        "passed": true,
+        "detail": "Debe haber un encabezado h1 principal para navegación semántica y SEO."
+      },
+      {
+        "name": "Descriptores en Botones",
+        "passed": true,
+        "detail": "De 40 botones, 0 están vacíos y carecen de etiqueta descriptiva aria-label."
+      }
+    ],
+    "css": [
+      {
+        "name": "Media Queries (@media)",
+        "passed": true,
+        "detail": "El archivo CSS debe usar media queries para definir puntos de quiebre responsivos."
+      },
+      {
+        "name": "Unidades Adaptativas (rem/em/%/vw/vh)",
+        "passed": true,
+        "detail": "Se deben priorizar unidades flexibles sobre pixeles fijos."
+      },
+      {
+        "name": "Objetivos de Selección Táctil (touch targets)",
+        "passed": true,
+        "detail": "Los botones e interactivos deben poseer espaciado suficiente para evitar clics erróneos en pantallas táctiles."
+      },
+      {
+        "name": "Indicadores de Enfoque Teclado (:focus)",
+        "passed": true,
+        "detail": "Los elementos interactivos deben definir estilos de foco para navegación por teclado (accesibilidad)."
+      }
+    ],
+    "summary": {
+      "passed": 8,
+      "failed": 1
+    }
+  }
+}

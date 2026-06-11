@@ -4,7 +4,7 @@ const MAPBOX_ACCESS_TOKEN = "pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJk
 const MAPBOX_SCRIPT_SRC = "./node_modules/mapbox-gl/dist/mapbox-gl.js";
 
 const state = {
-  apiBaseUrl: "http://localhost:5005",
+  apiBaseUrl: localStorage.getItem("cp.apiBaseUrl") || "http://localhost:5005",
   currentUser: JSON.parse(localStorage.getItem("cp.adminUser") || "null"),
   section: "overview",
   adminData: {
@@ -115,7 +115,7 @@ function sanitizeWebError(rawError) {
   if (lower.includes("fetch") || lower.includes("connect") || lower.includes("network") ||
       lower.includes("timeout") || lower.includes("socket") || lower.includes("unable to resolve host") ||
       lower.includes("http") || lower.includes("connection")) {
-    return "No se pudo establecer conexión con el servidor. Verifica que el backend esté corriendo en http://localhost:5005";
+    return "No se pudo establecer conexión con el servidor. Verifica que el backend esté corriendo en http://localhost:5005 o http://localhost:5000";
   }
   return errorMsg;
 }
@@ -490,6 +490,65 @@ function escapeHtml(value) {
 
 function normalizeUrl(url) {
   return url.replace(/\/$/, "");
+}
+
+function isLocalApiUrl(url) {
+  return /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(String(url || ""));
+}
+
+async function isApiReachable(url) {
+  try {
+    const response = await fetch(`${normalizeUrl(url)}/api/safe-zones`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      },
+      cache: "no-store"
+    });
+
+    return response.ok || response.status === 401 || response.status === 403;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveApiBaseUrl() {
+  const persistedUrl = localStorage.getItem("cp.apiBaseUrl");
+  const localCandidates = [
+    "http://localhost:5005",
+    "http://localhost:5000",
+    "http://127.0.0.1:5005",
+    "http://127.0.0.1:5000"
+  ];
+
+  const candidates = [];
+  if (persistedUrl) {
+    candidates.push(persistedUrl);
+    if (!isLocalApiUrl(persistedUrl)) {
+      return persistedUrl;
+    }
+  }
+
+  for (const candidate of localCandidates) {
+    if (!candidates.includes(candidate)) {
+      candidates.push(candidate);
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (await isApiReachable(candidate)) {
+      state.apiBaseUrl = candidate;
+      localStorage.setItem("cp.apiBaseUrl", candidate);
+      return candidate;
+    }
+  }
+
+  if (persistedUrl) {
+    state.apiBaseUrl = persistedUrl;
+    return persistedUrl;
+  }
+
+  return state.apiBaseUrl;
 }
 
 async function apiFetch(path, options = {}) {
@@ -2794,15 +2853,15 @@ document.getElementById("loginForm").addEventListener("submit", async (event) =>
   }
 });
 
-document.getElementById("usersFilterInput").addEventListener("input", (event) => {
+document.getElementById("usersFilterInput")?.addEventListener("input", (event) => {
   applyTableFilter("adminUsersBody", event.target.value);
 });
 
-document.getElementById("tripsFilterInput").addEventListener("input", (event) => {
+document.getElementById("tripsFilterInput")?.addEventListener("input", (event) => {
   applyTableFilter("adminTripsBody", event.target.value);
 });
 
-document.getElementById("reservationsFilterInput").addEventListener("input", (event) => {
+document.getElementById("reservationsFilterInput")?.addEventListener("input", (event) => {
   applyTableFilter("adminReservationsBody", event.target.value);
 });
 
@@ -2844,52 +2903,32 @@ document.getElementById("section-support")?.addEventListener("click", async (eve
 // --- Ajustes / Apariencia (Temas Pastel Dinámicos) ---
 const presets = {
   Custom: {
-    primaryLight: "#5f7f6c",
-    secondaryLight: "#b67a52",
-    textLight: "#24302b",
-    primaryDark: "#8fac98",
-    secondaryDark: "#d0a27d",
-    textDark: "#edf2ee"
-  },
-  Natural: {
-    primaryLight: "#5f7f6c",
-    secondaryLight: "#b67a52",
-    textLight: "#24302b",
-    primaryDark: "#8fac98",
-    secondaryDark: "#d0a27d",
-    textDark: "#edf2ee"
-  },
-  Emerald: {
-    primaryLight: "#7abfa6",
-    secondaryLight: "#5a8777",
-    textLight: "#1c2e28",
-    primaryDark: "#67b095",
-    secondaryDark: "#78ab98",
-    textDark: "#e2e9e6"
-  },
-  Ocean: {
-    primaryLight: "#7bb0db",
-    secondaryLight: "#8496ab",
-    textLight: "#18232e",
-    primaryDark: "#62a1d3",
-    secondaryDark: "#9cb1c9",
-    textDark: "#e2e8ee"
-  },
-  Orchid: {
-    primaryLight: "#a397db",
-    secondaryLight: "#9e7fa6",
-    textLight: "#231e33",
-    primaryDark: "#9485d4",
-    secondaryDark: "#bca4c4",
-    textDark: "#edeaf5"
+    primaryLight: "#82254B",
+    secondaryLight: "#6E1E3F",
+    textLight: "#111827",
+    bgLight: "#FFFFFF",
+    cardLight: "#F5F5F5",
+    borderLight: "#9CA8B0",
+    primaryDark: "#82254B",
+    secondaryDark: "#6E1E3F",
+    textDark: "#ffffff",
+    bgDark: "#121011",
+    cardDark: "#251a1e",
+    borderDark: "#6E1E3F"
   },
   Univalle: {
-    primaryLight: "#7a1c31",
-    secondaryLight: "#D3D3D3",
+    primaryLight: "#82254B",
+    secondaryLight: "#6E1E3F",
     textLight: "#111827",
-    primaryDark: "#a12b42",
-    secondaryDark: "#9ca3af",
-    textDark: "#ffffff"
+    bgLight: "#FFFFFF",
+    cardLight: "#F5F5F5",
+    borderLight: "#9CA8B0",
+    primaryDark: "#82254B",
+    secondaryDark: "#6E1E3F",
+    textDark: "#ffffff",
+    bgDark: "#121011",
+    cardDark: "#251a1e",
+    borderDark: "#6E1E3F"
   }
 };
 
@@ -2929,12 +2968,42 @@ function applyClientTheme(colors) {
   root.style.setProperty("--accent", primary);
   root.style.setProperty("--accent-2", secondary);
   
-  const mode = THEME_MODES[isDarkMode ? 'dark' : 'light'];
-  root.style.setProperty("--bg", mode.bg);
-  root.style.setProperty("--bg-deep", mode.bgDeep);
-  root.style.setProperty("--panel-alt", mode.panelAlt);
-  root.style.setProperty("--panel", mode.panel);
+  let bg, bgDeep, panelAlt, panel, border;
+  
+  if (primary.toLowerCase() === "#82254b" || secondary.toLowerCase() === "#6e1e3f") {
+    // Univalle specific premium color theme integration!
+    if (isDarkMode) {
+      bg = "#121011"; // Muy oscuro granate
+      bgDeep = "#1c1417";
+      panel = "#251a1e"; // Fondos de tarjetas oscuro
+      panelAlt = "#322328"; // Fondo secundario oscuro
+      border = "#6E1E3F"; // Borde granate oscuro
+    } else {
+      bg = "#FFFFFF";     // Blanco (Fondos principales)
+      bgDeep = "#6E1E3F"; // Granate oscuro (Cabeceras y destaques)
+      panel = "#F5F5F5";  // Gris muy claro (Fondos de tarjetas)
+      panelAlt = "#e9ebed"; // Gris claro / claro-medio para fondos secundarios/tablas
+      border = "#9CA8B0";   // Gris claro (Bordes de inputs/paneles)
+    }
+  } else {
+    // Default dynamic theme values
+    const mode = THEME_MODES[isDarkMode ? 'dark' : 'light'];
+    bg = isDarkMode ? (colors.bgDark || mode.bg) : (colors.bgLight || mode.bg);
+    bgDeep = mode.bgDeep;
+    panelAlt = mode.panelAlt;
+    panel = isDarkMode ? (colors.cardDark || mode.panel) : (colors.cardLight || mode.panel);
+    border = isDarkMode ? (colors.borderDark || "rgba(255, 255, 255, 0.16)") : (colors.borderLight || "rgba(31, 29, 26, 0.16)");
+  }
+  
+  root.style.setProperty("--bg", bg);
+  root.style.setProperty("--bg-deep", bgDeep);
+  root.style.setProperty("--panel-alt", panelAlt);
+  root.style.setProperty("--panel", panel);
+  root.style.setProperty("--border-color", border);
   root.style.setProperty("--text", text);
+  
+  const primaryRgb = hexToRgb(primary);
+  root.style.setProperty("--primary-ring", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.06)`);
   
   // Calcular y establecer el color de texto secundario (muted) al 60% de opacidad
   const textRgb = hexToRgb(text);
@@ -2952,16 +3021,28 @@ function updateHexLabels() {
   const pl = document.getElementById("themePrimaryLight")?.value;
   const sl = document.getElementById("themeSecondaryLight")?.value;
   const tl = document.getElementById("themeTextLight")?.value;
+  const bgl = document.getElementById("themeBgLight")?.value;
+  const cl = document.getElementById("themeCardLight")?.value;
+  const bdl = document.getElementById("themeBorderLight")?.value;
   const pd = document.getElementById("themePrimaryDark")?.value;
   const sd = document.getElementById("themeSecondaryDark")?.value;
   const td = document.getElementById("themeTextDark")?.value;
+  const bgd = document.getElementById("themeBgDark")?.value;
+  const cd = document.getElementById("themeCardDark")?.value;
+  const bdd = document.getElementById("themeBorderDark")?.value;
 
   if (pl) document.getElementById("themePrimaryLightHex").textContent = pl;
   if (sl) document.getElementById("themeSecondaryLightHex").textContent = sl;
   if (tl) document.getElementById("themeTextLightHex").textContent = tl;
+  if (bgl) document.getElementById("themeBgLightHex").textContent = bgl;
+  if (cl) document.getElementById("themeCardLightHex").textContent = cl;
+  if (bdl) document.getElementById("themeBorderLightHex").textContent = bdl;
   if (pd) document.getElementById("themePrimaryDarkHex").textContent = pd;
   if (sd) document.getElementById("themeSecondaryDarkHex").textContent = sd;
   if (td) document.getElementById("themeTextDarkHex").textContent = td;
+  if (bgd) document.getElementById("themeBgDarkHex").textContent = bgd;
+  if (cd) document.getElementById("themeCardDarkHex").textContent = cd;
+  if (bdd) document.getElementById("themeBorderDarkHex").textContent = bdd;
 }
 
 function updatePresetActiveState(presetName) {
@@ -2994,9 +3075,15 @@ document.querySelectorAll(".preset-card").forEach(card => {
       if (document.getElementById("themePrimaryLight")) document.getElementById("themePrimaryLight").value = colors.primaryLight;
       if (document.getElementById("themeSecondaryLight")) document.getElementById("themeSecondaryLight").value = colors.secondaryLight;
       if (document.getElementById("themeTextLight")) document.getElementById("themeTextLight").value = colors.textLight;
+      if (document.getElementById("themeBgLight")) document.getElementById("themeBgLight").value = colors.bgLight;
+      if (document.getElementById("themeCardLight")) document.getElementById("themeCardLight").value = colors.cardLight;
+      if (document.getElementById("themeBorderLight")) document.getElementById("themeBorderLight").value = colors.borderLight;
       if (document.getElementById("themePrimaryDark")) document.getElementById("themePrimaryDark").value = colors.primaryDark;
       if (document.getElementById("themeSecondaryDark")) document.getElementById("themeSecondaryDark").value = colors.secondaryDark;
       if (document.getElementById("themeTextDark")) document.getElementById("themeTextDark").value = colors.textDark;
+      if (document.getElementById("themeBgDark")) document.getElementById("themeBgDark").value = colors.bgDark;
+      if (document.getElementById("themeCardDark")) document.getElementById("themeCardDark").value = colors.cardDark;
+      if (document.getElementById("themeBorderDark")) document.getElementById("themeBorderDark").value = colors.borderDark;
       
       updateHexLabels();
       updatePresetActiveState(presetName);
@@ -3012,12 +3099,19 @@ const getCurrentThemeColors = () => ({
   primaryLight: document.getElementById("themePrimaryLight")?.value || "#5f7f6c",
   secondaryLight: document.getElementById("themeSecondaryLight")?.value || "#b67a52",
   textLight: document.getElementById("themeTextLight")?.value || "#24302b",
+  bgLight: document.getElementById("themeBgLight")?.value || "#f7f5ef",
+  cardLight: document.getElementById("themeCardLight")?.value || "#ffffff",
+  borderLight: document.getElementById("themeBorderLight")?.value || "rgba(31, 29, 26, 0.16)",
   primaryDark: document.getElementById("themePrimaryDark")?.value || "#8fac98",
   secondaryDark: document.getElementById("themeSecondaryDark")?.value || "#d0a27d",
-  textDark: document.getElementById("themeTextDark")?.value || "#edf2ee"
+  textDark: document.getElementById("themeTextDark")?.value || "#edf2ee",
+  bgDark: document.getElementById("themeBgDark")?.value || "#0f1412",
+  cardDark: document.getElementById("themeCardDark")?.value || "#151c19",
+  borderDark: document.getElementById("themeBorderDark")?.value || "rgba(255, 255, 255, 0.16)"
 });
 
-["themePrimaryLight", "themeSecondaryLight", "themeTextLight", "themePrimaryDark", "themeSecondaryDark", "themeTextDark"].forEach(id => {
+["themePrimaryLight", "themeSecondaryLight", "themeTextLight", "themeBgLight", "themeCardLight", "themeBorderLight",
+ "themePrimaryDark", "themeSecondaryDark", "themeTextDark", "themeBgDark", "themeCardDark", "themeBorderDark"].forEach(id => {
   document.getElementById(id)?.addEventListener("input", () => {
     const val = document.getElementById(id).value;
     const hexEl = document.getElementById(id + "Hex");
@@ -3051,8 +3145,8 @@ async function fetchThemeOnStartup() {
       applyClientTheme(colors);
     }
   } catch (error) {
-    console.warn("No se pudo cargar el tema dinámico del backend. Usando tema natural por defecto.", error);
-    applyClientTheme(presets.Natural);
+    console.warn("No se pudo cargar el tema dinámico del backend. Usando tema Univalle por defecto.", error);
+    applyClientTheme(presets.Univalle);
   }
 }
 
@@ -3068,16 +3162,28 @@ async function loadThemeSettings() {
     const primaryLight = colors.primaryLight || "#5f7f6c";
     const secondaryLight = colors.secondaryLight || "#b67a52";
     const textLight = colors.textLight || "#24302b";
+    const bgLight = colors.bgLight || "#f7f5ef";
+    const cardLight = colors.cardLight || "#ffffff";
+    const borderLight = colors.borderLight || "rgba(31, 29, 26, 0.16)";
     const primaryDark = colors.primaryDark || "#8fac98";
     const secondaryDark = colors.secondaryDark || "#d0a27d";
     const textDark = colors.textDark || "#edf2ee";
+    const bgDark = colors.bgDark || "#0f1412";
+    const cardDark = colors.cardDark || "#151c19";
+    const borderDark = colors.borderDark || "rgba(255, 255, 255, 0.16)";
 
     if (document.getElementById("themePrimaryLight")) document.getElementById("themePrimaryLight").value = primaryLight;
     if (document.getElementById("themeSecondaryLight")) document.getElementById("themeSecondaryLight").value = secondaryLight;
     if (document.getElementById("themeTextLight")) document.getElementById("themeTextLight").value = textLight;
+    if (document.getElementById("themeBgLight")) document.getElementById("themeBgLight").value = bgLight;
+    if (document.getElementById("themeCardLight")) document.getElementById("themeCardLight").value = cardLight;
+    if (document.getElementById("themeBorderLight")) document.getElementById("themeBorderLight").value = borderLight;
     if (document.getElementById("themePrimaryDark")) document.getElementById("themePrimaryDark").value = primaryDark;
     if (document.getElementById("themeSecondaryDark")) document.getElementById("themeSecondaryDark").value = secondaryDark;
     if (document.getElementById("themeTextDark")) document.getElementById("themeTextDark").value = textDark;
+    if (document.getElementById("themeBgDark")) document.getElementById("themeBgDark").value = bgDark;
+    if (document.getElementById("themeCardDark")) document.getElementById("themeCardDark").value = cardDark;
+    if (document.getElementById("themeBorderDark")) document.getElementById("themeBorderDark").value = borderDark;
     
     updateHexLabels();
 
@@ -3086,9 +3192,15 @@ async function loadThemeSettings() {
       primaryLight,
       secondaryLight,
       textLight,
+      bgLight,
+      cardLight,
+      borderLight,
       primaryDark,
       secondaryDark,
-      textDark
+      textDark,
+      bgDark,
+      cardDark,
+      borderDark
     };
     updateCustomPresetVisuals(presets.Custom);
     
@@ -3098,9 +3210,15 @@ async function loadThemeSettings() {
       if (pColors.primaryLight.toLowerCase() === primaryLight.toLowerCase() &&
           pColors.secondaryLight.toLowerCase() === secondaryLight.toLowerCase() &&
           pColors.textLight.toLowerCase() === textLight.toLowerCase() &&
+          pColors.bgLight.toLowerCase() === bgLight.toLowerCase() &&
+          pColors.cardLight.toLowerCase() === cardLight.toLowerCase() &&
+          pColors.borderLight.toLowerCase() === borderLight.toLowerCase() &&
           pColors.primaryDark.toLowerCase() === primaryDark.toLowerCase() &&
           pColors.secondaryDark.toLowerCase() === secondaryDark.toLowerCase() &&
-          pColors.textDark.toLowerCase() === textDark.toLowerCase()) {
+          pColors.textDark.toLowerCase() === textDark.toLowerCase() &&
+          pColors.bgDark.toLowerCase() === bgDark.toLowerCase() &&
+          pColors.cardDark.toLowerCase() === cardDark.toLowerCase() &&
+          pColors.borderDark.toLowerCase() === borderDark.toLowerCase()) {
         matchedPreset = name;
         break;
       }
@@ -3143,9 +3261,15 @@ document.getElementById("themeSettingsForm")?.addEventListener("submit", async (
       if (pColors.primaryLight.toLowerCase() === colors.primaryLight.toLowerCase() &&
           pColors.secondaryLight.toLowerCase() === colors.secondaryLight.toLowerCase() &&
           pColors.textLight.toLowerCase() === colors.textLight.toLowerCase() &&
+          pColors.bgLight.toLowerCase() === colors.bgLight.toLowerCase() &&
+          pColors.cardLight.toLowerCase() === colors.cardLight.toLowerCase() &&
+          pColors.borderLight.toLowerCase() === colors.borderLight.toLowerCase() &&
           pColors.primaryDark.toLowerCase() === colors.primaryDark.toLowerCase() &&
           pColors.secondaryDark.toLowerCase() === colors.secondaryDark.toLowerCase() &&
-          pColors.textDark.toLowerCase() === colors.textDark.toLowerCase()) {
+          pColors.textDark.toLowerCase() === colors.textDark.toLowerCase() &&
+          pColors.bgDark.toLowerCase() === colors.bgDark.toLowerCase() &&
+          pColors.cardDark.toLowerCase() === colors.cardDark.toLowerCase() &&
+          pColors.borderDark.toLowerCase() === colors.borderDark.toLowerCase()) {
         matchedPreset = name;
         break;
       }
@@ -3710,6 +3834,25 @@ function formatRoleNameCleanly(roleName) {
   return roleName;
 }
 
+function formatPermissionLabel(perm) {
+  const mapping = {
+    "metrics:view": "Ver métricas",
+    "users:read": "Ver usuarios",
+    "users:write": "Modificar usuarios",
+    "users:delete": "Eliminar usuarios",
+    "trips:read": "Ver viajes",
+    "trips:write": "Modificar viajes",
+    "trips:delete": "Eliminar viajes",
+    "reservations:read": "Ver reservas",
+    "reservations:write": "Modificar reservas",
+    "reservations:delete": "Eliminar reservas",
+    "support:read": "Ver reportes",
+    "support:write": "Responder reportes",
+    "roles:manage": "Gestionar roles"
+  };
+  return mapping[perm] || perm;
+}
+
 function renderAdminsTable(users) {
   const adminAdminsBody = document.getElementById("adminAdminsBody");
   if (!adminAdminsBody) {
@@ -3728,7 +3871,7 @@ function renderAdminsTable(users) {
       ? user.rawRoles.map(formatRoleNameCleanly).join(", ") 
       : "Admin";
     const permsText = (user.permissions && user.permissions.length > 0) 
-      ? user.permissions.join(", ") 
+      ? user.permissions.map(formatPermissionLabel).join(", ") 
       : "Ninguno";
 
     return `
@@ -3862,7 +4005,135 @@ paymentsFilterInput?.addEventListener("input", applyPaymentsFilter);
 paymentsStatusFilter?.addEventListener("change", applyPaymentsFilter);
 paymentsReloadBtn?.addEventListener("click", loadAdminPayments);
 
-// --- Export and Analytics Logic ---
+// --- Lógica de Exportación y Análisis Multiformato ---
+function exportToPDF(data, headers, filename) {
+  if (!data || !data.length) {
+    alert("No hay datos para exportar.");
+    return;
+  }
+  
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("Por favor habilita las ventanas emergentes para exportar a PDF.");
+    return;
+  }
+
+  const titleText = filename.replace(/_/g, ' ').toUpperCase();
+  
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Reporte - ${titleText}</title>
+      <style>
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          color: #111827;
+          margin: 40px;
+          background-color: #fff;
+        }
+        .header-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          border-bottom: 3px solid #82254B;
+          padding-bottom: 12px;
+          margin-bottom: 24px;
+        }
+        h2 {
+          color: #82254B;
+          margin: 0;
+          font-size: 24px;
+          font-weight: 700;
+        }
+        .meta-info {
+          font-size: 12px;
+          color: #6B7280;
+          text-align: right;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+        }
+        th, td {
+          border: 1px solid #E5E7EB;
+          padding: 10px 12px;
+          text-align: left;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+        th {
+          background-color: #F9FAFB;
+          color: #374151;
+          font-weight: 600;
+          text-transform: uppercase;
+          font-size: 10px;
+          letter-spacing: 0.05em;
+        }
+        tr:nth-child(even) {
+          background-color: #F9FAFB;
+        }
+        .footer {
+          margin-top: 40px;
+          border-top: 1px solid #E5E7EB;
+          padding-top: 12px;
+          font-size: 10px;
+          color: #9CA3AF;
+          display: flex;
+          justify-content: space-between;
+        }
+        @media print {
+          body { margin: 20px; }
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header-container">
+        <div>
+          <h2>Reporte de ${titleText}</h2>
+          <div style="font-size: 12px; color: #4B5563; margin-top: 4px;">Sistema de Carpooling Univalle</div>
+        </div>
+        <div class="meta-info">
+          <div>Fecha: ${new Date().toLocaleDateString('es-ES')}</div>
+          <div>Hora: ${new Date().toLocaleTimeString('es-ES')}</div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            ${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(row => `
+            <tr>
+              ${row.map(val => `<td>${escapeHtml(String(val ?? ""))}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div class="footer">
+        <span>© ${new Date().getFullYear()} Universidad del Valle - Equipo 12</span>
+        <span>Confidencial - Uso Administrativo</span>
+      </div>
+      <script>
+        window.onload = function() {
+          setTimeout(() => {
+            window.print();
+          }, 300);
+        };
+      </script>
+    </body>
+    </html>
+  `;
+  
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
 async function exportToExcel(data, headers, filename) {
   if (!data || !data.length) {
     alert("No hay datos para exportar.");
@@ -3878,9 +4149,9 @@ async function exportToExcel(data, headers, filename) {
   const worksheet = workbook.addWorksheet('Datos');
 
   // Obtener el color corporativo o usar por defecto
-  let hexColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().replace('#', '');
+  let hexColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim().replace('#', '');
   if (hexColor.length === 6) hexColor = 'FF' + hexColor;
-  if (!hexColor || hexColor.length !== 8) hexColor = 'FF5f7f6c'; // Fallback a Verde Sage
+  if (!hexColor || hexColor.length !== 8) hexColor = 'FF82254B'; // Fallback a Granate Univalle
 
   // Configurar columnas y encabezados
   worksheet.columns = headers.map(header => ({
@@ -3950,7 +4221,54 @@ async function exportToExcel(data, headers, filename) {
   saveAs(blob, filename + ".xlsx");
 }
 
-document.getElementById("exportUsersBtn")?.addEventListener("click", () => {
+function performExport(data, headers, filename, format) {
+  if (!data || !data.length) {
+    alert("No hay datos para exportar.");
+    return;
+  }
+  
+  if (format === "pdf") {
+    exportToPDF(data, headers, filename);
+  } else if (format === "excel") {
+    // Para Excel en español, el separador punto y coma (;) es el óptimo
+    const csvContent = [
+      headers.join(";"),
+      ...data.map(row => row.map(val => {
+        const strVal = String(val ?? "");
+        return `"${strVal.replace(/"/g, '""')}"`;
+      }).join(";"))
+    ].join("\n");
+    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename + "_excel.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } else {
+    // CSV Estándar (separado por comas)
+    const csvContent = [
+      headers.join(","),
+      ...data.map(row => row.map(val => {
+        const strVal = String(val ?? "");
+        return `"${strVal.replace(/"/g, '""')}"`;
+      }).join(","))
+    ].join("\n");
+    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename + ".csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+}
+
+function getExportUsersData() {
   const users = state.adminData.users || [];
   const exportType = document.getElementById("exportUserTypeSelect")?.value || "all";
   
@@ -3979,25 +4297,99 @@ document.getElementById("exportUsersBtn")?.addEventListener("click", () => {
       return [d.id, d.fullName, d.email, formatUserRole(d.role), d.phoneNumber, d.vehicles?.length || 0, plate, d.createdAt];
     });
   }
-  
-  exportToExcel(data, headers, filename);
-});
+  return { data, headers, filename };
+}
 
-document.getElementById("exportTripsBtn")?.addEventListener("click", () => {
+function getExportTripsData() {
   const trips = state.adminData.trips || [];
-  const headers = ["ID Viaje", "Conductor", "Estado", "Cupos", "Tipo", "Fecha Creacion"];
+  const headers = ["ID Viaje", "Conductor", "Origen", "Destino", "Estado", "Cupos", "Tipo", "Fecha Creacion"];
   const data = trips.map(t => {
     const statusVal = t.statusLabel ?? t.statusId ?? t.status;
-    return [t.id, t.driverName, formatTripStatus(statusVal), t.availableSeats, formatTripKind(t.kind), t.createdAt];
+    const origin = getTripOriginCoordinates(t);
+    const destination = getTripDestinationCoordinates(t);
+    const originText = hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "-";
+    const destText = hasTripCoordinates(destination) ? `${destination.lat}, ${destination.lng}` : "-";
+    return [
+      t.id,
+      t.driverName || "-",
+      originText,
+      destText,
+      formatTripStatus(statusVal),
+      t.availableSeats,
+      formatTripKind(t.kind),
+      t.createdAt || "-"
+    ];
   });
-  exportToExcel(data, headers, "viajes");
-});
+  return { data, headers, filename: "viajes" };
+}
 
-document.getElementById("exportReservationsBtn")?.addEventListener("click", () => {
+function getExportReservationsData() {
   const reservations = state.adminData.reservations || [];
   const headers = ["ID Reserva", "ID Viaje", "Pasajero", "Asientos", "Estado", "Fecha Creacion"];
   const data = reservations.map(r => [r.id, r.tripId, r.passengerName, r.seatsReserved, formatReservationStatus(r.status), r.createdAt]);
-  exportToExcel(data, headers, "reservas");
+  return { data, headers, filename: "reservas" };
+}
+
+// Vinculación de eventos de dropdown de Usuarios
+document.getElementById("exportUsersExcel")?.addEventListener("click", () => {
+  const { data, headers, filename } = getExportUsersData();
+  performExport(data, headers, filename, "excel");
+});
+document.getElementById("exportUsersCsv")?.addEventListener("click", () => {
+  const { data, headers, filename } = getExportUsersData();
+  performExport(data, headers, filename, "csv");
+});
+document.getElementById("exportUsersPdf")?.addEventListener("click", () => {
+  const { data, headers, filename } = getExportUsersData();
+  performExport(data, headers, filename, "pdf");
+});
+
+// Vinculación de eventos de dropdown de Viajes
+document.getElementById("exportTripsExcel")?.addEventListener("click", () => {
+  const { data, headers, filename } = getExportTripsData();
+  performExport(data, headers, filename, "excel");
+});
+document.getElementById("exportTripsCsv")?.addEventListener("click", () => {
+  const { data, headers, filename } = getExportTripsData();
+  performExport(data, headers, filename, "csv");
+});
+document.getElementById("exportTripsPdf")?.addEventListener("click", () => {
+  const { data, headers, filename } = getExportTripsData();
+  performExport(data, headers, filename, "pdf");
+});
+
+// Vinculación de eventos de dropdown de Reservas
+document.getElementById("exportReservationsExcel")?.addEventListener("click", () => {
+  const { data, headers, filename } = getExportReservationsData();
+  performExport(data, headers, filename, "excel");
+});
+document.getElementById("exportReservationsCsv")?.addEventListener("click", () => {
+  const { data, headers, filename } = getExportReservationsData();
+  performExport(data, headers, filename, "csv");
+});
+document.getElementById("exportReservationsPdf")?.addEventListener("click", () => {
+  const { data, headers, filename } = getExportReservationsData();
+  performExport(data, headers, filename, "pdf");
+});
+
+// Control global para menús desplegables (Dropdowns)
+document.addEventListener("click", (e) => {
+  const toggle = e.target.closest(".dropdown-toggle");
+  if (toggle) {
+    const dropdown = toggle.closest(".dropdown");
+    if (dropdown) {
+      const isOpen = dropdown.classList.contains("open");
+      document.querySelectorAll(".dropdown.open").forEach(d => d.classList.remove("open"));
+      if (!isOpen) {
+        dropdown.classList.add("open");
+      }
+      e.stopPropagation();
+      return;
+    }
+  }
+  if (!e.target.closest(".dropdown-menu")) {
+    document.querySelectorAll(".dropdown.open").forEach(d => d.classList.remove("open"));
+  }
 });
 
 document.getElementById("exportMetricsBtn")?.addEventListener("click", () => {
@@ -4131,12 +4523,12 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
   if (typeof Chart === 'undefined') return;
 
   const style = getComputedStyle(document.body);
-  const primaryColor = style.getPropertyValue('--primary').trim() || '#5f7f6c';
-  const secondaryColor = style.getPropertyValue('--secondary').trim() || '#b67a52';
-  const textSecondaryColor = style.getPropertyValue('--text-secondary').trim() || '#4d5d56';
+  const primaryColor = style.getPropertyValue('--accent').trim() || '#82254B';
+  const secondaryColor = style.getPropertyValue('--accent-2').trim() || '#6E1E3F';
+  const textSecondaryColor = style.getPropertyValue('--text').trim() || '#111827';
   
   Chart.defaults.color = textSecondaryColor;
-  Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+  Chart.defaults.font.family = "'Inter', sans-serif";
 
   // 1. Gráfica de Viajes por Día (Barras)
   const tripsByDay = {};
@@ -4184,7 +4576,7 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
         labels: ['Pasajeros Promedio', 'Conductores'],
         datasets: [{
           data: [totalPassengers, totalDrivers],
-          backgroundColor: [secondaryColor, primaryColor],
+          backgroundColor: [primaryColor, '#9CA8B0'], // Granate Univalle y Gris Univalle
           borderWidth: 0
         }]
       },
@@ -4282,15 +4674,17 @@ document.getElementById("analyticsConsultBtn")?.addEventListener("click", () => 
 });
 
 // Startup Execution
-fetchThemeOnStartup().finally(() => {
-  if (state.currentUser) {
-    if (Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
-      startSession(state.currentUser);
+resolveApiBaseUrl().finally(() => {
+  fetchThemeOnStartup().finally(() => {
+    if (state.currentUser) {
+      if (Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+        startSession(state.currentUser);
+      } else {
+        logout();
+        setMessage(loginMessage, "La sesion guardada no corresponde a un administrador.", "error");
+      }
     } else {
-      logout();
-      setMessage(loginMessage, "La sesion guardada no corresponde a un administrador.", "error");
+      updateApiStatus(false);
     }
-  } else {
-    updateApiStatus(false);
-  }
+  });
 });

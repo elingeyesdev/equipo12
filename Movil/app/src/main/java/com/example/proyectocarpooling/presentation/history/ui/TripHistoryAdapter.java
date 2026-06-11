@@ -77,17 +77,17 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<TripHistoryAdapter.
             return v.getContext().getString(R.string.history_category_unknown);
         }
         String s = raw.trim().toLowerCase(Locale.US);
-        if (s.contains("pasaj")) {
+        if (s.contains("pasaj") || s.contains("student") || s.contains("passenger")) {
             return v.getContext().getString(R.string.history_category_student);
         }
-        if (s.contains("conduct")) {
+        if (s.contains("conduct") || s.contains("driver")) {
             return v.getContext().getString(R.string.history_category_driver);
         }
         return raw.trim();
     }
 
     private static String compactDate(String iso) {
-        if (iso == null || iso.trim().isEmpty()) {
+        if (iso == null || iso.trim().isEmpty() || "null".equalsIgnoreCase(iso.trim())) {
             return "—";
         }
         String t = iso.replace('T', ' ');

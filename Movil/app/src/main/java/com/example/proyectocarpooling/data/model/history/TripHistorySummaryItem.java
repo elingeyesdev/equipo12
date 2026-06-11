@@ -27,14 +27,20 @@ public class TripHistorySummaryItem {
         this.createdAt = createdAt;
     }
 
+    private static String optString(JSONObject o, String key, String fallback) {
+        if (o.isNull(key)) return fallback;
+        String s = o.optString(key, fallback);
+        return "null".equalsIgnoreCase(s) ? fallback : s;
+    }
+
     public static TripHistorySummaryItem fromJson(JSONObject o) throws JSONException {
         return new TripHistorySummaryItem(
-                o.optString("tripId", ""),
-                o.optString("category", ""),
-                o.optString("originLabel", ""),
-                o.optString("destinationLabel", ""),
-                o.optString("statusLabel", ""),
-                o.optString("createdAt", "")
+                optString(o, "tripId", ""),
+                optString(o, "category", ""),
+                optString(o, "originLabel", ""),
+                optString(o, "destinationLabel", ""),
+                optString(o, "statusLabel", ""),
+                optString(o, "createdAt", "")
         );
     }
 }

@@ -2414,9 +2414,34 @@ public class MainActivity extends BaseActivity {
                 ? getString(R.string.driver_match_default_driver_name)
                 : driverName;
 
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_boarding_code, null);
+        
+        TextView initialTv = dialogView.findViewById(R.id.popupCodeInitial);
+        TextView driverNameTv = dialogView.findViewById(R.id.popupCodeDriverName);
+        TextView codeValueTv = dialogView.findViewById(R.id.popupCodeValue);
+
+        if (initialTv != null && safeDriverName.length() > 0) {
+            initialTv.setText(String.valueOf(safeDriverName.charAt(0)).toUpperCase());
+        }
+        if (driverNameTv != null) {
+            driverNameTv.setText("Conductor: " + safeDriverName);
+        }
+        if (codeValueTv != null) {
+            codeValueTv.setText(boardingCode);
+        }
+
+        // Apply dynamic theme color to the code text (colorPrimary)
+        if (codeValueTv != null) {
+            try {
+                String primaryHex = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES 
+                    ? sessionManager.getThemePrimaryDark() 
+                    : sessionManager.getThemePrimaryLight();
+                codeValueTv.setTextColor(Color.parseColor(primaryHex));
+            } catch (Exception ignored) {}
+        }
+
         new AlertDialog.Builder(this)
-                .setTitle("Código de abordaje")
-                .setMessage("Conductor: " + safeDriverName + "\nCódigo: " + boardingCode)
+                .setView(dialogView)
                 .setPositiveButton(R.string.dialog_button_close, null)
                 .show();
     }

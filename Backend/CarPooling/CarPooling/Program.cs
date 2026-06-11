@@ -26,7 +26,18 @@ builder.Services.AddAuthorization();
 builder.Services.AddSignalR();
 
 builder.Services.AddDbContext<CarPoolingContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (builder.Configuration["UseInMemoryDatabase"] == "true")
+    {
+        var dbName = builder.Configuration["InMemoryDatabaseName"] ?? "CarPoolingDb";
+        options.UseInMemoryDatabase(dbName);
+    }
+    else
+    {
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    }
+});
+
 
 // Services
 builder.Services.AddScoped<TripService>();
@@ -113,3 +124,6 @@ app.MapControllers().RequireCors(AdminPanelCorsPolicy);
 app.MapHub<CarPooling.Hubs.TripChatHub>("/hubs/tripChat").RequireCors(AdminPanelCorsPolicy);
 
 app.Run();
+
+public partial class Program { }
+

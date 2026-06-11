@@ -41,14 +41,20 @@ public class SplashActivity extends BaseActivity {
                         if (response.isSuccessful() && response.body() != null) {
                             String body = response.body().string();
                             org.json.JSONObject colorsJson = new org.json.JSONObject(body);
-                            String pl = colorsJson.optString("primaryLight", "#5f7f6c");
-                            String sl = colorsJson.optString("secondaryLight", "#b67a52");
-                            String tl = colorsJson.optString("textLight", "#24302b");
-                            String pd = colorsJson.optString("primaryDark", "#8fac98");
-                            String sd = colorsJson.optString("secondaryDark", "#d0a27d");
-                            String td = colorsJson.optString("textDark", "#edf2ee");
+                            String pl = colorsJson.optString("primaryLight", "#82254B");
+                            String sl = colorsJson.optString("secondaryLight", "#6E1E3F");
+                            String tl = colorsJson.optString("textLight", "#111827");
+                            String bgl = colorsJson.optString("bgLight", "#FFFFFF");
+                            String cl = colorsJson.optString("cardLight", "#F5F5F5");
+                            String bdl = colorsJson.optString("borderLight", "#9CA8B0");
+                            String pd = colorsJson.optString("primaryDark", "#82254B");
+                            String sd = colorsJson.optString("secondaryDark", "#6E1E3F");
+                            String td = colorsJson.optString("textDark", "#ffffff");
+                            String bgd = colorsJson.optString("bgDark", "#121011");
+                            String cd = colorsJson.optString("cardDark", "#251a1e");
+                            String bdd = colorsJson.optString("borderDark", "#6E1E3F");
                             
-                            sessionManager.saveThemeColors(pl, sl, tl, pd, sd, td);
+                            sessionManager.saveThemeColors(pl, sl, tl, bgl, cl, bdl, pd, sd, td, bgd, cd, bdd);
                         }
                     }
                 } catch (Exception e) {

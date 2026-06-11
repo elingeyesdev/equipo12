@@ -18,6 +18,8 @@
         <item name="android:statusBarColor">@color/black</item>
         <item name="android:navigationBarColor">@color/white</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">sans-serif</item>
     </style>
 
     <style name="ShapeAppearanceOverlay.MyApp.FAB.Circle" parent="">

@@ -24,15 +24,21 @@ public class SettingsController(CarPoolingContext context) : ControllerBase
 
         if (setting is null)
         {
-            // Fallback to default natural theme with custom text colors
+            // Fallback to default Univalle theme
             return Ok(new
             {
-                primaryLight = "#5f7f6c",
-                secondaryLight = "#b67a52",
-                textLight = "#24302b",
-                primaryDark = "#8fac98",
-                secondaryDark = "#d0a27d",
-                textDark = "#edf2ee"
+                primaryLight = "#82254B",
+                secondaryLight = "#6E1E3F",
+                textLight = "#111827",
+                bgLight = "#FFFFFF",
+                cardLight = "#F5F5F5",
+                borderLight = "#9CA8B0",
+                primaryDark = "#82254B",
+                secondaryDark = "#6E1E3F",
+                textDark = "#ffffff",
+                bgDark = "#121011",
+                cardDark = "#251a1e",
+                borderDark = "#6E1E3F"
             });
         }
 

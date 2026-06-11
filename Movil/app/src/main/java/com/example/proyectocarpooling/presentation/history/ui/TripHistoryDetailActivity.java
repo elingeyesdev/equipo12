@@ -161,8 +161,19 @@ public class TripHistoryDetailActivity extends BaseActivity {
 
         HistoryUiHelper.applyStatusPill(statusBadge, this, d.statusLabel,
                 emptyIfBlank(d.statusLabel, getString(R.string.history_status_unknown)));
-        categoryLabel.setText(getString(R.string.history_detail_category_format,
-                emptyIfBlank(d.category, getString(R.string.history_category_unknown))));
+        String rawCategory = d.category;
+        String localizedCategory = getString(R.string.history_category_unknown);
+        if (rawCategory != null) {
+            String lower = rawCategory.trim().toLowerCase(Locale.US);
+            if (lower.contains("student") || lower.contains("passenger") || lower.contains("pasaj")) {
+                localizedCategory = getString(R.string.history_category_student);
+            } else if (lower.contains("driver") || lower.contains("conduct")) {
+                localizedCategory = getString(R.string.history_category_driver);
+            } else {
+                localizedCategory = rawCategory.trim();
+            }
+        }
+        categoryLabel.setText(getString(R.string.history_detail_category_format, localizedCategory));
 
         bindSchedule();
 
@@ -203,17 +214,16 @@ public class TripHistoryDetailActivity extends BaseActivity {
         bindOptionalTimelineRow(rowFinished, valueFinished, d.finishedAt);
         valueUpdated.setText(compactDate(d.updatedAt));
     }
-
     private void bindOptionalTimelineRow(LinearLayout row, TextView value, String raw) {
         String v = emptyIfBlank(raw, "");
-        boolean useNd = raw == null || raw.trim().isEmpty();
+        boolean useNd = raw == null || raw.trim().isEmpty() || "null".equalsIgnoreCase(raw.trim());
         row.setVisibility(useNd ? View.GONE : View.VISIBLE);
         value.setText(useNd ? "\u2014" : compactDate(raw));
     }
 
     private void bindYouSection(TripHistoryDetailItem d) {
-        boolean show = !(d.passengerName == null || d.passengerName.trim().isEmpty())
-                || !(d.passengerReservationStatus == null || d.passengerReservationStatus.trim().isEmpty());
+        boolean show = !(d.passengerName == null || d.passengerName.trim().isEmpty() || "null".equalsIgnoreCase(d.passengerName.trim()))
+                || !(d.passengerReservationStatus == null || d.passengerReservationStatus.trim().isEmpty() || "null".equalsIgnoreCase(d.passengerReservationStatus.trim()));
         cardYou.setVisibility(show ? View.VISIBLE : View.GONE);
         if (!show) return;
         youName.setText(getString(R.string.history_detail_you_reserved_as,
@@ -264,17 +274,17 @@ public class TripHistoryDetailActivity extends BaseActivity {
     }
 
     private static String emptyIfBlank(String value, String fallback) {
-        return (value == null || value.trim().isEmpty()) ? fallback : value.trim();
+        return (value == null || value.trim().isEmpty() || "null".equalsIgnoreCase(value.trim())) ? fallback : value.trim();
     }
 
     private static String compactDate(String iso) {
-        if (iso == null || iso.trim().isEmpty()) return "\u2014";
+        if (iso == null || iso.trim().isEmpty() || "null".equalsIgnoreCase(iso.trim())) return "\u2014";
         String t = iso.replace('T', ' ');
         return t.length() > 18 ? t.substring(0, 16) : t;
     }
 
     private static String compactId(String id) {
-        if (id == null || id.isEmpty()) return "\u2014";
+        if (id == null || id.isEmpty() || "null".equalsIgnoreCase(id.trim())) return "\u2014";
         String t = id.trim();
         return t.length() <= 10 ? t : t.substring(0, 8) + "\u2026";
     }

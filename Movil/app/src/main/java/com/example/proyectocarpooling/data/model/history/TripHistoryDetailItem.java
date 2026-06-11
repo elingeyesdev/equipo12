@@ -84,6 +84,12 @@ public class TripHistoryDetailItem {
         this.participants = participants;
     }
 
+    private static String optString(JSONObject o, String key, String fallback) {
+        if (o.isNull(key)) return fallback;
+        String s = o.optString(key, fallback);
+        return "null".equalsIgnoreCase(s) ? fallback : s;
+    }
+
     public static TripHistoryDetailItem fromJson(JSONObject o) {
         Double dLat = o.isNull("destinationLatitude") ? null : o.optDouble("destinationLatitude");
         Double dLng = o.isNull("destinationLongitude") ? null : o.optDouble("destinationLongitude");
@@ -96,36 +102,36 @@ public class TripHistoryDetailItem {
                     continue;
                 }
                 participants.add(new TripHistoryParticipantItem(
-                        p.optString("name", ""),
-                        p.optString("statusLabel", ""),
-                        p.optString("reservedAt", "")
+                        optString(p, "name", ""),
+                        optString(p, "statusLabel", ""),
+                        optString(p, "reservedAt", "")
                 ));
             }
         }
         return new TripHistoryDetailItem(
-                o.optString("tripId", ""),
-                o.optString("category", ""),
-                o.optString("statusLabel", ""),
-                o.optString("createdAt", ""),
-                o.optString("startedAt", ""),
-                o.optString("finishedAt", ""),
-                o.optString("updatedAt", ""),
-                o.optString("originLabel", ""),
-                o.optString("destinationLabel", ""),
+                optString(o, "tripId", ""),
+                optString(o, "category", ""),
+                optString(o, "statusLabel", ""),
+                optString(o, "createdAt", ""),
+                optString(o, "startedAt", ""),
+                optString(o, "finishedAt", ""),
+                optString(o, "updatedAt", ""),
+                optString(o, "originLabel", ""),
+                optString(o, "destinationLabel", ""),
                 o.optDouble("originLatitude", 0.0),
                 o.optDouble("originLongitude", 0.0),
                 dLat,
                 dLng,
-                o.optString("driverName", ""),
-                o.optString("driverVehicleBrand", ""),
-                o.optString("driverVehicleColor", ""),
-                o.optString("driverLicensePlate", ""),
+                optString(o, "driverName", ""),
+                optString(o, "driverVehicleBrand", ""),
+                optString(o, "driverVehicleColor", ""),
+                optString(o, "driverLicensePlate", ""),
                 o.optInt("reservationCount", 0),
                 o.optInt("boardedCount", 0),
                 o.optInt("cancelledCount", 0),
-                o.optString("passengerReservationStatus", ""),
-                o.optString("passengerReservationId", ""),
-                o.optString("passengerName", ""),
+                optString(o, "passengerReservationStatus", ""),
+                optString(o, "passengerReservationId", ""),
+                optString(o, "passengerName", ""),
                 participants
         );
     }
