@@ -286,7 +286,7 @@ function renderUserDetails(user) {
           <p>${escapeHtml(user.email || "Sin email")}</p>
         </div>
         <span class="status-badge status-badge--${escapeHtml(String(user.role || "unknown").toLowerCase())}">
-          ${escapeHtml(String(user.role || "Sin rol"))}
+          ${escapeHtml(formatUserRole(user.role))}
         </span>
       </div>
 
@@ -2207,6 +2207,15 @@ function renderPaymentDetails(payment) {
   `;
 }
 
+function formatUserRole(roleStr) {
+  if (!roleStr) return "Desconocido";
+  const lower = String(roleStr).toLowerCase();
+  if (lower.includes("student") || lower.includes("passenger")) return "Estudiante";
+  if (lower.includes("driver")) return "Conductor";
+  if (lower.includes("admin")) return "Administrador";
+  return String(roleStr).replace(/\s*\(\d+\)/g, "").trim() || "Usuario";
+}
+
 function renderUsersTable(users) {
   if (!users.length) {
     adminUsersBody.innerHTML = '<tr><td colspan="5">Sin usuarios.</td></tr>';
@@ -2217,7 +2226,7 @@ function renderUsersTable(users) {
     <tr>
       <td>${escapeHtml(user.fullName)}</td>
       <td>${escapeHtml(user.email)}</td>
-      <td>${escapeHtml(user.role)} (${escapeHtml(user.roleId)})</td>
+      <td>${escapeHtml(formatUserRole(user.role))}</td>
       <td>${escapeHtml(user.phoneNumber || "-")}</td>
       <td>
         <div class="action-row">
@@ -3751,23 +3760,91 @@ paymentsStatusFilter?.addEventListener("change", applyPaymentsFilter);
 paymentsReloadBtn?.addEventListener("click", loadAdminPayments);
 
 // --- Export and Analytics Logic ---
-function exportToExcel(data, headers, filename) {
+async function exportToExcel(data, headers, filename) {
   if (!data || !data.length) {
     alert("No hay datos para exportar.");
     return;
   }
-  const csvContent = [
-    headers.join(","),
-    ...data.map(row => row.map(val => `"${String(val ?? "").replace(/"/g, '""')}"`).join(","))
-  ].join("\n");
-  const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename + ".csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+
+  if (typeof ExcelJS === 'undefined') {
+    alert("La librería de exportación aún no ha cargado. Por favor espera un momento.");
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Datos');
+
+  // Obtener el color corporativo o usar por defecto
+  let hexColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().replace('#', '');
+  if (hexColor.length === 6) hexColor = 'FF' + hexColor;
+  if (!hexColor || hexColor.length !== 8) hexColor = 'FF5f7f6c'; // Fallback a Verde Sage
+
+  // Configurar columnas y encabezados
+  worksheet.columns = headers.map(header => ({
+    header: header,
+    key: header,
+    width: Math.max(header.length + 5, 15)
+  }));
+
+  // Estilizar encabezados
+  const headerRow = worksheet.getRow(1);
+  headerRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: hexColor }
+    };
+    cell.font = {
+      color: { argb: 'FFFFFFFF' },
+      bold: true,
+      size: 12
+    };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+      left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+      bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+      right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+    };
+  });
+  headerRow.height = 25;
+
+  // Añadir filas con zebra striping
+  data.forEach((rowData, index) => {
+    const row = worksheet.addRow(rowData);
+    const isAlternate = index % 2 === 1;
+    
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      // Ajustar ancho de columna
+      const currentWidth = worksheet.getColumn(colNumber).width;
+      const cellLength = cell.value ? String(cell.value).length + 2 : 10;
+      if (cellLength > currentWidth) {
+        worksheet.getColumn(colNumber).width = Math.min(cellLength, 50); // Máximo 50 de ancho
+      }
+
+      // Estilo base de celdas
+      cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+      };
+
+      if (isAlternate) {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF9FAFB' } // Color gris super claro
+        };
+      }
+    });
+  });
+
+  // Generar y descargar el archivo XLSX
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  saveAs(blob, filename + ".xlsx");
 }
 
 document.getElementById("exportUsersBtn")?.addEventListener("click", () => {
@@ -3789,14 +3866,14 @@ document.getElementById("exportUsersBtn")?.addEventListener("click", () => {
   }
   
   let headers = ["ID", "Nombre", "Email", "Rol", "Telefono", "Fecha Creacion"];
-  let data = filteredUsers.map(u => [u.id, u.fullName, u.email, u.role, u.phoneNumber, u.createdAt]);
+  let data = filteredUsers.map(u => [u.id, u.fullName, u.email, formatUserRole(u.role), u.phoneNumber, u.createdAt]);
   
   if (exportType === "drivers") {
     headers = ["ID", "Nombre", "Email", "Rol", "Telefono", "Vehiculos", "Placa", "Fecha Creacion"];
     data = filteredUsers.map(d => {
       const profile = d.driverProfile || d.DriverProfile;
       const plate = profile ? profile.licensePlate : (d.vehicles && d.vehicles[0] ? d.vehicles[0].licensePlate : "");
-      return [d.id, d.fullName, d.email, d.role, d.phoneNumber, d.vehicles?.length || 0, plate, d.createdAt];
+      return [d.id, d.fullName, d.email, formatUserRole(d.role), d.phoneNumber, d.vehicles?.length || 0, plate, d.createdAt];
     });
   }
   
@@ -3818,6 +3895,129 @@ document.getElementById("exportReservationsBtn")?.addEventListener("click", () =
   const headers = ["ID Reserva", "ID Viaje", "Pasajero", "Asientos", "Estado", "Fecha Creacion"];
   const data = reservations.map(r => [r.id, r.tripId, r.passengerName, r.seatsReserved, formatReservationStatus(r.status), r.createdAt]);
   exportToExcel(data, headers, "reservas");
+});
+
+document.getElementById("exportMetricsBtn")?.addEventListener("click", () => {
+  const usersCount = document.getElementById("analyticsUsersCount")?.textContent || "0";
+  const tripsCount = document.getElementById("analyticsTripsCount")?.textContent || "0";
+  const reservationsCount = document.getElementById("analyticsReservationsCount")?.textContent || "0";
+
+  if (typeof ExcelJS === 'undefined') {
+    alert("La librería de exportación aún no ha cargado. Por favor espera un momento.");
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Resumen Dashboard');
+
+  let hexColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().replace('#', '');
+  if (hexColor.length === 6) hexColor = 'FF' + hexColor;
+  if (!hexColor || hexColor.length !== 8) hexColor = 'FF5f7f6c';
+
+  const addHeaderRow = (titleRow, dataHeaders) => {
+    worksheet.addRow([]);
+    const title = worksheet.addRow([titleRow]);
+    title.font = { bold: true, size: 14, color: { argb: hexColor } };
+    
+    const headerRow = worksheet.addRow(dataHeaders);
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: hexColor } };
+      cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+        left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+        bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+        right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+      };
+    });
+    headerRow.height = 20;
+  };
+
+  const addDataRows = (dataRows) => {
+    dataRows.forEach((rowData, index) => {
+      const row = worksheet.addRow(rowData);
+      const isAlternate = index % 2 === 1;
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+        };
+        if (isAlternate) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
+        }
+      });
+    });
+  };
+
+  const addChartImage = (chartInstance, col, row) => {
+    if (!chartInstance) return;
+    try {
+      const base64Image = chartInstance.toBase64Image();
+      const base64Data = base64Image.replace(/^data:image\/(png|jpeg);base64,/, "");
+      const imageId = workbook.addImage({
+        base64: base64Data,
+        extension: 'png',
+      });
+      worksheet.addImage(imageId, {
+        tl: { col: col, row: row },
+        ext: { width: 450, height: 250 }
+      });
+    } catch (e) {
+      console.error("Error al exportar gráfica", e);
+    }
+  };
+
+  // 1. Métricas Principales
+  addHeaderRow("Métricas Generales", ["Métrica", "Cantidad / Valor"]);
+  addDataRows([
+    ["Nuevos Usuarios", usersCount],
+    ["Viajes Realizados", tripsCount],
+    ["Reservas Hechas", reservationsCount]
+  ]);
+
+  // 2. Viajes por Día
+  if (tripsChartInstance && tripsChartInstance.data.labels) {
+    addHeaderRow("Viajes por Día", ["Fecha", "Cantidad de Viajes"]);
+    const labels = tripsChartInstance.data.labels;
+    const values = tripsChartInstance.data.datasets[0].data;
+    const rows = labels.map((lbl, i) => [lbl, values[i]]);
+    addDataRows(rows);
+    addChartImage(tripsChartInstance, 3, 7); // Col D, Fila 8
+  }
+
+  // 3. Pasajeros vs Conductores
+  if (usersChartInstance && usersChartInstance.data.labels) {
+    addHeaderRow("Pasajeros vs Conductores", ["Tipo de Usuario", "Cantidad"]);
+    const labels = usersChartInstance.data.labels;
+    const values = usersChartInstance.data.datasets[0].data;
+    const rows = labels.map((lbl, i) => [lbl, values[i]]);
+    addDataRows(rows);
+    addChartImage(usersChartInstance, 11, 7); // Col L, Fila 8
+  }
+
+  // 4. Estado de Reservas
+  if (reservationsChartInstance && reservationsChartInstance.data.labels) {
+    addHeaderRow("Estado de Reservas", ["Estado", "Cantidad"]);
+    const labels = reservationsChartInstance.data.labels;
+    const values = reservationsChartInstance.data.datasets[0].data;
+    const rows = labels.map((lbl, i) => [lbl, values[i]]);
+    addDataRows(rows);
+    addChartImage(reservationsChartInstance, 19, 7); // Col T, Fila 8
+  }
+
+  worksheet.columns = [
+    { width: 35 },
+    { width: 25 }
+  ];
+
+  workbook.xlsx.writeBuffer().then(buffer => {
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, "dashboard_completo.xlsx");
+  });
 });
 
 let tripsChartInstance = null;
