@@ -286,7 +286,7 @@ function renderUserDetails(user) {
           <p>${escapeHtml(user.email || "Sin email")}</p>
         </div>
         <span class="status-badge status-badge--${escapeHtml(String(user.role || "unknown").toLowerCase())}">
-          ${escapeHtml(String(user.role || "Sin rol"))}
+          ${escapeHtml(formatUserRole(user.role))}
         </span>
       </div>
 
@@ -2266,6 +2266,15 @@ function renderPaymentDetails(payment) {
   `;
 }
 
+function formatUserRole(roleStr) {
+  if (!roleStr) return "Desconocido";
+  const lower = String(roleStr).toLowerCase();
+  if (lower.includes("student") || lower.includes("passenger")) return "Estudiante";
+  if (lower.includes("driver")) return "Conductor";
+  if (lower.includes("admin")) return "Administrador";
+  return String(roleStr).replace(/\s*\(\d+\)/g, "").trim() || "Usuario";
+}
+
 function renderUsersTable(users) {
   if (!users.length) {
     adminUsersBody.innerHTML = '<tr><td colspan="5">Sin usuarios.</td></tr>';
@@ -2276,11 +2285,12 @@ function renderUsersTable(users) {
     <tr>
       <td>${escapeHtml(user.fullName)}</td>
       <td>${escapeHtml(user.email)}</td>
-      <td>${escapeHtml(user.role)} (${escapeHtml(user.roleId)})</td>
+      <td>${escapeHtml(formatUserRole(user.role))}</td>
       <td>${escapeHtml(user.phoneNumber || "-")}</td>
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="user" data-id="${escapeHtml(user.id)}">Ver detalles</button>
+          <button class="btn tiny primary admin-view-trips" data-id="${escapeHtml(user.id)}">Consultar viajes</button>
           ${hasPermission('users:write') ? `<button class="btn tiny secondary admin-edit" data-type="user" data-id="${escapeHtml(user.id)}">Editar</button>` : ''}
           ${hasPermission('users:delete') ? `<button class="btn tiny danger admin-delete" data-type="user" data-id="${escapeHtml(user.id)}">Eliminar</button>` : ''}
         </div>
@@ -2682,7 +2692,91 @@ editModalForm?.addEventListener("submit", async (event) => {
   }
 });
 
+document.getElementById("userTripsModalCloseBtn")?.addEventListener("click", () => {
+  document.getElementById("userTripsModalOverlay")?.classList.add("hidden");
+});
+
+function viewUserTrips(userId) {
+  const trips = state.adminData.trips || [];
+  const reservations = state.adminData.reservations || [];
+  const users = state.adminData.users || [];
+  
+  const user = users.find(u => String(u.id) === String(userId));
+  if (!user) return;
+  
+  const userTripsList = [];
+  
+  // Viajes como conductor
+  trips.forEach(t => {
+    if (String(t.driverId) === String(userId)) {
+      const origin = getTripOriginCoordinates(t);
+      const dest = getTripDestinationCoordinates(t);
+      userTripsList.push({
+        role: "Conductor",
+        origin: hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "Desconocido",
+        dest: hasTripCoordinates(dest) ? `${dest.lat}, ${dest.lng}` : "Desconocido",
+        time: t.createdAt,
+        driverName: "Él mismo",
+        status: t.statusLabel ?? t.statusId ?? t.status
+      });
+    }
+  });
+  
+  // Viajes como pasajero
+  reservations.forEach(r => {
+    if (String(r.passengerId) === String(userId)) {
+      const t = trips.find(trip => String(trip.id) === String(r.tripId));
+      if (t) {
+        const origin = getTripOriginCoordinates(t);
+        const dest = getTripDestinationCoordinates(t);
+        userTripsList.push({
+          role: "Pasajero",
+          origin: hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "Desconocido",
+          dest: hasTripCoordinates(dest) ? `${dest.lat}, ${dest.lng}` : "Desconocido",
+          time: t.createdAt,
+          driverName: t.driverName || "Desconocido",
+          status: formatReservationStatus(r.status)
+        });
+      }
+    }
+  });
+  
+  const tbody = document.getElementById("userTripsModalBody");
+  if (!userTripsList.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay viajes registrados para este usuario.</td></tr>';
+  } else {
+    // Ordenar por fecha descendente
+    userTripsList.sort((a, b) => new Date(b.time) - new Date(a.time));
+    
+    tbody.innerHTML = userTripsList.map(item => `
+      <tr>
+        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.origin)}">${escapeHtml(item.origin)}</td>
+        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.dest)}">${escapeHtml(item.dest)}</td>
+        <td>${escapeHtml(item.time ? formatDateTime(item.time) : "Desconocido")}</td>
+        <td>${escapeHtml(item.driverName)}</td>
+        <td>
+          <span class="status-badge status-badge--${escapeHtml(String(item.role).toLowerCase())}">${escapeHtml(item.role)}</span>
+          <br>
+          <span style="font-size: 0.85em; color: var(--text-secondary);">${escapeHtml(item.status)}</span>
+        </td>
+      </tr>
+    `).join("");
+  }
+  
+  const titleEl = document.getElementById("userTripsModalTitle");
+  if (titleEl) titleEl.textContent = `Historial de Viajes: ${user.fullName}`;
+  
+  document.getElementById("userTripsModalOverlay")?.classList.remove("hidden");
+}
+
 document.addEventListener("click", async (event) => {
+  const viewTripsBtn = event.target.closest(".admin-view-trips");
+  if (viewTripsBtn) {
+    const userId = viewTripsBtn.dataset.id;
+    viewUserTrips(userId);
+    return;
+  }
+
   const viewBtn = event.target.closest(".admin-view-details");
   if (viewBtn) {
     try {
@@ -4022,6 +4116,94 @@ function exportToPDF(data, headers, filename) {
   printWindow.document.close();
 }
 
+async function exportToExcel(data, headers, filename) {
+  if (!data || !data.length) {
+    alert("No hay datos para exportar.");
+    return;
+  }
+
+  if (typeof ExcelJS === 'undefined') {
+    alert("La librería de exportación aún no ha cargado. Por favor espera un momento.");
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Datos');
+
+  // Obtener el color corporativo o usar por defecto
+  let hexColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim().replace('#', '');
+  if (hexColor.length === 6) hexColor = 'FF' + hexColor;
+  if (!hexColor || hexColor.length !== 8) hexColor = 'FF82254B'; // Fallback a Granate Univalle
+
+  // Configurar columnas y encabezados
+  worksheet.columns = headers.map(header => ({
+    header: header,
+    key: header,
+    width: Math.max(header.length + 5, 15)
+  }));
+
+  // Estilizar encabezados
+  const headerRow = worksheet.getRow(1);
+  headerRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: hexColor }
+    };
+    cell.font = {
+      color: { argb: 'FFFFFFFF' },
+      bold: true,
+      size: 12
+    };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+      left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+      bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+      right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+    };
+  });
+  headerRow.height = 25;
+
+  // Añadir filas con zebra striping
+  data.forEach((rowData, index) => {
+    const row = worksheet.addRow(rowData);
+    const isAlternate = index % 2 === 1;
+    
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      // Ajustar ancho de columna
+      const currentWidth = worksheet.getColumn(colNumber).width;
+      const cellLength = cell.value ? String(cell.value).length + 2 : 10;
+      if (cellLength > currentWidth) {
+        worksheet.getColumn(colNumber).width = Math.min(cellLength, 50); // Máximo 50 de ancho
+      }
+
+      // Estilo base de celdas
+      cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+      };
+
+      if (isAlternate) {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF9FAFB' } // Color gris super claro
+        };
+      }
+    });
+  });
+
+  // Generar y descargar el archivo XLSX
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  saveAs(blob, filename + ".xlsx");
+}
+}
+
 function performExport(data, headers, filename, format) {
   if (!data || !data.length) {
     alert("No hay datos para exportar.");
@@ -4088,14 +4270,14 @@ function getExportUsersData() {
   }
   
   let headers = ["ID", "Nombre", "Email", "Rol", "Telefono", "Fecha Creacion"];
-  let data = filteredUsers.map(u => [u.id, u.fullName, u.email, u.role, u.phoneNumber, u.createdAt]);
+  let data = filteredUsers.map(u => [u.id, u.fullName, u.email, formatUserRole(u.role), u.phoneNumber, u.createdAt]);
   
   if (exportType === "drivers") {
     headers = ["ID", "Nombre", "Email", "Rol", "Telefono", "Vehiculos", "Placa", "Fecha Creacion"];
     data = filteredUsers.map(d => {
       const profile = d.driverProfile || d.DriverProfile;
       const plate = profile ? profile.licensePlate : (d.vehicles && d.vehicles[0] ? d.vehicles[0].licensePlate : "");
-      return [d.id, d.fullName, d.email, d.role, d.phoneNumber, d.vehicles?.length || 0, plate, d.createdAt];
+      return [d.id, d.fullName, d.email, formatUserRole(d.role), d.phoneNumber, d.vehicles?.length || 0, plate, d.createdAt];
     });
   }
   return { data, headers, filename };
@@ -4191,6 +4373,129 @@ document.addEventListener("click", (e) => {
   if (!e.target.closest(".dropdown-menu")) {
     document.querySelectorAll(".dropdown.open").forEach(d => d.classList.remove("open"));
   }
+});
+
+document.getElementById("exportMetricsBtn")?.addEventListener("click", () => {
+  const usersCount = document.getElementById("analyticsUsersCount")?.textContent || "0";
+  const tripsCount = document.getElementById("analyticsTripsCount")?.textContent || "0";
+  const reservationsCount = document.getElementById("analyticsReservationsCount")?.textContent || "0";
+
+  if (typeof ExcelJS === 'undefined') {
+    alert("La librería de exportación aún no ha cargado. Por favor espera un momento.");
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Resumen Dashboard');
+
+  let hexColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().replace('#', '');
+  if (hexColor.length === 6) hexColor = 'FF' + hexColor;
+  if (!hexColor || hexColor.length !== 8) hexColor = 'FF5f7f6c';
+
+  const addHeaderRow = (titleRow, dataHeaders) => {
+    worksheet.addRow([]);
+    const title = worksheet.addRow([titleRow]);
+    title.font = { bold: true, size: 14, color: { argb: hexColor } };
+    
+    const headerRow = worksheet.addRow(dataHeaders);
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: hexColor } };
+      cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+        left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+        bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+        right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+      };
+    });
+    headerRow.height = 20;
+  };
+
+  const addDataRows = (dataRows) => {
+    dataRows.forEach((rowData, index) => {
+      const row = worksheet.addRow(rowData);
+      const isAlternate = index % 2 === 1;
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+        };
+        if (isAlternate) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
+        }
+      });
+    });
+  };
+
+  const addChartImage = (chartInstance, col, row) => {
+    if (!chartInstance) return;
+    try {
+      const base64Image = chartInstance.toBase64Image();
+      const base64Data = base64Image.replace(/^data:image\/(png|jpeg);base64,/, "");
+      const imageId = workbook.addImage({
+        base64: base64Data,
+        extension: 'png',
+      });
+      worksheet.addImage(imageId, {
+        tl: { col: col, row: row },
+        ext: { width: 450, height: 250 }
+      });
+    } catch (e) {
+      console.error("Error al exportar gráfica", e);
+    }
+  };
+
+  // 1. Métricas Principales
+  addHeaderRow("Métricas Generales", ["Métrica", "Cantidad / Valor"]);
+  addDataRows([
+    ["Nuevos Usuarios", usersCount],
+    ["Viajes Realizados", tripsCount],
+    ["Reservas Hechas", reservationsCount]
+  ]);
+
+  // 2. Viajes por Día
+  if (tripsChartInstance && tripsChartInstance.data.labels) {
+    addHeaderRow("Viajes por Día", ["Fecha", "Cantidad de Viajes"]);
+    const labels = tripsChartInstance.data.labels;
+    const values = tripsChartInstance.data.datasets[0].data;
+    const rows = labels.map((lbl, i) => [lbl, values[i]]);
+    addDataRows(rows);
+    addChartImage(tripsChartInstance, 3, 7); // Col D, Fila 8
+  }
+
+  // 3. Pasajeros vs Conductores
+  if (usersChartInstance && usersChartInstance.data.labels) {
+    addHeaderRow("Pasajeros vs Conductores", ["Tipo de Usuario", "Cantidad"]);
+    const labels = usersChartInstance.data.labels;
+    const values = usersChartInstance.data.datasets[0].data;
+    const rows = labels.map((lbl, i) => [lbl, values[i]]);
+    addDataRows(rows);
+    addChartImage(usersChartInstance, 11, 7); // Col L, Fila 8
+  }
+
+  // 4. Estado de Reservas
+  if (reservationsChartInstance && reservationsChartInstance.data.labels) {
+    addHeaderRow("Estado de Reservas", ["Estado", "Cantidad"]);
+    const labels = reservationsChartInstance.data.labels;
+    const values = reservationsChartInstance.data.datasets[0].data;
+    const rows = labels.map((lbl, i) => [lbl, values[i]]);
+    addDataRows(rows);
+    addChartImage(reservationsChartInstance, 19, 7); // Col T, Fila 8
+  }
+
+  worksheet.columns = [
+    { width: 35 },
+    { width: 25 }
+  ];
+
+  workbook.xlsx.writeBuffer().then(buffer => {
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, "dashboard_completo.xlsx");
+  });
 });
 
 let tripsChartInstance = null;
