@@ -291,11 +291,13 @@ function renderUserDetails(user) {
       </div>
 
       <div class="detail-grid">
-        <div><strong>ID:</strong> ${escapeHtml(user.id || "-")}</div>
-        <div><strong>Role ID:</strong> ${escapeHtml(user.roleId ?? "-")}</div>
+        <div><strong>Rol:</strong> ${escapeHtml(formatUserRole(user.role))}</div>
         <div><strong>Telefono:</strong> ${escapeHtml(user.phoneNumber || "-")}</div>
         <div><strong>Creado:</strong> ${escapeHtml(formatDateTime(user.createdAt))}</div>
         <div><strong>Vehiculos:</strong> ${escapeHtml(vehicles.length)}</div>
+        <div><strong>Viajes realizados:</strong> ${escapeHtml(state.adminData.trips?.filter(t => t.driverUserId === user.id).length || 0)}</div>
+        <div><strong>Reportes:</strong> ${escapeHtml(state.adminData.supportTickets?.filter(st => st.userId === user.id).length || 0)}</div>
+        <div><strong>Calificacion:</strong> <span id="userRatingDisplay-${user.id}">Cargando...</span></div>
       </div>
 
       ${driverProfile ? `
@@ -1495,6 +1497,22 @@ function openDetailsModal(type, entity) {
     window.requestAnimationFrame(() => {
       initializeDetailTripMap(entity);
     });
+  } else if (type === "user") {
+    apiFetch(`/api/users/${entity.id}/ratings/summary`)
+      .then(res => {
+        const ratingEl = document.getElementById(`userRatingDisplay-${entity.id}`);
+        if (ratingEl) {
+          if (res && res.averageRating !== undefined && res.totalRatings > 0) {
+             ratingEl.textContent = `${res.averageRating.toFixed(1)} ⭐ (${res.totalRatings} reseñas)`;
+          } else {
+             ratingEl.textContent = 'Sin calificación';
+          }
+        }
+      })
+      .catch(() => {
+        const ratingEl = document.getElementById(`userRatingDisplay-${entity.id}`);
+        if (ratingEl) ratingEl.textContent = 'Sin calificación';
+      });
   }
 }
 

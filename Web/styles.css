@@ -438,6 +438,7 @@ input[type="date"]::-webkit-datetime-edit {
   padding: 12px;
   display: grid;
   gap: 12px;
+  color: #000 !important;
 }
 
 .detail-card__header {
@@ -455,7 +456,7 @@ input[type="date"]::-webkit-datetime-edit {
 
 .detail-card__header p,
 .detail-card__section {
-  color: var(--muted);
+  color: #000 !important;
   font-size: 0.84rem;
   line-height: 1.4;
 }
@@ -482,7 +483,7 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .detail-grid strong {
-  color: var(--text);
+  color: #000 !important;
 }
 
 .empty-state--error {
