@@ -38,7 +38,7 @@
     <string name="selection_instruction_idle">Selecciona recogida y destino tocando el mapa.</string>
     <string name="selection_instruction_origin">Toca el mapa para establecer el origen.</string>
     <string name="selection_instruction_destination">Toca el mapa para establecer el destino.</string>
-    <string name="coordinate_value_format">Lat: %.5f, Lng: %.5f</string>
+    <string name="coordinate_value_format">Lat: %1$.5f, Lng: %2$.5f</string>
     <string name="toast_origin_required">Selecciona un origen primero.</string>
     <string name="toast_destination_required">Selecciona un destino primero.</string>
     <string name="toast_trip_exists">Cancela el viaje activo antes de crear otro.</string>
@@ -383,7 +383,7 @@
     <string name="history_stat_total_short">Total</string>
     <string name="history_card_route_label">Trayecto guardado</string>
     <string name="history_card_open_detail_hint">Pulsa la tarjeta para abrir el detalle. Usa los botones para acciones.</string>
-    <string name="history_meta_line">📅 %1$s\n👤 %2$s</string>
+    <string name="history_meta_line">Fecha: %1$s\nRol: %2$s</string>
     <string name="history_bottom_sheet_participants_subtitle">Nombre, estado de la reserva y fecha solicitada.</string>
     <string name="history_participant_reserved_line">Solicitó: %1$s</string>
     <string name="history_item_route_arrow">%1$s  →  %2$s</string>
@@ -398,15 +398,15 @@
     <string name="history_detail_label_finished">Fin real del viaje</string>
     <string name="history_detail_label_updated">Última actualización</string>
     <string name="history_detail_section_route">Puntos del recorrido</string>
-    <string name="history_detail_origin_line">📍 Origen: %1$s</string>
-    <string name="history_detail_dest_line">🏁 Destino: %1$s</string>
+    <string name="history_detail_origin_line">Origen: %1$s</string>
+    <string name="history_detail_dest_line">Destino: %1$s</string>
     <string name="history_detail_coords_origin_prefix">Origen (coord.)</string>
     <string name="history_detail_coords_dest_prefix">Destino (coord.)</string>
     <string name="history_detail_no_coords_dest_inline">Sin registrar</string>
     <string name="history_detail_driver_fallback">Conductor sin nombre</string>
     <string name="history_detail_you_anonymous">Pasajero anónimo</string>
     <string name="history_detail_section_driver">Conductor y vehículo</string>
-    <string name="history_detail_vehicle_line">🚙 %1$s · %2$s</string>
+    <string name="history_detail_vehicle_line">%1$s · %2$s</string>
     <string name="history_detail_plate_line">Placa %1$s</string>
     <string name="history_detail_section_reservations">Cupos y reservas</string>
     <string name="history_detail_stat_reserved">Reservas totales</string>

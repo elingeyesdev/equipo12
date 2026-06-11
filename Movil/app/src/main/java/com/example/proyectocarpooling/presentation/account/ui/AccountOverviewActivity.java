@@ -62,21 +62,28 @@ public class AccountOverviewActivity extends BaseActivity {
         // Default: if user is passenger, default to passenger tab, if driver to driver tab
         mShowingDriver = isDriver;
         if (tabDriver != null && tabPassenger != null) {
-            updateTabUI(mShowingDriver ? tabDriver : tabPassenger, mShowingDriver ? tabPassenger : tabDriver);
-            
-            tabDriver.setOnClickListener(v -> {
-                if (mShowingDriver) return;
-                mShowingDriver = true;
-                updateTabUI(tabDriver, tabPassenger);
-                renderSegmentData();
-            });
+            if (!isDriver) {
+                android.view.ViewParent parent = tabDriver.getParent();
+                if (parent instanceof android.view.View) {
+                    ((android.view.View) parent).setVisibility(android.view.View.GONE);
+                }
+            } else {
+                updateTabUI(mShowingDriver ? tabDriver : tabPassenger, mShowingDriver ? tabPassenger : tabDriver);
+                
+                tabDriver.setOnClickListener(v -> {
+                    if (mShowingDriver) return;
+                    mShowingDriver = true;
+                    updateTabUI(tabDriver, tabPassenger);
+                    renderSegmentData();
+                });
 
-            tabPassenger.setOnClickListener(v -> {
-                if (!mShowingDriver) return;
-                mShowingDriver = false;
-                updateTabUI(tabPassenger, tabDriver);
-                renderSegmentData();
-            });
+                tabPassenger.setOnClickListener(v -> {
+                    if (!mShowingDriver) return;
+                    mShowingDriver = false;
+                    updateTabUI(tabPassenger, tabDriver);
+                    renderSegmentData();
+                });
+            }
         }
 
         // Cargar estadísticas y calificaciones reales del servidor

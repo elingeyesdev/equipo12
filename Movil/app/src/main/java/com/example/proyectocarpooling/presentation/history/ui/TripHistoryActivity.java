@@ -101,6 +101,9 @@ public class TripHistoryActivity extends BaseActivity implements TripHistoryAdap
         setupSearchField();
 
         selectedCategory = sessionManager.isDriver() ? Category.DRIVER : Category.STUDENT;
+        if (!sessionManager.isDriver()) {
+            findViewById(R.id.historyChipDriver).setVisibility(View.GONE);
+        }
         int initialChipId = selectedCategory == Category.STUDENT ? R.id.historyChipStudent : R.id.historyChipDriver;
         categoryGroup.check(initialChipId);
         categoryGroup.setOnCheckedChangeListener((group, checkedId) -> {
