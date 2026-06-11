@@ -119,7 +119,15 @@ public static class DevelopmentDataSeeder
         using var scope = services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<CarPoolingContext>();
 
-        await context.Database.MigrateAsync();
+        if (context.Database.IsRelational())
+        {
+            await context.Database.MigrateAsync();
+        }
+        else
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
 
         // 0. Seed Permissions
         foreach (var p in AppPermissions.AllPermissions)
@@ -419,7 +427,7 @@ public static class DevelopmentDataSeeder
             context.AppSettings.Add(new AppSetting 
             { 
                 Key = "theme", 
-                Value = "{\"primaryLight\":\"#5f7f6c\",\"secondaryLight\":\"#b67a52\",\"textLight\":\"#24302b\",\"primaryDark\":\"#8fac98\",\"secondaryDark\":\"#d0a27d\",\"textDark\":\"#edf2ee\"}" 
+                Value = "{\"primaryLight\":\"#82254B\",\"secondaryLight\":\"#6E1E3F\",\"textLight\":\"#111827\",\"bgLight\":\"#FFFFFF\",\"cardLight\":\"#F5F5F5\",\"borderLight\":\"#9CA8B0\",\"primaryDark\":\"#82254B\",\"secondaryDark\":\"#6E1E3F\",\"textDark\":\"#ffffff\",\"bgDark\":\"#121011\",\"cardDark\":\"#251a1e\",\"borderDark\":\"#6E1E3F\"}" 
             });
         }
 

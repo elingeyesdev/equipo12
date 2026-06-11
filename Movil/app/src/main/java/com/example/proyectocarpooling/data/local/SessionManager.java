@@ -197,47 +197,88 @@ public class SessionManager {
     private static final String KEY_THEME_PRIMARY_LIGHT = "theme_primary_light";
     private static final String KEY_THEME_SECONDARY_LIGHT = "theme_secondary_light";
     private static final String KEY_THEME_TEXT_LIGHT = "theme_text_light";
+    private static final String KEY_THEME_BG_LIGHT = "theme_bg_light";
+    private static final String KEY_THEME_CARD_LIGHT = "theme_card_light";
+    private static final String KEY_THEME_BORDER_LIGHT = "theme_border_light";
     private static final String KEY_THEME_PRIMARY_DARK = "theme_primary_dark";
     private static final String KEY_THEME_SECONDARY_DARK = "theme_secondary_dark";
     private static final String KEY_THEME_TEXT_DARK = "theme_text_dark";
+    private static final String KEY_THEME_BG_DARK = "theme_bg_dark";
+    private static final String KEY_THEME_CARD_DARK = "theme_card_dark";
+    private static final String KEY_THEME_BORDER_DARK = "theme_border_dark";
 
     public void saveThemeColors(String pl, String sl, String pd, String sd) {
-        saveThemeColors(pl, sl, "#24302b", pd, sd, "#edf2ee");
+        saveThemeColors(pl, sl, "#111827", "#FFFFFF", "#F5F5F5", "#9CA8B0", pd, sd, "#ffffff", "#121011", "#251a1e", "#6E1E3F");
     }
 
     public void saveThemeColors(String pl, String sl, String tl, String pd, String sd, String td) {
+        saveThemeColors(pl, sl, tl, "#FFFFFF", "#F5F5F5", "#9CA8B0", pd, sd, td, "#121011", "#251a1e", "#6E1E3F");
+    }
+
+    public void saveThemeColors(String pl, String sl, String tl, String bgl, String cl, String bdl,
+                                String pd, String sd, String td, String bgd, String cd, String bdd) {
         preferences.edit()
                 .putString(KEY_THEME_PRIMARY_LIGHT, pl)
                 .putString(KEY_THEME_SECONDARY_LIGHT, sl)
                 .putString(KEY_THEME_TEXT_LIGHT, tl)
+                .putString(KEY_THEME_BG_LIGHT, bgl)
+                .putString(KEY_THEME_CARD_LIGHT, cl)
+                .putString(KEY_THEME_BORDER_LIGHT, bdl)
                 .putString(KEY_THEME_PRIMARY_DARK, pd)
                 .putString(KEY_THEME_SECONDARY_DARK, sd)
                 .putString(KEY_THEME_TEXT_DARK, td)
+                .putString(KEY_THEME_BG_DARK, bgd)
+                .putString(KEY_THEME_CARD_DARK, cd)
+                .putString(KEY_THEME_BORDER_DARK, bdd)
                 .apply();
     }
 
     public String getThemePrimaryLight() {
-        return preferences.getString(KEY_THEME_PRIMARY_LIGHT, "#5f7f6c");
+        return preferences.getString(KEY_THEME_PRIMARY_LIGHT, "#82254B");
     }
 
     public String getThemeSecondaryLight() {
-        return preferences.getString(KEY_THEME_SECONDARY_LIGHT, "#b67a52");
+        return preferences.getString(KEY_THEME_SECONDARY_LIGHT, "#6E1E3F");
     }
 
     public String getThemeTextLight() {
-        return preferences.getString(KEY_THEME_TEXT_LIGHT, "#24302b");
+        return preferences.getString(KEY_THEME_TEXT_LIGHT, "#111827");
+    }
+
+    public String getThemeBgLight() {
+        return preferences.getString(KEY_THEME_BG_LIGHT, "#FFFFFF");
+    }
+
+    public String getThemeCardLight() {
+        return preferences.getString(KEY_THEME_CARD_LIGHT, "#F5F5F5");
+    }
+
+    public String getThemeBorderLight() {
+        return preferences.getString(KEY_THEME_BORDER_LIGHT, "#9CA8B0");
     }
 
     public String getThemePrimaryDark() {
-        return preferences.getString(KEY_THEME_PRIMARY_DARK, "#8fac98");
+        return preferences.getString(KEY_THEME_PRIMARY_DARK, "#82254B");
     }
 
     public String getThemeSecondaryDark() {
-        return preferences.getString(KEY_THEME_SECONDARY_DARK, "#d0a27d");
+        return preferences.getString(KEY_THEME_SECONDARY_DARK, "#6E1E3F");
     }
 
     public String getThemeTextDark() {
-        return preferences.getString(KEY_THEME_TEXT_DARK, "#edf2ee");
+        return preferences.getString(KEY_THEME_TEXT_DARK, "#ffffff");
+    }
+
+    public String getThemeBgDark() {
+        return preferences.getString(KEY_THEME_BG_DARK, "#121011");
+    }
+
+    public String getThemeCardDark() {
+        return preferences.getString(KEY_THEME_CARD_DARK, "#251a1e");
+    }
+
+    public String getThemeBorderDark() {
+        return preferences.getString(KEY_THEME_BORDER_DARK, "#6E1E3F");
     }
 
     private static final String KEY_FCM_TOKEN = "fcm_token";

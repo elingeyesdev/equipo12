@@ -28,19 +28,23 @@ public final class DynamicThemeManager {
         String primaryHex = isDarkMode ? session.getThemePrimaryDark() : session.getThemePrimaryLight();
         String secondaryHex = isDarkMode ? session.getThemeSecondaryDark() : session.getThemeSecondaryLight();
         String textHex = isDarkMode ? session.getThemeTextDark() : session.getThemeTextLight();
+        String bgHex = isDarkMode ? session.getThemeBgDark() : session.getThemeBgLight();
+        String cardHex = isDarkMode ? session.getThemeCardDark() : session.getThemeCardLight();
+        String borderHex = isDarkMode ? session.getThemeBorderDark() : session.getThemeBorderLight();
         
         try {
             // Tint view hierarchy with the selected primary color
             View root = activity.findViewById(android.R.id.content);
             if (root != null) {
-                tintViewHierarchy(root, primaryHex, secondaryHex, textHex, isDarkMode);
+                tintViewHierarchy(root, primaryHex, secondaryHex, textHex, bgHex, cardHex, borderHex, isDarkMode);
             }
         } catch (Exception e) {
             android.util.Log.e("DynamicTheme", "Error al aplicar el tema dinámico: " + e.getMessage(), e);
         }
     }
 
-    private static void tintViewHierarchy(View view, String primaryHex, String secondaryHex, String textHex, boolean isDarkMode) {
+    private static void tintViewHierarchy(View view, String primaryHex, String secondaryHex, String textHex,
+                                          String bgHex, String cardHex, String borderHex, boolean isDarkMode) {
         if (view == null) return;
 
         try {
@@ -48,12 +52,10 @@ public final class DynamicThemeManager {
             int textColor = Color.parseColor(textHex);
             int secColor = Color.parseColor(secondaryHex);
             int buttonColor = primaryColor;
-            int panelColor = isDarkMode
-                    ? androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#121815"), primaryColor, 0.12f)
-                    : androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#fbfaf5"), primaryColor, 0.06f);
-            int navColor = isDarkMode
-                    ? androidx.core.graphics.ColorUtils.blendARGB(Color.parseColor("#101614"), secColor, 0.18f)
-                    : secColor;
+            
+            int panelColor = Color.parseColor(cardHex);
+            int navColor = Color.parseColor(bgHex);
+            
             int buttonTextColor = contrastFor(buttonColor);
 
             if ("auth_on_hero".equals(view.getTag()) && view instanceof TextView) {
@@ -113,7 +115,7 @@ public final class DynamicThemeManager {
                 for (int h = 0; h < headerCount; h++) {
                     View headerView = navView.getHeaderView(h);
                     if (headerView != null) {
-                        tintViewHierarchy(headerView, primaryHex, secondaryHex, textHex, isDarkMode);
+                        tintViewHierarchy(headerView, primaryHex, secondaryHex, textHex, bgHex, cardHex, borderHex, isDarkMode);
                     }
                 }
             }
@@ -187,19 +189,20 @@ public final class DynamicThemeManager {
                 Button btn = (Button) view;
                 btn.setTextColor(isPrimaryDark ? Color.WHITE : Color.BLACK);
             }
-            // Reservation Badge parent container (drawn with primary color matching sidebar)
+            // Reservation Badge parent container (drawn with secondary color matching sidebar/contrast header)
             else if (view.getId() == com.example.proyectocarpooling.R.id.drawerReservationInfo) {
                 if (view.getBackground() != null) {
-                    view.getBackground().mutate().setTint(navColor);
+                    view.getBackground().mutate().setTint(secColor);
                 }
             }
             // Text views inside the reservation info badge
             else if (isInsideReservationInfo && view instanceof TextView) {
                 TextView tv = (TextView) view;
+                boolean isBadgeDark = androidx.core.graphics.ColorUtils.calculateLuminance(secColor) < 0.5;
                 if (view.getId() == com.example.proyectocarpooling.R.id.drawerReservationHint) {
-                    tv.setTextColor(isPrimaryDark ? Color.parseColor("#88FFFFFF") : Color.parseColor("#88000000"));
+                    tv.setTextColor(isBadgeDark ? Color.parseColor("#88FFFFFF") : Color.parseColor("#88000000"));
                 } else {
-                    tv.setTextColor(isPrimaryDark ? Color.WHITE : Color.BLACK);
+                    tv.setTextColor(isBadgeDark ? Color.WHITE : Color.BLACK);
                 }
             }
             // 8. General standard TextViews (excluding custom controls)
@@ -248,7 +251,7 @@ public final class DynamicThemeManager {
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {
-                tintViewHierarchy(group.getChildAt(i), primaryHex, secondaryHex, textHex, isDarkMode);
+                tintViewHierarchy(group.getChildAt(i), primaryHex, secondaryHex, textHex, bgHex, cardHex, borderHex, isDarkMode);
             }
         }
     }

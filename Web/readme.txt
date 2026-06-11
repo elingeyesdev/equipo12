@@ -13,6 +13,7 @@ Archivos principales:
 
 Como usar:
 1) Ejecuta el backend ASP.NET en modo Development (por defecto: http://localhost:5005).
+	- Si lo levantas en http://localhost:5000, el panel lo detecta automaticamente.
 2) En la carpeta Web instala dependencias y levanta el servidor local:
 	- npm install
 	- npm start
@@ -29,4 +30,5 @@ Como usar:
 Notas:
 - El panel usa localStorage para recordar sesion y URL base de API.
 - Si cambias el puerto del backend, actualiza la URL base al iniciar sesion.
+- El panel intenta primero el backend guardado y, si es local, prueba automaticamente 5005 y 5000.
 - Se habilito CORS en Program.cs para facilitar pruebas del frontend.

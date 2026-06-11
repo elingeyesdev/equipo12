@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CarPooling Admin Panel</title>
+  <title>Univalle Carpooling - Panel de Administración</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="./node_modules/mapbox-gl/dist/mapbox-gl.css" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
@@ -18,7 +18,7 @@
   <main class="auth-shell" id="authShell">
     <section class="auth-card">
       <p class="eyebrow">Administracion</p>
-      <h1>Panel de Control CarPooling</h1>
+      <h1>Panel de Control Univalle Carpooling</h1>
       <p class="subtitle">Inicia sesion como administrador para gestionar usuarios, viajes y reportes operativos.</p>
 
       <form id="loginForm" class="stack">
@@ -42,10 +42,10 @@
   <section class="dashboard hidden" id="dashboard">
     <aside class="sidebar">
       <div class="brand">
-        <p>CP</p>
+        <img src="./logounivalle.png" alt="Univalle Logo" />
         <div>
-          <h2>Admin Hub</h2>
-          <small>CarPooling</small>
+          <h2>Univalle</h2>
+          <small>Admin Hub</small>
         </div>
       </div>
 
@@ -92,32 +92,32 @@
               <button type="button" class="btn primary" id="analyticsConsultBtn">Consultar</button>
             </div>
           </div>
-          <div class="quick-actions" style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
-            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md); text-align: center;">
-              <strong style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px;">Nuevos Usuarios</strong>
-              <p id="analyticsUsersCount" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0</p>
+          <div class="quick-actions" style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px;">
+            <div style="background: var(--panel); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+              <strong style="display: block; font-size: 0.875rem; color: var(--muted); margin-bottom: 8px;">Nuevos Usuarios</strong>
+              <p id="analyticsUsersCount" style="font-size: 1.5rem; font-weight: 700; color: var(--accent);">0</p>
             </div>
-            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md); text-align: center;">
-              <strong style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px;">Viajes Realizados</strong>
-              <p id="analyticsTripsCount" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0</p>
+            <div style="background: var(--panel); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+              <strong style="display: block; font-size: 0.875rem; color: var(--muted); margin-bottom: 8px;">Viajes Realizados</strong>
+              <p id="analyticsTripsCount" style="font-size: 1.5rem; font-weight: 700; color: var(--accent);">0</p>
             </div>
-            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md); text-align: center;">
-              <strong style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px;">Reservas Hechas</strong>
-              <p id="analyticsReservationsCount" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0</p>
+            <div style="background: var(--panel); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+              <strong style="display: block; font-size: 0.875rem; color: var(--muted); margin-bottom: 8px;">Reservas Hechas</strong>
+              <p id="analyticsReservationsCount" style="font-size: 1.5rem; font-weight: 700; color: var(--accent);">0</p>
             </div>
           </div>
           
           <div class="analytics-charts-grid" style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
-            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md);">
-              <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-primary);">Viajes por Día</h4>
+            <div style="background: var(--panel); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+              <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text);">Viajes por Día</h4>
               <canvas id="tripsChart"></canvas>
             </div>
-            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md);">
-              <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-primary);">Pasajeros vs Conductores</h4>
+            <div style="background: var(--panel); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+              <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text);">Pasajeros vs Conductores</h4>
               <canvas id="usersChart"></canvas>
             </div>
-            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-md);">
-              <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-primary);">Estado de Reservas</h4>
+            <div style="background: var(--panel); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+              <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text);">Estado de Reservas</h4>
               <canvas id="reservationsChart"></canvas>
             </div>
           </div>
@@ -131,14 +131,21 @@
             <h3>Usuarios registrados</h3>
             <p class="card-help">Consulta todos los datos de cada usuario en la tabla inferior.</p>
           </div>
-          <div class="panel-header-actions" style="display: flex; gap: 8px; align-items: center;">
-            <select id="exportUserTypeSelect" class="btn secondary" style="padding: 10px; border: 1px solid rgba(255,255,255,0.3); outline: none;">
+          <div class="panel-header-actions">
+            <select id="exportUserTypeSelect" class="btn secondary" style="padding: 10px; border: 1px solid var(--border-color); outline: none; background: var(--panel); color: var(--text);">
               <option value="all">Todos</option>
               <option value="students">Usuarios (Pasajeros)</option>
               <option value="drivers">Conductores</option>
               <option value="admins">Admins</option>
             </select>
-            <button type="button" class="btn secondary" id="exportUsersBtn">Exportar</button>
+            <div class="dropdown">
+              <button type="button" class="btn secondary dropdown-toggle" id="exportUsersBtn">Exportar</button>
+              <div class="dropdown-menu">
+                <button type="button" class="dropdown-item" id="exportUsersExcel">Excel</button>
+                <button type="button" class="dropdown-item" id="exportUsersCsv">CSV</button>
+                <button type="button" class="dropdown-item" id="exportUsersPdf">PDF</button>
+              </div>
+            </div>
             <button type="button" class="btn secondary" data-create-type="user">Agregar</button>
           </div>
         </article>
@@ -175,7 +182,14 @@
             <p class="card-help">Consulta todos los viajes en la tabla y agrega uno nuevo desde el botón superior.</p>
           </div>
           <div class="panel-header-actions">
-            <button type="button" class="btn secondary" id="exportTripsBtn">Exportar a Excel</button>
+            <div class="dropdown">
+              <button type="button" class="btn secondary dropdown-toggle" id="exportTripsBtn">Exportar</button>
+              <div class="dropdown-menu">
+                <button type="button" class="dropdown-item" id="exportTripsExcel">Excel</button>
+                <button type="button" class="dropdown-item" id="exportTripsCsv">CSV</button>
+                <button type="button" class="dropdown-item" id="exportTripsPdf">PDF</button>
+              </div>
+            </div>
             <button type="button" class="btn secondary" data-create-type="trip">Agregar</button>
           </div>
         </article>
@@ -214,7 +228,14 @@
             <p class="card-help">Consulta todos los datos de reservas y crea una nueva desde el botón superior.</p>
           </div>
           <div class="panel-header-actions">
-            <button type="button" class="btn secondary" id="exportReservationsBtn">Exportar a Excel</button>
+            <div class="dropdown">
+              <button type="button" class="btn secondary dropdown-toggle" id="exportReservationsBtn">Exportar</button>
+              <div class="dropdown-menu">
+                <button type="button" class="dropdown-item" id="exportReservationsExcel">Excel</button>
+                <button type="button" class="dropdown-item" id="exportReservationsCsv">CSV</button>
+                <button type="button" class="dropdown-item" id="exportReservationsPdf">PDF</button>
+              </div>
+            </div>
             <button type="button" class="btn secondary" data-create-type="reservation">Agregar</button>
           </div>
         </article>
@@ -421,49 +442,23 @@
           <div class="presets-grid" id="presetsContainer">
             <button type="button" class="preset-card" data-preset="Custom" id="presetCustomCard">
               <div class="preset-preview">
-                <span class="color-dot" id="presetDotCustomPrimary" style="background-color: #5f7f6c;"></span>
-                <span class="color-dot" id="presetDotCustomSecondary" style="background-color: #b67a52;"></span>
-                <span class="color-dot" id="presetDotCustomText" style="background-color: #24302b;"></span>
+                <span class="color-dot" id="presetDotCustomPrimary" style="background-color: #5f7f6c;" title="Principal"></span>
+                <span class="color-dot" id="presetDotCustomSecondary" style="background-color: #b67a52;" title="Secundario"></span>
+                <span class="color-dot" id="presetDotCustomText" style="background-color: #24302b;" title="Texto"></span>
+                <span class="color-dot" id="presetDotCustomBg" style="background-color: #f7f5ef;" title="Fondo"></span>
+                <span class="color-dot" id="presetDotCustomCard" style="background-color: #ffffff;" title="Tarjetas"></span>
+                <span class="color-dot" id="presetDotCustomBorder" style="background-color: rgba(31, 29, 26, 0.16);" title="Bordes"></span>
               </div>
               <span class="preset-name">Personalizado</span>
             </button>
-            <button type="button" class="preset-card" data-preset="Natural">
-              <div class="preset-preview">
-                <span class="color-dot" style="background-color: #5f7f6c;"></span>
-                <span class="color-dot" style="background-color: #b67a52;"></span>
-                <span class="color-dot" style="background-color: #24302b;"></span>
-              </div>
-              <span class="preset-name">Natural Sage</span>
-            </button>
-            <button type="button" class="preset-card" data-preset="Emerald">
-              <div class="preset-preview">
-                <span class="color-dot" style="background-color: #7abfa6;"></span>
-                <span class="color-dot" style="background-color: #5a8777;"></span>
-                <span class="color-dot" style="background-color: #1c2e28;"></span>
-              </div>
-              <span class="preset-name">Emerald Mint</span>
-            </button>
-            <button type="button" class="preset-card" data-preset="Ocean">
-              <div class="preset-preview">
-                <span class="color-dot" style="background-color: #7bb0db;"></span>
-                <span class="color-dot" style="background-color: #8496ab;"></span>
-                <span class="color-dot" style="background-color: #18232e;"></span>
-              </div>
-              <span class="preset-name">Ocean Sky</span>
-            </button>
-            <button type="button" class="preset-card" data-preset="Orchid">
-              <div class="preset-preview">
-                <span class="color-dot" style="background-color: #a397db;"></span>
-                <span class="color-dot" style="background-color: #9e7fa6;"></span>
-                <span class="color-dot" style="background-color: #231e33;"></span>
-              </div>
-              <span class="preset-name">Royal Orchid</span>
-            </button>
             <button type="button" class="preset-card" data-preset="Univalle">
               <div class="preset-preview">
-                <span class="color-dot" style="background-color: #7a1c31;"></span>
-                <span class="color-dot" style="background-color: #D3D3D3;"></span>
-                <span class="color-dot" style="background-color: #111827;"></span>
+                <span class="color-dot" style="background-color: #82254B;" title="Granate principal"></span>
+                <span class="color-dot" style="background-color: #6E1E3F;" title="Granate oscuro"></span>
+                <span class="color-dot" style="background-color: #111827;" title="Texto"></span>
+                <span class="color-dot" style="background-color: #FFFFFF;" title="Fondo blanco"></span>
+                <span class="color-dot" style="background-color: #F5F5F5;" title="Tarjetas gris muy claro"></span>
+                <span class="color-dot" style="background-color: #9CA8B0;" title="Bordes gris claro"></span>
               </div>
               <span class="preset-name">Univalle</span>
             </button>
@@ -499,6 +494,30 @@
                   <span class="color-hex-text" id="themeTextLightHex">#24302b</span>
                 </div>
               </label>
+
+              <label class="field color-picker-field">
+                <span>Fondo Claro (Fondo Principal)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeBgLight" required />
+                  <span class="color-hex-text" id="themeBgLightHex">#f7f5ef</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Fondo Tarjetas Claro</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeCardLight" required />
+                  <span class="color-hex-text" id="themeCardLightHex">#ffffff</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Borde Claro (Bordes, Líneas)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeBorderLight" required />
+                  <span class="color-hex-text" id="themeBorderLightHex">#e2e8f0</span>
+                </div>
+              </label>
             </div>
 
             <h5 style="margin-top: 16px; margin-bottom: 8px;">Colores para Modo Oscuro</h5>
@@ -524,6 +543,30 @@
                 <div class="color-picker-wrapper">
                   <input type="color" id="themeTextDark" required />
                   <span class="color-hex-text" id="themeTextDarkHex">#edf2ee</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Fondo Oscuro (Fondo Principal)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeBgDark" required />
+                  <span class="color-hex-text" id="themeBgDarkHex">#0f1412</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Fondo Tarjetas Oscuro</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeCardDark" required />
+                  <span class="color-hex-text" id="themeCardDarkHex">#151c19</span>
+                </div>
+              </label>
+
+              <label class="field color-picker-field">
+                <span>Borde Oscuro (Bordes, Líneas)</span>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="themeBorderDark" required />
+                  <span class="color-hex-text" id="themeBorderDarkHex">#1e293b</span>
                 </div>
               </label>
             </div>
