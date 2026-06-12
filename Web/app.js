@@ -850,8 +850,9 @@ function getCreateModalMarkup(type) {
     <label class="field"><span>Nombre completo</span><input type="text" id="createFullName" autocomplete="name" placeholder="Ej: Ana Perez" required /></label>
     <label class="field"><span>Email</span><input type="email" id="createEmail" autocomplete="email" placeholder="usuario@univalle.edu" required /></label>
     <label class="field"><span>Contrasena</span><input type="password" id="createPassword" autocomplete="new-password" placeholder="Minimo 6 caracteres" minlength="6" required /></label>
-    <label class="field"><span>Foto de perfil (opcional)</span><input type="file" id="createProfilePicture" accept="image/*" /></label>
-    <label class="field"><span>Telefono (opcional)</span><input type="text" id="createPhone" autocomplete="tel" placeholder="Ej: 7654321" /></label>
+    <label class="field"><span>Confirmar Contrasena</span><input type="password" id="createConfirmPassword" autocomplete="new-password" placeholder="Minimo 6 caracteres" minlength="6" required /></label>
+    <label class="field"><span>Foto de perfil</span><input type="file" id="createProfilePicture" accept="image/*" required /></label>
+    <label class="field"><span>Telefono</span><input type="text" id="createPhone" autocomplete="tel" placeholder="Ej: 7654321" required /></label>
     <label class="field"><span>Rol</span>
       <select id="createRole">
         <option value="student">Estudiante</option>
@@ -870,8 +871,6 @@ function getCreateModalMarkup(type) {
       </label>
       <label class="field"><span>Placa del auto</span><input type="text" id="createPlate" minlength="5" placeholder="Ej: 1234-ABC" /></label>
       <label class="field"><span>Marca del auto</span><input type="text" id="createBrand" minlength="2" placeholder="Ej: Toyota" /></label>
-      <label class="field"><span>Modelo del auto</span><input type="text" id="createModel" minlength="2" placeholder="Ej: Corolla" /></label>
-      <label class="field"><span>Año del auto</span><input type="number" id="createYear" min="1900" max="2100" placeholder="Ej: 2024" /></label>
       <label class="field"><span>Color del auto</span><input type="text" id="createColor" minlength="2" placeholder="Ej: Blanco" /></label>
     </div>
     <div class="modal-actions">
@@ -1738,9 +1737,7 @@ function getEditFormMarkup(type, entity) {
     const statusValue = entity.statusId ?? entity.status ?? entity.statusLabel;
 
     return `
-      <label class="field"><span>ID</span><input type="text" value="${escapeHtml(entity.id || "")}" disabled /></label>
       <label class="field"><span>Nombre del conductor</span><input type="text" name="driverName" value="${escapeHtml(entity.driverName || "")}" required /></label>
-      <label class="field"><span>Driver User ID (opcional)</span><input type="text" name="driverUserId" value="${escapeHtml(entity.driverUserId || "")}" /></label>
       <label class="field"><span>Latitud origen</span><input type="number" step="any" name="originLatitude" value="${escapeHtml(origin.lat ?? "")}" required /></label>
       <label class="field"><span>Longitud origen</span><input type="number" step="any" name="originLongitude" value="${escapeHtml(origin.lng ?? "")}" required /></label>
       <label class="field"><span>Latitud destino (opcional)</span><input type="number" step="any" name="destinationLatitude" value="${escapeHtml(destination.lat ?? "")}" /></label>
@@ -1772,8 +1769,6 @@ function getEditFormMarkup(type, entity) {
   }
 
   return `
-    <label class="field"><span>ID</span><input type="text" value="${escapeHtml(entity.id || "")}" disabled /></label>
-    <label class="field"><span>Trip ID</span><input type="text" name="tripId" value="${escapeHtml(entity.tripId || "")}" required /></label>
     <label class="field"><span>Nombre del pasajero</span><input type="text" name="passengerName" value="${escapeHtml(entity.passengerName || "")}" required /></label>
     <label class="field"><span>Estado</span>
       <select name="status">
@@ -2501,11 +2496,16 @@ createModalForm?.addEventListener("submit", async (event) => {
       const fullName = createModalForm.querySelector("#createFullName")?.value.trim() || "";
       const email = createModalForm.querySelector("#createEmail")?.value.trim().toLowerCase() || "";
       const password = createModalForm.querySelector("#createPassword")?.value || "";
+      const confirmPassword = createModalForm.querySelector("#createConfirmPassword")?.value || "";
       const phoneNumber = createModalForm.querySelector("#createPhone")?.value.trim() || null;
       const role = createModalForm.querySelector("#createRole")?.value || "student";
 
       if (!fullName || !email || !password) {
         throw new Error("Completa los datos obligatorios del usuario.");
+      }
+      
+      if (password !== confirmPassword) {
+        throw new Error("Las contraseñas no coinciden.");
       }
 
       let profilePicture = null;
@@ -2518,6 +2518,10 @@ createModalForm?.addEventListener("submit", async (event) => {
           reader.readAsDataURL(fileInput.files[0]);
         });
       }
+      
+      if (!profilePicture) {
+        throw new Error("La foto de perfil es obligatoria.");
+      }
 
       const payload = { fullName, email, password, phoneNumber, role, profilePicture };
 
@@ -2525,28 +2529,18 @@ createModalForm?.addEventListener("submit", async (event) => {
         const seats = Number(createModalForm.querySelector("#createSeats")?.value);
         const plate = createModalForm.querySelector("#createPlate")?.value.trim().toUpperCase() || "";
         const brand = createModalForm.querySelector("#createBrand")?.value.trim() || "";
-        const model = createModalForm.querySelector("#createModel")?.value.trim() || "";
-        const year = Number(createModalForm.querySelector("#createYear")?.value || 0);
         const color = createModalForm.querySelector("#createColor")?.value.trim() || "";
 
         if (!Number.isInteger(seats) || seats < 1 || seats > 5) {
           throw new Error("Para chofer, la cantidad de personas debe estar entre 1 y 5.");
         }
 
-        if (!model) {
-          throw new Error("Completa el modelo del auto.");
-        }
-
-        if (!Number.isInteger(year) || year < 1900 || year > 2100) {
-          throw new Error("Completa un año valido para el auto.");
-        }
-
         payload.driverProfile = {
           availableSeats: seats,
           licensePlate: plate,
           vehicleBrand: brand,
-          vehicleModel: model,
-          vehicleYear: year,
+          vehicleModel: "No especificado",
+          vehicleYear: null,
           vehicleColor: color
         };
       }
@@ -2557,7 +2551,8 @@ createModalForm?.addEventListener("submit", async (event) => {
       });
 
       closeCreateModal();
-      window.location.reload();
+      await loadAdminData();
+      openSection("users");
       return;
     }
 
@@ -3250,21 +3245,23 @@ async function loadThemeSettings() {
     
     let matchedPreset = colors.preset;
     
+    const normalizeColor = (c) => c ? c.replace(/\s+/g, '').toLowerCase() : '';
+    
     if (!matchedPreset || !presets[matchedPreset]) {
       for (const [name, pColors] of Object.entries(presets)) {
         if (name === "Custom") continue;
-        if (pColors.primaryLight.toLowerCase() === primaryLight.toLowerCase() &&
-            pColors.secondaryLight.toLowerCase() === secondaryLight.toLowerCase() &&
-            pColors.textLight.toLowerCase() === textLight.toLowerCase() &&
-            pColors.bgLight.toLowerCase() === bgLight.toLowerCase() &&
-            pColors.cardLight.toLowerCase() === cardLight.toLowerCase() &&
-            pColors.borderLight.toLowerCase() === borderLight.toLowerCase() &&
-            pColors.primaryDark.toLowerCase() === primaryDark.toLowerCase() &&
-            pColors.secondaryDark.toLowerCase() === secondaryDark.toLowerCase() &&
-            pColors.textDark.toLowerCase() === textDark.toLowerCase() &&
-            pColors.bgDark.toLowerCase() === bgDark.toLowerCase() &&
-            pColors.cardDark.toLowerCase() === cardDark.toLowerCase() &&
-            pColors.borderDark.toLowerCase() === borderDark.toLowerCase()) {
+        if (normalizeColor(pColors.primaryLight) === normalizeColor(primaryLight) &&
+            normalizeColor(pColors.secondaryLight) === normalizeColor(secondaryLight) &&
+            normalizeColor(pColors.textLight) === normalizeColor(textLight) &&
+            normalizeColor(pColors.bgLight) === normalizeColor(bgLight) &&
+            normalizeColor(pColors.cardLight) === normalizeColor(cardLight) &&
+            normalizeColor(pColors.borderLight) === normalizeColor(borderLight) &&
+            normalizeColor(pColors.primaryDark) === normalizeColor(primaryDark) &&
+            normalizeColor(pColors.secondaryDark) === normalizeColor(secondaryDark) &&
+            normalizeColor(pColors.textDark) === normalizeColor(textDark) &&
+            normalizeColor(pColors.bgDark) === normalizeColor(bgDark) &&
+            normalizeColor(pColors.cardDark) === normalizeColor(cardDark) &&
+            normalizeColor(pColors.borderDark) === normalizeColor(borderDark)) {
           matchedPreset = name;
           break;
         }
@@ -3302,21 +3299,22 @@ document.getElementById("themeSettingsForm")?.addEventListener("submit", async (
     applyClientTheme(colors);
     
     // Determinar si corresponde a algún preset predefinido o es Personalizado
+    const normalizeColor = (c) => c ? c.replace(/\s+/g, '').toLowerCase() : '';
     let matchedPreset = null;
     for (const [name, pColors] of Object.entries(presets)) {
       if (name === "Custom") continue;
-      if (pColors.primaryLight.toLowerCase() === colors.primaryLight.toLowerCase() &&
-          pColors.secondaryLight.toLowerCase() === colors.secondaryLight.toLowerCase() &&
-          pColors.textLight.toLowerCase() === colors.textLight.toLowerCase() &&
-          pColors.bgLight.toLowerCase() === colors.bgLight.toLowerCase() &&
-          pColors.cardLight.toLowerCase() === colors.cardLight.toLowerCase() &&
-          pColors.borderLight.toLowerCase() === colors.borderLight.toLowerCase() &&
-          pColors.primaryDark.toLowerCase() === colors.primaryDark.toLowerCase() &&
-          pColors.secondaryDark.toLowerCase() === colors.secondaryDark.toLowerCase() &&
-          pColors.textDark.toLowerCase() === colors.textDark.toLowerCase() &&
-          pColors.bgDark.toLowerCase() === colors.bgDark.toLowerCase() &&
-          pColors.cardDark.toLowerCase() === colors.cardDark.toLowerCase() &&
-          pColors.borderDark.toLowerCase() === colors.borderDark.toLowerCase()) {
+      if (normalizeColor(pColors.primaryLight) === normalizeColor(colors.primaryLight) &&
+          normalizeColor(pColors.secondaryLight) === normalizeColor(colors.secondaryLight) &&
+          normalizeColor(pColors.textLight) === normalizeColor(colors.textLight) &&
+          normalizeColor(pColors.bgLight) === normalizeColor(colors.bgLight) &&
+          normalizeColor(pColors.cardLight) === normalizeColor(colors.cardLight) &&
+          normalizeColor(pColors.borderLight) === normalizeColor(colors.borderLight) &&
+          normalizeColor(pColors.primaryDark) === normalizeColor(colors.primaryDark) &&
+          normalizeColor(pColors.secondaryDark) === normalizeColor(colors.secondaryDark) &&
+          normalizeColor(pColors.textDark) === normalizeColor(colors.textDark) &&
+          normalizeColor(pColors.bgDark) === normalizeColor(colors.bgDark) &&
+          normalizeColor(pColors.cardDark) === normalizeColor(colors.cardDark) &&
+          normalizeColor(pColors.borderDark) === normalizeColor(colors.borderDark)) {
         matchedPreset = name;
         break;
       }
@@ -4855,8 +4853,10 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
     maxDate = new Date();
   }
 
-  // Expandir a por lo menos 7 días si los datos corresponden a un solo día
-  if (minDate.getTime() === maxDate.getTime()) {
+  const isSameDay = minDate.getFullYear() === maxDate.getFullYear() && 
+                    minDate.getMonth() === maxDate.getMonth() && 
+                    minDate.getDate() === maxDate.getDate();
+  if (isSameDay) {
     minDate.setDate(minDate.getDate() - 6);
   }
 

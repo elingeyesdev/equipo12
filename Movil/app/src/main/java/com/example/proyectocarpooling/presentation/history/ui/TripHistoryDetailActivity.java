@@ -239,7 +239,7 @@ public class TripHistoryDetailActivity extends BaseActivity {
             return;
         }
         Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         intent.putExtra(MainActivity.EXTRA_APPLY_FAVORITE_KIND, "route");
         intent.putExtra(MainActivity.EXTRA_APPLY_ORIGIN_LAT, d.originLatitude);
         intent.putExtra(MainActivity.EXTRA_APPLY_ORIGIN_LNG, d.originLongitude);

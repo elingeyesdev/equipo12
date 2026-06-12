@@ -434,13 +434,13 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .detail-card {
-  border: 1px solid rgba(31, 29, 26, 0.1);
+  border: 1px solid var(--border-color, rgba(31, 29, 26, 0.1));
   border-radius: 14px;
-  background: var(--panel-alt);
+  background: var(--panel, #fff);
   padding: 12px;
   display: grid;
   gap: 12px;
-  color: #000 !important;
+  color: var(--text, #000);
 }
 
 .detail-card__header {
@@ -458,7 +458,7 @@ input[type="date"]::-webkit-datetime-edit {
 
 .detail-card__header p,
 .detail-card__section {
-  color: #000 !important;
+  color: var(--text, #000);
   font-size: 0.84rem;
   line-height: 1.4;
 }
@@ -470,7 +470,9 @@ input[type="date"]::-webkit-datetime-edit {
 
 .detail-card--nested {
   padding: 10px;
-  background: #fff;
+  background: var(--bg, #f7f5ef);
+  border: 1px solid var(--border-color, rgba(31, 29, 26, 0.1));
+  border-radius: 8px;
 }
 
 .detail-card__section {

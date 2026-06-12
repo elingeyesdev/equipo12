@@ -332,6 +332,8 @@ public class DriverMatchActivity extends BaseActivity {
         intent.putExtra(MainActivity.EXTRA_ROUTE_PREVIEW_CONTEXT, MainActivity.ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH);
         intent.putExtra(MainActivity.EXTRA_ROUTE_PREVIEW_DRIVER_NAME, current.getDriverName());
         intent.putExtra(MainActivity.EXTRA_ROUTE_PREVIEW_TRIP_ID, current.getTripId());
+        intent.putExtra("original_ref_lat", getIntent().getDoubleExtra(EXTRA_REF_LATITUDE, Double.NaN));
+        intent.putExtra("original_ref_lng", getIntent().getDoubleExtra(EXTRA_REF_LONGITUDE, Double.NaN));
         startActivity(intent);
     }
 

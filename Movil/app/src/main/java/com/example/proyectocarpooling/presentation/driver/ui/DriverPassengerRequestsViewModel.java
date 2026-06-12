@@ -38,7 +38,8 @@ public class DriverPassengerRequestsViewModel extends AndroidViewModel {
         taskRunner.runWithResult(() -> {
             List<ReservationResponse> pending = tripRepository.getReservations(tripId);
             List<ReservationResponse> confirmed = tripRepository.getConfirmedReservations(tripId);
-            return new ReservationsData(pending, confirmed);
+            List<ReservationResponse> boarded = tripRepository.getBoardedPassengers(tripId);
+            return new ReservationsData(pending, confirmed, boarded);
         }, new BackgroundTaskRunner.ResultCallback<ReservationsData>() {
             @Override public void onSuccess(ReservationsData data) {
                 reservations.postValue(data);
@@ -84,9 +85,11 @@ public class DriverPassengerRequestsViewModel extends AndroidViewModel {
     public static class ReservationsData {
         public final List<ReservationResponse> pending;
         public final List<ReservationResponse> confirmed;
-        ReservationsData(List<ReservationResponse> pending, List<ReservationResponse> confirmed) {
+        public final List<ReservationResponse> boarded;
+        ReservationsData(List<ReservationResponse> pending, List<ReservationResponse> confirmed, List<ReservationResponse> boarded) {
             this.pending = pending;
             this.confirmed = confirmed;
+            this.boarded = boarded;
         }
     }
 }

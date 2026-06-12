@@ -235,16 +235,16 @@ public static class DevelopmentDataSeeder
 
         var users = new[]
         {
-            DemoUser(AdminId, "Administrador Univalle", "admin@univalle.edu", "+591 71011111", passwordHash, now.AddMonths(-5)),
-            DemoUser(DriverOneId, "Juan Perez", "conductor1@univalle.edu", "+591 71020304", passwordHash, now.AddMonths(-4)),
-            DemoUser(DriverTwoId, "Maria Gomez", "conductor2@univalle.edu", "+591 72030405", passwordHash, now.AddMonths(-4).AddDays(2)),
-            DemoUser(DriverThreeId, "Rodrigo Vaca", "conductor3@univalle.edu", "+591 72030406", passwordHash, now.AddMonths(-2)),
-            DemoUser(PassengerOneId, "Carlos Rojas", "estudiante1@univalle.edu", "+591 73040506", passwordHash, now.AddMonths(-3)),
-            DemoUser(PassengerTwoId, "Ana Torres", "estudiante2@univalle.edu", "+591 74050607", passwordHash, now.AddMonths(-3).AddDays(4)),
-            DemoUser(PassengerThreeId, "Luis Castro", "estudiante3@univalle.edu", "+591 75060708", passwordHash, now.AddMonths(-2)),
-            DemoUser(PassengerFourId, "Valeria Suarez", "estudiante4@univalle.edu", "+591 76011122", passwordHash, now.AddMonths(-1)),
-            DemoUser(PassengerFiveId, "Diego Molina", "estudiante5@univalle.edu", "+591 76033344", passwordHash, now.AddMonths(-1).AddDays(5)),
-            DemoUser(AnalystId, "Sofia Morales", "analista@univalle.edu", "+591 76070809", passwordHash, now.AddMonths(-2).AddDays(8))
+            DemoUser(AdminId, "Administrador Univalle", "admin@univalle.edu", "71011111", passwordHash, now.AddMonths(-5)),
+            DemoUser(DriverOneId, "Juan Perez", "conductor1@univalle.edu", "71020304", passwordHash, now.AddMonths(-4)),
+            DemoUser(DriverTwoId, "Maria Gomez", "conductor2@univalle.edu", "72030405", passwordHash, now.AddMonths(-4).AddDays(2)),
+            DemoUser(DriverThreeId, "Rodrigo Vaca", "conductor3@univalle.edu", "72030406", passwordHash, now.AddMonths(-2)),
+            DemoUser(PassengerOneId, "Carlos Rojas", "estudiante1@univalle.edu", "73040506", passwordHash, now.AddMonths(-3)),
+            DemoUser(PassengerTwoId, "Ana Torres", "estudiante2@univalle.edu", "74050607", passwordHash, now.AddMonths(-3).AddDays(4)),
+            DemoUser(PassengerThreeId, "Luis Castro", "estudiante3@univalle.edu", "75060708", passwordHash, now.AddMonths(-2)),
+            DemoUser(PassengerFourId, "Valeria Suarez", "estudiante4@univalle.edu", "76011122", passwordHash, now.AddMonths(-1)),
+            DemoUser(PassengerFiveId, "Diego Molina", "estudiante5@univalle.edu", "76033344", passwordHash, now.AddMonths(-1).AddDays(5)),
+            DemoUser(AnalystId, "Sofia Morales", "analista@univalle.edu", "76070809", passwordHash, now.AddMonths(-2).AddDays(8))
         };
 
         context.Users.AddRange(users);

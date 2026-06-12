@@ -85,7 +85,7 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
     private void observeViewModel() {
         viewModel.getReservations().observe(this, data -> {
             if (data != null) {
-                applyLists(data.pending, data.confirmed);
+                applyLists(data.pending, data.confirmed, data.boarded);
             }
         });
 
@@ -121,30 +121,37 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
         return t.length() <= 12 ? t : t.substring(0, 8) + "...";
     }
 
-    private void applyLists(List<ReservationResponse> pending, List<ReservationResponse> confirmed) {
-        rebuildFlatItems(pending, confirmed);
+    private void applyLists(List<ReservationResponse> pending, List<ReservationResponse> confirmed, List<ReservationResponse> boarded) {
+        rebuildFlatItems(pending, confirmed, boarded);
         adapter.notifyDataSetChanged();
 
         int n = pending.size();
         int m = confirmed.size();
-        countText.setText(getString(R.string.driver_passenger_requests_count_sections, n, m));
-        boolean empty = n + m == 0;
+        int b = boarded.size();
+        countText.setText(getString(R.string.driver_passenger_requests_count_sections, n, m, b));
+        boolean empty = n + m + b == 0;
         emptyText.setVisibility(empty ? View.VISIBLE : View.GONE);
         recyclerView.setVisibility(empty ? View.GONE : View.VISIBLE);
     }
 
-    private void rebuildFlatItems(List<ReservationResponse> pending, List<ReservationResponse> confirmed) {
+    private void rebuildFlatItems(List<ReservationResponse> pending, List<ReservationResponse> confirmed, List<ReservationResponse> boarded) {
         items.clear();
         if (!pending.isEmpty()) {
-            items.add(ListItem.header(getString(R.string.driver_passenger_requests_section_pending, pending.size()), true));
+            items.add(ListItem.header(getString(R.string.driver_passenger_requests_section_pending, pending.size()), 1));
             for (ReservationResponse r : pending) {
-                items.add(ListItem.item(r, true));
+                items.add(ListItem.item(r, 1));
             }
         }
         if (!confirmed.isEmpty()) {
-            items.add(ListItem.header(getString(R.string.driver_passenger_requests_section_confirmed, confirmed.size()), false));
+            items.add(ListItem.header(getString(R.string.driver_passenger_requests_section_confirmed, confirmed.size()), 2));
             for (ReservationResponse r : confirmed) {
-                items.add(ListItem.item(r, false));
+                items.add(ListItem.item(r, 2));
+            }
+        }
+        if (!boarded.isEmpty()) {
+            items.add(ListItem.header(getString(R.string.driver_passenger_requests_section_boarded, boarded.size()), 3));
+            for (ReservationResponse r : boarded) {
+                items.add(ListItem.item(r, 3));
             }
         }
     }
@@ -203,23 +210,23 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
 
     private static class ListItem {
         final boolean isHeader;
-        final boolean isPending;
+        final int listType; // 1 = pending, 2 = confirmed, 3 = boarded
         final String headerText;
         final ReservationResponse reservation;
 
-        private ListItem(boolean isHeader, boolean isPending, String headerText, ReservationResponse reservation) {
+        private ListItem(boolean isHeader, int listType, String headerText, ReservationResponse reservation) {
             this.isHeader = isHeader;
-            this.isPending = isPending;
+            this.listType = listType;
             this.headerText = headerText;
             this.reservation = reservation;
         }
 
-        static ListItem header(String text, boolean isPending) {
-            return new ListItem(true, isPending, text, null);
+        static ListItem header(String text, int listType) {
+            return new ListItem(true, listType, text, null);
         }
 
-        static ListItem item(ReservationResponse r, boolean isPending) {
-            return new ListItem(false, isPending, null, r);
+        static ListItem item(ReservationResponse r, int listType) {
+            return new ListItem(false, listType, null, r);
         }
     }
 
@@ -254,17 +261,21 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
                 h.name.setText(r.getPassengerName());
                 h.meta.setText(getString(R.string.driver_passenger_requests_solicitado, formatRequestTime(r.createdAt)));
 
-                if (item.isPending) {
+                if (item.listType == 1) { // pending
                     h.accept.setVisibility(View.VISIBLE);
                     h.reject.setVisibility(View.VISIBLE);
                     h.board.setVisibility(View.GONE);
                     h.reject.setOnClickListener(v -> confirmReject(r));
                     h.accept.setOnClickListener(v -> confirmAccept(r));
-                } else {
+                } else if (item.listType == 2) { // confirmed
                     h.accept.setVisibility(View.GONE);
                     h.reject.setVisibility(View.GONE);
                     h.board.setVisibility(View.VISIBLE);
                     h.board.setOnClickListener(v -> executeBoard(r));
+                } else { // boarded
+                    h.accept.setVisibility(View.GONE);
+                    h.reject.setVisibility(View.GONE);
+                    h.board.setVisibility(View.GONE); // Already boarded
                 }
             }
         }

@@ -447,7 +447,7 @@ public class SearchTripActivity extends BaseActivity implements SearchTripAdapte
     @Override
     public void onViewRoute(SearchTripResultItem item) {
         Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         intent.putExtra(MainActivity.EXTRA_APPLY_FAVORITE_KIND, "route");
         intent.putExtra(MainActivity.EXTRA_APPLY_ORIGIN_LAT, item.originLatitude);
         intent.putExtra(MainActivity.EXTRA_APPLY_ORIGIN_LNG, item.originLongitude);

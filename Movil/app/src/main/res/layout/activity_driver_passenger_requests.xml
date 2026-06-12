@@ -21,7 +21,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingStart="20dp"
-        android:paddingTop="16dp"
+        android:paddingTop="4dp"
         android:paddingEnd="20dp"
         android:paddingBottom="2dp"
         android:textColor="@color/carpool_text_secondary"
@@ -33,7 +33,7 @@
         android:layout_height="wrap_content"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
-        android:paddingBottom="12dp"
+        android:paddingBottom="4dp"
         android:textColor="@color/carpool_text_primary"
         android:textSize="16sp"
         android:textStyle="bold" />

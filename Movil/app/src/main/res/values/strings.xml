@@ -136,9 +136,10 @@
     <string name="driver_passenger_requests_title">Solicitudes de pasajeros</string>
     <string name="driver_passenger_requests_subtitle">Viaje: %1$s</string>
     <string name="driver_passenger_requests_count">%1$d solicitud(es) activa(s)</string>
-    <string name="driver_passenger_requests_count_sections">%1$d pendientes, %2$d confirmadas</string>
-    <string name="driver_passenger_requests_section_pending">Pendientes (%1$d)</string>
-    <string name="driver_passenger_requests_section_confirmed">Confirmadas (%1$d)</string>
+    <string name="driver_passenger_requests_count_sections">%1$d pendientes, %2$d confirmadas, %3$d a bordo</string>
+    <string name="driver_passenger_requests_section_pending">%d Pendientes de Aprobación</string>
+    <string name="driver_passenger_requests_section_confirmed">%d Confirmados (Por Abordar)</string>
+    <string name="driver_passenger_requests_section_boarded">%d A bordo</string>
     <string name="driver_passenger_requests_empty">No hay solicitudes activas. Cuando un pasajero confirme contigo desde «Buscar conductor», aparecerá aquí.</string>
     <string name="driver_passenger_requests_solicitado">Solicitado: %1$s</string>
     <string name="driver_passenger_requests_btn_reject">Rechazar</string>

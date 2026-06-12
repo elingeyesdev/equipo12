@@ -2193,18 +2193,22 @@ public class MainActivity extends BaseActivity {
         }
 
         if (ROUTE_PREVIEW_CONTEXT_SEARCH_TRIP.equals(routePreviewContext)) {
-            Intent intent = new Intent(this, com.example.proyectocarpooling.presentation.search.ui.SearchTripActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(intent);
+            finish();
+            routePreviewContext = null;
+            return;
         } else if (ROUTE_PREVIEW_CONTEXT_HISTORY.equals(routePreviewContext)) {
-            Intent intent = new Intent(this, com.example.proyectocarpooling.presentation.history.ui.TripHistoryActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(intent);
+            finish();
+            routePreviewContext = null;
+            return;
         } else if (ROUTE_PREVIEW_CONTEXT_DRIVER_MATCH.equals(routePreviewContext)) {
-            // Since we don't have the original origin/destination for DriverMatchActivity handy,
-            // we just reopen the activity (it might reset its state, but it goes back to the match screen)
             Intent intent = new Intent(this, com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            
+            double originalRefLat = getIntent().getDoubleExtra("original_ref_lat", Double.NaN);
+            double originalRefLng = getIntent().getDoubleExtra("original_ref_lng", Double.NaN);
+            intent.putExtra(com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity.EXTRA_REF_LATITUDE, originalRefLat);
+            intent.putExtra(com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity.EXTRA_REF_LONGITUDE, originalRefLng);
+            
             startActivity(intent);
         }
         routePreviewContext = null;
