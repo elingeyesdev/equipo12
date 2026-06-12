@@ -313,9 +313,14 @@ public class PaymentActivity extends BaseActivity {
         checkoutContent.setVisibility(View.GONE);
 
         if (activePayment.status == PaymentItem.STATUS_APPROVED) {
-            String receiptNum = activePayment.receiptNumber.isEmpty() ? activePayment.externalReference : activePayment.receiptNumber;
-            receiptText.setText("Viaje pagado · Comprobante: " + receiptNum);
-            refundButton.setVisibility(View.VISIBLE);
+            if (METHOD_CASH.equalsIgnoreCase(activePayment.paymentMethodCode)) {
+                receiptText.setText("Pago en efectivo · Paga en persona al finalizar el viaje");
+                refundButton.setVisibility(View.GONE);
+            } else {
+                String receiptNum = activePayment.receiptNumber.isEmpty() ? activePayment.externalReference : activePayment.receiptNumber;
+                receiptText.setText("Viaje pagado · Comprobante: " + receiptNum);
+                refundButton.setVisibility(View.VISIBLE);
+            }
         } else if (activePayment.status == PaymentItem.STATUS_PENDING) {
             receiptText.setText("Pago en revisión · Espera confirmación del conductor");
             cancelButton.setVisibility(View.VISIBLE);
@@ -425,8 +430,12 @@ public class PaymentActivity extends BaseActivity {
     private void showPaymentResult(PaymentItem payment) {
         String message;
         if (payment.status == PaymentItem.STATUS_APPROVED) {
-            message = "Pago aprobado.\n\nComprobante: " +
-                    (payment.receiptNumber.isEmpty() ? payment.externalReference : payment.receiptNumber);
+            if (METHOD_CASH.equalsIgnoreCase(payment.paymentMethodCode)) {
+                message = "Pago en efectivo registrado.\n\nPor favor, entrega el dinero en persona al finalizar el viaje.";
+            } else {
+                message = "Pago aprobado.\n\nComprobante: " +
+                        (payment.receiptNumber.isEmpty() ? payment.externalReference : payment.receiptNumber);
+            }
         } else {
             message = "Pago pendiente de confirmacion.\n\nEl conductor debe presionar Recibi el pago.";
         }

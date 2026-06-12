@@ -184,6 +184,8 @@ public class PaymentService(CarPoolingContext context)
             throw new InvalidOperationException("La reserva ya tiene un pago activo.");
         }
 
+        var isCash = method.Type == PaymentMethodType.Cash;
+
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
@@ -193,11 +195,13 @@ public class PaymentService(CarPoolingContext context)
             UserPaymentMethodId = dto.UserPaymentMethodId,
             Amount = reservation.Trip.FareAmount * reservation.SeatsReserved,
             Currency = currency,
-            Status = PaymentStatus.Pending,
+            Status = isCash ? PaymentStatus.Approved : PaymentStatus.Pending,
             Description = dto.Description?.Trim(),
             ExternalReference = $"PAY-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}",
-            ExpiresAt = DateTime.UtcNow.AddMinutes(method.RequiresManualConfirmation ? 60 : 15),
-            CreatedAt = DateTime.UtcNow
+            ExpiresAt = isCash ? null : DateTime.UtcNow.AddMinutes(method.RequiresManualConfirmation ? 60 : 15),
+            PaidAt = isCash ? DateTime.UtcNow : null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = isCash ? DateTime.UtcNow : null
         };
 
         payment.Transactions.Add(new PaymentTransaction
@@ -205,14 +209,21 @@ public class PaymentService(CarPoolingContext context)
             Id = Guid.NewGuid(),
             PaymentId = payment.Id,
             TransactionType = PaymentTransactionType.Payment,
-            Status = PaymentTransactionStatus.Pending,
+            Status = isCash ? PaymentTransactionStatus.Success : PaymentTransactionStatus.Pending,
             Amount = payment.Amount,
             Provider = method.Type == PaymentMethodType.Simulated ? "SIMULATED_GATEWAY" : method.Code,
-            ResponseMessage = method.RequiresManualConfirmation
-                ? "Pago pendiente de confirmacion manual."
-                : "Pago creado en ambiente simulado.",
+            ResponseMessage = isCash
+                ? "Pago en efectivo registrado (se realizara en persona al finalizar el viaje)."
+                : (method.RequiresManualConfirmation
+                    ? "Pago pendiente de confirmacion manual."
+                    : "Pago creado en ambiente simulado."),
             CreatedAt = DateTime.UtcNow
         });
+
+        if (isCash)
+        {
+            await EnsureReceiptAsync(payment);
+        }
 
         _context.Payments.Add(payment);
         await _context.SaveChangesAsync();
@@ -306,7 +317,7 @@ public class PaymentService(CarPoolingContext context)
 
         if (dto.Approve)
         {
-            EnsureReceipt(payment);
+            await EnsureReceiptAsync(payment);
         }
 
         await _context.SaveChangesAsync();
@@ -345,9 +356,37 @@ public class PaymentService(CarPoolingContext context)
         AddTransaction(payment, PaymentTransactionType.Confirmation, PaymentTransactionStatus.Success,
             payment.Amount, payment.PaymentMethod.Code, "CONFIRMED",
             "Pago confirmado manualmente por el conductor.");
-        EnsureReceipt(payment);
+        await EnsureReceiptAsync(payment);
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            _context.Entry(payment).State = EntityState.Detached;
+            if (payment.Receipt != null)
+            {
+                _context.Entry(payment.Receipt).State = EntityState.Detached;
+            }
+            foreach (var tx in payment.Transactions)
+            {
+                _context.Entry(tx).State = EntityState.Detached;
+            }
+
+            var reloaded = await PaymentDetailsQuery().AsNoTracking().FirstOrDefaultAsync(p => p.Id == paymentId);
+            if (reloaded == null)
+            {
+                throw new KeyNotFoundException("El pago fue eliminado por otro proceso.");
+            }
+
+            if (reloaded.Status == PaymentStatus.Approved)
+            {
+                return PaymentResponseDto.FromEntity(reloaded);
+            }
+
+            throw new InvalidOperationException($"El pago ya no está pendiente. Estado actual: {reloaded.Status}");
+        }
         return PaymentResponseDto.FromEntity(payment);
     }
 
@@ -615,10 +654,17 @@ public class PaymentService(CarPoolingContext context)
         });
     }
 
-    private static void EnsureReceipt(Payment payment)
+    private async Task EnsureReceiptAsync(Payment payment)
     {
         if (payment.Receipt is not null)
         {
+            return;
+        }
+
+        var existingReceipt = await _context.PaymentReceipts.FirstOrDefaultAsync(r => r.PaymentId == payment.Id);
+        if (existingReceipt != null)
+        {
+            payment.Receipt = existingReceipt;
             return;
         }
 
@@ -673,7 +719,14 @@ public class PaymentService(CarPoolingContext context)
         }
         if (changed)
         {
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Concurrency conflicts during auto-expiration can be safely ignored
+            }
         }
     }
 }

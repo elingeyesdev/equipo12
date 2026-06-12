@@ -1,22 +1,22 @@
 {
-  "timestamp": "2026-06-11T04:34:00.956Z",
+  "timestamp": "2026-06-11T21:35:41.932Z",
   "performance": {
     "tripSearch": {
       "successes": 50,
       "total": 50,
-      "min": 1,
-      "max": 4,
-      "avg": 2,
-      "stdDev": 0,
+      "min": 2,
+      "max": 122,
+      "avg": 7,
+      "stdDev": 18,
       "slaPassed": true
     },
     "ratingSummary": {
       "successes": 50,
       "total": 50,
-      "min": 1,
-      "max": 34,
-      "avg": 2,
-      "stdDev": 5,
+      "min": 3,
+      "max": 58,
+      "avg": 6,
+      "stdDev": 8,
       "slaPassed": true
     }
   },
@@ -25,13 +25,13 @@
       "tripSearch": {
         "successes": 100,
         "failures": 0,
-        "avgLatency": 0.5613050000000004,
+        "avgLatency": 1.2853100000000006,
         "errorSample": []
       },
       "safeZones": {
         "successes": 100,
         "failures": 0,
-        "avgLatency": 0.1256639999999999,
+        "avgLatency": 1.2024799999999993,
         "errorSample": []
       }
     },
@@ -39,13 +39,13 @@
       "tripSearch": {
         "successes": 250,
         "failures": 0,
-        "avgLatency": 0.3689148,
+        "avgLatency": 0.5378219999999997,
         "errorSample": []
       },
       "safeZones": {
         "successes": 250,
         "failures": 0,
-        "avgLatency": 0.11692480000000001,
+        "avgLatency": 0.5130224000000008,
         "errorSample": []
       }
     },
@@ -53,13 +53,13 @@
       "tripSearch": {
         "successes": 500,
         "failures": 0,
-        "avgLatency": 0.2802121999999999,
+        "avgLatency": 0.3782212,
         "errorSample": []
       },
       "safeZones": {
         "successes": 500,
         "failures": 0,
-        "avgLatency": 0.09942719999999985,
+        "avgLatency": 0.5575992000000001,
         "errorSample": []
       }
     },
@@ -67,13 +67,13 @@
       "tripSearch": {
         "successes": 1000,
         "failures": 0,
-        "avgLatency": 0.22422270000000002,
+        "avgLatency": 1.2305452,
         "errorSample": []
       },
       "safeZones": {
         "successes": 1000,
         "failures": 0,
-        "avgLatency": 0.09404229999999995,
+        "avgLatency": 1.1300086,
         "errorSample": []
       }
     }
@@ -88,12 +88,12 @@
       {
         "name": "Atributos ALT en imágenes",
         "passed": true,
-        "detail": "0 imágenes encontradas, 0 no tienen el atributo ALT para lectores de pantalla."
+        "detail": "1 imágenes encontradas, 0 no tienen el atributo ALT para lectores de pantalla."
       },
       {
         "name": "Etiquetas LABEL o descriptores ARIA en Inputs",
         "passed": false,
-        "detail": "Falta label/aria en 38 de 38 inputs."
+        "detail": "Falta label/aria en 44 de 44 inputs."
       },
       {
         "name": "Estructura Semántica - Encabezado H1",
@@ -103,7 +103,7 @@
       {
         "name": "Descriptores en Botones",
         "passed": true,
-        "detail": "De 40 botones, 0 están vacíos y carecen de etiqueta descriptiva aria-label."
+        "detail": "De 51 botones, 0 están vacíos y carecen de etiqueta descriptiva aria-label."
       }
     ],
     "css": [

@@ -90,7 +90,15 @@
             </label>
             <div class="filter-field filter-field--actions" style="display: flex; align-items: flex-end; gap: 8px;">
               <button type="button" class="btn primary" id="analyticsConsultBtn">Consultar</button>
-              <button type="button" class="btn secondary" id="exportMetricsBtn">Exportar a Excel</button>
+              <button type="button" class="btn secondary" id="resetAllFiltersBtn">Reiniciar Filtros</button>
+              <div class="dropdown">
+                <button type="button" class="btn secondary dropdown-toggle" id="exportMetricsBtn">Exportar</button>
+                <div class="dropdown-menu">
+                  <button type="button" class="dropdown-item" id="exportMetricsExcel">Excel</button>
+                  <button type="button" class="dropdown-item" id="exportMetricsCsv">CSV</button>
+                  <button type="button" class="dropdown-item" id="exportMetricsPdf">PDF</button>
+                </div>
+              </div>
             </div>
           </div>
           <div class="quick-actions" style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px;">

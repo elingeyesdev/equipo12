@@ -278,10 +278,16 @@ function renderUserDetails(user) {
   const driverProfile = user.driverProfile || user.DriverProfile;
   const vehicles = Array.isArray(user.vehicles) ? user.vehicles : Array.isArray(user.Vehicles) ? user.Vehicles : [];
 
+  const profilePic = user.profilePicture || user.ProfilePicture;
+
   return `
     <article class="detail-card">
-      <div class="detail-card__header">
-        <div>
+      <div class="detail-card__header" style="display: flex; align-items: center; gap: 1rem;">
+        ${profilePic 
+          ? `<img src="${profilePic}" alt="Foto de perfil" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />` 
+          : `<div style="width: 50px; height: 50px; border-radius: 50%; background-color: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${escapeHtml((user.fullName || 'U').charAt(0).toUpperCase())}</div>`
+        }
+        <div style="flex: 1;">
           <h4>${escapeHtml(user.fullName || "Usuario")}</h4>
           <p>${escapeHtml(user.email || "Sin email")}</p>
         </div>
@@ -4433,7 +4439,7 @@ document.addEventListener("click", (e) => {
   }
 });
 
-document.getElementById("exportMetricsBtn")?.addEventListener("click", () => {
+document.getElementById("exportMetricsExcel")?.addEventListener("click", () => {
   const usersCount = document.getElementById("analyticsUsersCount")?.textContent || "0";
   const tripsCount = document.getElementById("analyticsTripsCount")?.textContent || "0";
   const reservationsCount = document.getElementById("analyticsReservationsCount")?.textContent || "0";
@@ -4448,7 +4454,7 @@ document.getElementById("exportMetricsBtn")?.addEventListener("click", () => {
 
   let hexColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().replace('#', '');
   if (hexColor.length === 6) hexColor = 'FF' + hexColor;
-  if (!hexColor || hexColor.length !== 8) hexColor = 'FF5f7f6c';
+  if (!hexColor || hexColor.length !== 8) hexColor = 'FF82254B';
 
   const addHeaderRow = (titleRow, dataHeaders) => {
     worksheet.addRow([]);
@@ -4554,6 +4560,258 @@ document.getElementById("exportMetricsBtn")?.addEventListener("click", () => {
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, "dashboard_completo.xlsx");
   });
+});
+
+document.getElementById("exportMetricsCsv")?.addEventListener("click", () => {
+  const usersCount = document.getElementById("analyticsUsersCount")?.textContent || "0";
+  const tripsCount = document.getElementById("analyticsTripsCount")?.textContent || "0";
+  const reservationsCount = document.getElementById("analyticsReservationsCount")?.textContent || "0";
+  
+  const data = [
+    ["Nuevos Usuarios", usersCount],
+    ["Viajes Realizados", tripsCount],
+    ["Reservas Hechas", reservationsCount]
+  ];
+  const headers = ["Métrica", "Cantidad / Valor"];
+  performExport(data, headers, "dashboard_resumen", "csv");
+});
+
+document.getElementById("exportMetricsPdf")?.addEventListener("click", () => {
+  const usersCount = document.getElementById("analyticsUsersCount")?.textContent || "0";
+  const tripsCount = document.getElementById("analyticsTripsCount")?.textContent || "0";
+  const reservationsCount = document.getElementById("analyticsReservationsCount")?.textContent || "0";
+  
+  exportMetricsToPDF(usersCount, tripsCount, reservationsCount);
+});
+
+function exportMetricsToPDF(usersCount, tripsCount, reservationsCount) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("Por favor habilita las ventanas emergentes para exportar a PDF.");
+    return;
+  }
+  
+  const base64Trips = tripsChartInstance ? tripsChartInstance.toBase64Image() : null;
+  const base64Users = usersChartInstance ? usersChartInstance.toBase64Image() : null;
+  const base64Reservations = reservationsChartInstance ? reservationsChartInstance.toBase64Image() : null;
+
+  let accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#82254B';
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Reporte de Métricas - Univalle Carpooling</title>
+      <style>
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          color: #111827;
+          margin: 40px;
+          background-color: #fff;
+        }
+        .header-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          border-bottom: 3px solid ${accentColor};
+          padding-bottom: 12px;
+          margin-bottom: 24px;
+        }
+        h2 {
+          color: ${accentColor};
+          margin: 0;
+          font-size: 24px;
+          font-weight: 700;
+        }
+        .meta-info {
+          font-size: 12px;
+          color: #6B7280;
+          text-align: right;
+        }
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+          margin-bottom: 30px;
+          margin-top: 20px;
+        }
+        .stat-card {
+          border: 1px solid #E5E7EB;
+          padding: 16px;
+          border-radius: 8px;
+          text-align: center;
+          background: #F9FAFB;
+        }
+        .stat-title {
+          font-size: 14px;
+          color: #6B7280;
+          margin-bottom: 8px;
+          font-weight: 600;
+        }
+        .stat-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: ${accentColor};
+        }
+        .charts-container {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          margin-top: 30px;
+        }
+        .chart-box {
+          border: 1px solid #E5E7EB;
+          padding: 16px;
+          border-radius: 8px;
+          text-align: center;
+          page-break-inside: avoid;
+        }
+        .chart-box h4 {
+          margin-top: 0;
+          color: #374151;
+          margin-bottom: 12px;
+        }
+        .chart-img {
+          max-width: 100%;
+          height: auto;
+          max-height: 250px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header-container">
+        <div>
+          <h2>REPORTE DE METRICAS DEL PANEL</h2>
+        </div>
+        <div class="meta-info">
+          Generado el: ${new Date().toLocaleString()}<br>
+          Univalle Carpooling
+        </div>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">Nuevos Usuarios</div>
+          <div class="stat-value">${usersCount}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Viajes Realizados</div>
+          <div class="stat-value">${tripsCount}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Reservas Hechas</div>
+          <div class="stat-value">${reservationsCount}</div>
+        </div>
+      </div>
+      
+      <h3>Gráficas Estadísticas</h3>
+      <div class="charts-container">
+        ${base64Trips ? `
+        <div class="chart-box">
+          <h4>Viajes por Día</h4>
+          <img class="chart-img" src="${base64Trips}" />
+        </div>
+        ` : ''}
+        
+        ${base64Users ? `
+        <div class="chart-box">
+          <h4>Pasajeros vs Conductores</h4>
+          <img class="chart-img" src="${base64Users}" />
+        </div>
+        ` : ''}
+        
+        ${base64Reservations ? `
+        <div class="chart-box">
+          <h4>Estado de Reservas</h4>
+          <img class="chart-img" src="${base64Reservations}" />
+        </div>
+        ` : ''}
+      </div>
+      
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+            window.close();
+          }, 500);
+        };
+      </script>
+    </body>
+    </html>
+  `;
+  
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
+document.getElementById("resetAllFiltersBtn")?.addEventListener("click", () => {
+  // 1. Resumen / Analytics
+  const start = document.getElementById("analyticsStartDate");
+  const end = document.getElementById("analyticsEndDate");
+  if (start) start.value = "";
+  if (end) end.value = "";
+  document.getElementById("analyticsConsultBtn")?.click();
+
+  // 2. Usuarios
+  const usersInput = document.getElementById("usersFilterInput");
+  if (usersInput) {
+    usersInput.value = "";
+    applyTableFilter("adminUsersBody", "");
+  }
+
+  // 3. Viajes
+  const tripsInput = document.getElementById("tripsFilterInput");
+  if (tripsInput) {
+    tripsInput.value = "";
+    applyTableFilter("adminTripsBody", "");
+  }
+
+  // 4. Reservas
+  const resInput = document.getElementById("reservationsFilterInput");
+  if (resInput) {
+    resInput.value = "";
+    applyTableFilter("adminReservationsBody", "");
+  }
+
+  // 5. Pagos
+  const payInput = document.getElementById("paymentsFilterInput");
+  const payStatus = document.getElementById("paymentsStatusFilter");
+  if (payInput) payInput.value = "";
+  if (payStatus) payStatus.value = "all";
+  if (typeof applyPaymentsFilter === "function") {
+    applyPaymentsFilter();
+  }
+
+  // 6. Soporte
+  const supInput = document.getElementById("supportFilterInput");
+  const supStatus = document.getElementById("supportStatusFilter");
+  const supCat = document.getElementById("supportCategoryFilter");
+  if (supInput) supInput.value = "";
+  if (supStatus) supStatus.value = "all";
+  if (supCat) supCat.value = "all";
+  applyTableFilter("adminSupportBody", "");
+  if (typeof loadSupportTickets === "function") {
+    loadSupportTickets();
+  }
+
+  // 7. Zonas Seguras
+  const szInput = document.getElementById("safeZonesFilterInput");
+  const szStatus = document.getElementById("safeZonesStatusFilter");
+  if (szInput) szInput.value = "";
+  if (szStatus) szStatus.value = "all";
+  if (typeof applySafeZonesTableFilter === "function") {
+    applySafeZonesTableFilter();
+  }
+
+  // 8. Admins
+  const adminsInput = document.getElementById("adminsFilterInput");
+  if (adminsInput) {
+    adminsInput.value = "";
+    applyTableFilter("adminAdminsBody", "");
+  }
+
+  alert("Todos los filtros han sido restablecidos.");
 });
 
 let tripsChartInstance = null;
