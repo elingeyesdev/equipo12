@@ -366,10 +366,7 @@ function renderTripDetails(trip) {
       </div>
 
       <div class="detail-grid">
-        <div><strong>ID:</strong> ${escapeHtml(trip.id || "-")}</div>
         <div><strong>Conductor:</strong> ${escapeHtml(trip.driverName || "-")}</div>
-        <div><strong>Conductor ID:</strong> ${escapeHtml(trip.driverUserId || "-")}</div>
-        <div><strong>Vehiculo ID:</strong> ${escapeHtml(trip.vehicleId || "-")}</div>
         <div><strong>Tipo:</strong> ${escapeHtml(formatTripKind(trip.kind))}</div>
         <div><strong>Estado:</strong> ${escapeHtml(formatTripStatus(tripStatusValue))}</div>
         <div><strong>Asientos ofrecidos:</strong> ${escapeHtml(trip.offeredSeats ?? "-")}</div>
@@ -405,7 +402,7 @@ function renderReservationDetails(reservation) {
       <div class="detail-card__header">
         <div>
           <h4>${escapeHtml(reservation.passengerName || "Reserva")}</h4>
-          <p>Viaje: ${escapeHtml(reservation.tripId || "-")}</p>
+          <p>Detalles de la reserva</p>
         </div>
         <span class="status-badge status-badge--${escapeHtml(getReservationStatusKey(reservation.status))}">
           ${escapeHtml(formatReservationStatus(reservation.status))}
@@ -413,13 +410,9 @@ function renderReservationDetails(reservation) {
       </div>
 
       <div class="detail-grid">
-        <div><strong>ID:</strong> ${escapeHtml(reservation.id || "-")}</div>
-        <div><strong>Trip ID:</strong> ${escapeHtml(reservation.tripId || "-")}</div>
-        <div><strong>Pasajero ID:</strong> ${escapeHtml(reservation.passengerUserId || "-")}</div>
         <div><strong>Pasajero:</strong> ${escapeHtml(reservation.passengerName || "-")}</div>
         <div><strong>Asientos reservados:</strong> ${escapeHtml(reservation.seatsReserved ?? "-")}</div>
         <div><strong>Estado:</strong> ${escapeHtml(formatReservationStatus(reservation.status))}</div>
-        <div><strong>Status ID:</strong> ${escapeHtml(reservation.statusId ?? "-")}</div>
         <div><strong>Codigo de abordaje:</strong> ${escapeHtml(reservation.boardingCode || "-")}</div>
         <div><strong>Creada:</strong> ${escapeHtml(formatDateTime(reservation.createdAt))}</div>
       </div>
@@ -851,6 +844,7 @@ function getCreateModalMarkup(type) {
     <label class="field"><span>Nombre completo</span><input type="text" id="createFullName" autocomplete="name" placeholder="Ej: Ana Perez" required /></label>
     <label class="field"><span>Email</span><input type="email" id="createEmail" autocomplete="email" placeholder="usuario@univalle.edu" required /></label>
     <label class="field"><span>Contrasena</span><input type="password" id="createPassword" autocomplete="new-password" placeholder="Minimo 6 caracteres" minlength="6" required /></label>
+    <label class="field"><span>Foto de perfil (opcional)</span><input type="file" id="createProfilePicture" accept="image/*" /></label>
     <label class="field"><span>Telefono (opcional)</span><input type="text" id="createPhone" autocomplete="tel" placeholder="Ej: 7654321" /></label>
     <label class="field"><span>Rol</span>
       <select id="createRole">
@@ -2508,7 +2502,18 @@ createModalForm?.addEventListener("submit", async (event) => {
         throw new Error("Completa los datos obligatorios del usuario.");
       }
 
-      const payload = { fullName, email, password, phoneNumber, role };
+      let profilePicture = null;
+      const fileInput = createModalForm.querySelector("#createProfilePicture");
+      if (fileInput && fileInput.files.length > 0) {
+        profilePicture = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("Error al procesar la foto de perfil"));
+          reader.readAsDataURL(fileInput.files[0]);
+        });
+      }
+
+      const payload = { fullName, email, password, phoneNumber, role, profilePicture };
 
       if (role === "driver") {
         const seats = Number(createModalForm.querySelector("#createSeats")?.value);
@@ -2929,6 +2934,34 @@ const presets = {
     bgDark: "#121011",
     cardDark: "#251a1e",
     borderDark: "#6E1E3F"
+  },
+  Oscuro: {
+    primaryLight: "#333333",
+    secondaryLight: "#1a1a1a",
+    textLight: "#ffffff",
+    bgLight: "#000000",
+    cardLight: "#111111",
+    borderLight: "#222222",
+    primaryDark: "#333333",
+    secondaryDark: "#1a1a1a",
+    textDark: "#ffffff",
+    bgDark: "#000000",
+    cardDark: "#111111",
+    borderDark: "#222222"
+  },
+  Claro: {
+    primaryLight: "#cccccc",
+    secondaryLight: "#e0e0e0",
+    textLight: "#000000",
+    bgLight: "#ffffff",
+    cardLight: "#f9f9f9",
+    borderLight: "#dddddd",
+    primaryDark: "#cccccc",
+    secondaryDark: "#e0e0e0",
+    textDark: "#000000",
+    bgDark: "#ffffff",
+    cardDark: "#f9f9f9",
+    borderDark: "#dddddd"
   }
 };
 
@@ -3095,20 +3128,25 @@ document.querySelectorAll(".preset-card").forEach(card => {
   });
 });
 
-const getCurrentThemeColors = () => ({
-  primaryLight: document.getElementById("themePrimaryLight")?.value || "#5f7f6c",
-  secondaryLight: document.getElementById("themeSecondaryLight")?.value || "#b67a52",
-  textLight: document.getElementById("themeTextLight")?.value || "#24302b",
-  bgLight: document.getElementById("themeBgLight")?.value || "#f7f5ef",
-  cardLight: document.getElementById("themeCardLight")?.value || "#ffffff",
-  borderLight: document.getElementById("themeBorderLight")?.value || "rgba(31, 29, 26, 0.16)",
-  primaryDark: document.getElementById("themePrimaryDark")?.value || "#8fac98",
-  secondaryDark: document.getElementById("themeSecondaryDark")?.value || "#d0a27d",
-  textDark: document.getElementById("themeTextDark")?.value || "#edf2ee",
-  bgDark: document.getElementById("themeBgDark")?.value || "#0f1412",
-  cardDark: document.getElementById("themeCardDark")?.value || "#151c19",
-  borderDark: document.getElementById("themeBorderDark")?.value || "rgba(255, 255, 255, 0.16)"
-});
+const getCurrentThemeColors = () => {
+  const activePresetCard = document.querySelector(".preset-card.active");
+  const preset = activePresetCard ? activePresetCard.dataset.preset : "Custom";
+  return {
+    preset,
+    primaryLight: document.getElementById("themePrimaryLight")?.value || "#5f7f6c",
+    secondaryLight: document.getElementById("themeSecondaryLight")?.value || "#b67a52",
+    textLight: document.getElementById("themeTextLight")?.value || "#24302b",
+    bgLight: document.getElementById("themeBgLight")?.value || "#f7f5ef",
+    cardLight: document.getElementById("themeCardLight")?.value || "#ffffff",
+    borderLight: document.getElementById("themeBorderLight")?.value || "rgba(31, 29, 26, 0.16)",
+    primaryDark: document.getElementById("themePrimaryDark")?.value || "#8fac98",
+    secondaryDark: document.getElementById("themeSecondaryDark")?.value || "#d0a27d",
+    textDark: document.getElementById("themeTextDark")?.value || "#edf2ee",
+    bgDark: document.getElementById("themeBgDark")?.value || "#0f1412",
+    cardDark: document.getElementById("themeCardDark")?.value || "#151c19",
+    borderDark: document.getElementById("themeBorderDark")?.value || "rgba(255, 255, 255, 0.16)"
+  };
+};
 
 ["themePrimaryLight", "themeSecondaryLight", "themeTextLight", "themeBgLight", "themeCardLight", "themeBorderLight",
  "themePrimaryDark", "themeSecondaryDark", "themeTextDark", "themeBgDark", "themeCardDark", "themeBorderDark"].forEach(id => {
@@ -3204,23 +3242,26 @@ async function loadThemeSettings() {
     };
     updateCustomPresetVisuals(presets.Custom);
     
-    let matchedPreset = null;
-    for (const [name, pColors] of Object.entries(presets)) {
-      if (name === "Custom") continue;
-      if (pColors.primaryLight.toLowerCase() === primaryLight.toLowerCase() &&
-          pColors.secondaryLight.toLowerCase() === secondaryLight.toLowerCase() &&
-          pColors.textLight.toLowerCase() === textLight.toLowerCase() &&
-          pColors.bgLight.toLowerCase() === bgLight.toLowerCase() &&
-          pColors.cardLight.toLowerCase() === cardLight.toLowerCase() &&
-          pColors.borderLight.toLowerCase() === borderLight.toLowerCase() &&
-          pColors.primaryDark.toLowerCase() === primaryDark.toLowerCase() &&
-          pColors.secondaryDark.toLowerCase() === secondaryDark.toLowerCase() &&
-          pColors.textDark.toLowerCase() === textDark.toLowerCase() &&
-          pColors.bgDark.toLowerCase() === bgDark.toLowerCase() &&
-          pColors.cardDark.toLowerCase() === cardDark.toLowerCase() &&
-          pColors.borderDark.toLowerCase() === borderDark.toLowerCase()) {
-        matchedPreset = name;
-        break;
+    let matchedPreset = colors.preset;
+    
+    if (!matchedPreset || !presets[matchedPreset]) {
+      for (const [name, pColors] of Object.entries(presets)) {
+        if (name === "Custom") continue;
+        if (pColors.primaryLight.toLowerCase() === primaryLight.toLowerCase() &&
+            pColors.secondaryLight.toLowerCase() === secondaryLight.toLowerCase() &&
+            pColors.textLight.toLowerCase() === textLight.toLowerCase() &&
+            pColors.bgLight.toLowerCase() === bgLight.toLowerCase() &&
+            pColors.cardLight.toLowerCase() === cardLight.toLowerCase() &&
+            pColors.borderLight.toLowerCase() === borderLight.toLowerCase() &&
+            pColors.primaryDark.toLowerCase() === primaryDark.toLowerCase() &&
+            pColors.secondaryDark.toLowerCase() === secondaryDark.toLowerCase() &&
+            pColors.textDark.toLowerCase() === textDark.toLowerCase() &&
+            pColors.bgDark.toLowerCase() === bgDark.toLowerCase() &&
+            pColors.cardDark.toLowerCase() === cardDark.toLowerCase() &&
+            pColors.borderDark.toLowerCase() === borderDark.toLowerCase()) {
+          matchedPreset = name;
+          break;
+        }
       }
     }
     
@@ -4531,14 +4572,60 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
   Chart.defaults.font.family = "'Inter', sans-serif";
 
   // 1. Gráfica de Viajes por Día (Barras)
+  let minDate = null;
+  let maxDate = null;
+
+  const updateRange = (items) => {
+    items.forEach(item => {
+      if (item.createdAt) {
+        const d = new Date(item.createdAt);
+        if (!isNaN(d)) {
+          d.setHours(0,0,0,0);
+          if (!minDate || d < minDate) minDate = new Date(d);
+          if (!maxDate || d > maxDate) maxDate = new Date(d);
+        }
+      }
+    });
+  };
+
+  updateRange(filteredUsers);
+  updateRange(filteredTrips);
+  updateRange(filteredReservations);
+
+  if (!minDate || !maxDate) {
+    minDate = new Date();
+    maxDate = new Date();
+  }
+
+  // Expandir a por lo menos 7 días si los datos corresponden a un solo día
+  if (minDate.getTime() === maxDate.getTime()) {
+    minDate.setDate(minDate.getDate() - 6);
+  }
+
+  const tripDates = [];
   const tripsByDay = {};
+  
+  for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toLocaleDateString();
+    if (tripsByDay[dateStr] === undefined) {
+      tripsByDay[dateStr] = 0;
+      tripDates.push(dateStr);
+    }
+  }
+
   filteredTrips.forEach(t => {
     if (!t.createdAt) return;
-    const dateStr = new Date(t.createdAt).toLocaleDateString();
-    tripsByDay[dateStr] = (tripsByDay[dateStr] || 0) + 1;
+    const d = new Date(t.createdAt);
+    d.setHours(0,0,0,0);
+    const dateStr = d.toLocaleDateString();
+    if (tripsByDay[dateStr] !== undefined) {
+      tripsByDay[dateStr]++;
+    } else {
+      tripsByDay[dateStr] = 1;
+      tripDates.push(dateStr);
+    }
   });
   
-  const tripDates = Object.keys(tripsByDay).sort((a,b) => new Date(a) - new Date(b));
   const tripCounts = tripDates.map(d => tripsByDay[d]);
 
   const ctxTrips = document.getElementById('tripsChart')?.getContext('2d');
