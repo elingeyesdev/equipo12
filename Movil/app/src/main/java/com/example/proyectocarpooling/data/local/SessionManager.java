@@ -35,6 +35,7 @@ public class SessionManager {
     }
 
     public void saveUser(UserResponse user) {
+        clearSession();
         long expiresAt = System.currentTimeMillis() + THIRTY_DAYS_MILLIS;
 
         preferences.edit()
@@ -190,7 +191,22 @@ public class SessionManager {
     }
 
     public void clearSession() {
+        // Save theme colors and FCM token before clearing
+        String pl = getThemePrimaryLight(), sl = getThemeSecondaryLight();
+        String tl = getThemeTextLight(), bgl = getThemeBgLight();
+        String cl = getThemeCardLight(), bdl = getThemeBorderLight();
+        String pd = getThemePrimaryDark(), sd = getThemeSecondaryDark();
+        String td = getThemeTextDark(), bgd = getThemeBgDark();
+        String cd = getThemeCardDark(), bdd = getThemeBorderDark();
+        String fcmToken = getFcmToken();
+        
         preferences.edit().clear().commit();
+        
+        // Restore theme colors
+        saveThemeColors(pl, sl, tl, bgl, cl, bdl, pd, sd, td, bgd, cd, bdd);
+        if (fcmToken != null && !fcmToken.isEmpty()) {
+            saveFcmToken(fcmToken);
+        }
     }
 
     // --- Ajustes de Colores / Temas ---

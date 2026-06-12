@@ -149,6 +149,7 @@ public class MainActivity extends BaseActivity {
     private com.google.android.material.floatingactionbutton.FloatingActionButton myLocationFloatingButton;
 
     private boolean isInitialPositionSet = false;
+    private boolean mapStyleLoaded = false;
     private Point selectedOrigin;
     private Point selectedDestination;
     private String selectedOriginAddress;
@@ -267,11 +268,14 @@ public class MainActivity extends BaseActivity {
                 Boolean fineLocationGranted = result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
                 Boolean coarseLocationGranted = result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
                 if ((fineLocationGranted != null && fineLocationGranted) || (coarseLocationGranted != null && coarseLocationGranted)) {
-                    setupLocationComponent();
+                    if (mapStyleLoaded) {
+                        setupLocationComponent();
+                    }
                 } else {
                     setProgressVisible(false);
                     Toast.makeText(this, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show();
                 }
+                checkNotificationPermission();
             });
 
     private final ActivityResultLauncher<String> requestNotificationPermissionLauncher =
@@ -325,8 +329,11 @@ public class MainActivity extends BaseActivity {
 
         if (mapView != null) {
             mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS, style -> {
+                mapStyleLoaded = true;
                 initializeMapAnnotations();
-                checkLocationPermissions();
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    setupLocationComponent();
+                }
             });
         }
 
@@ -338,7 +345,7 @@ public class MainActivity extends BaseActivity {
             return insets;
         });
 
-        checkNotificationPermission();
+        checkLocationPermissions();
         syncFcmTokenOnStart();
         handleNotificationIntent(getIntent());
     }
@@ -620,44 +627,38 @@ public class MainActivity extends BaseActivity {
                     if (!tripId.isEmpty()) {
                         sessionManager.savePassengerBookedTrip(tripId, reservationId, boardingCode, driverName);
 
-                        TripRepository repository = app.getTripRepository();
-                        TripResponse trip = repository.getTripByIdIfPresent(tripId);
-
                         runOnUiThread(() -> {
                             setProgressVisible(false);
                             if (isFinishing() || isDestroyed()) {
                                 return;
                             }
-                            if (trip != null && isTripUsableStatus(trip.statusLabel)) {
-                                hasActivePassengerReservation = true;
-                                passengerReservedTripId = trip.id;
-                                passengerBoardingCode = boardingCode;
-                                passengerReservedDriverName = trip.driverName;
-                                passengerReservationStatusId = statusId;
-                                if (passengerReservedDriverName == null || passengerReservedDriverName.isEmpty()) {
-                                    passengerReservedDriverName = driverName;
-                                }
-                                setSelectedOrigin(Point.fromLngLat(trip.originLongitude, trip.originLatitude), trip.originAddress);
-                                setSelectedDestination(Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude), trip.destinationAddress);
-                                syncSelectionStateToViewModel();
-                                updateCoordinateLabels();
-                                updateMapMarkers();
-                                if (selectedOrigin != null && selectedDestination != null) {
-                                    fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
-                                }
-                                refreshForPassengerReservation();
-                                refreshButtons();
-                            } else {
-                                final String previouslyBookedTripId = sessionManager.getPassengerBookedTripId();
-                                sessionManager.clearPassengerBookedTrip();
-                                hasActivePassengerReservation = false;
-                                passengerReservedTripId = null;
-                                refreshForPassengerReservation();
-                                refreshButtons();
-                                if (previouslyBookedTripId != null && !previouslyBookedTripId.isEmpty()) {
-                                    checkFinishedTripAndPromptRating(previouslyBookedTripId);
-                                }
+                            hasActivePassengerReservation = true;
+                            passengerReservedTripId = tripId;
+                            passengerBoardingCode = boardingCode;
+                            passengerReservedDriverName = driverName;
+                            passengerReservationStatusId = statusId;
+
+                            double oLat = reservation.optDouble("originLatitude", 0);
+                            double oLng = reservation.optDouble("originLongitude", 0);
+                            double dLat = reservation.optDouble("destinationLatitude", 0);
+                            double dLng = reservation.optDouble("destinationLongitude", 0);
+                            String originAddr = reservation.optString("originAddress", "");
+                            String destAddr = reservation.optString("destinationAddress", "");
+
+                            if (oLat != 0 && oLng != 0) {
+                                setSelectedOrigin(Point.fromLngLat(oLng, oLat), originAddr);
                             }
+                            if (dLat != 0 && dLng != 0) {
+                                setSelectedDestination(Point.fromLngLat(dLng, dLat), destAddr);
+                            }
+                            syncSelectionStateToViewModel();
+                            updateCoordinateLabels();
+                            updateMapMarkers();
+                            if (selectedOrigin != null && selectedDestination != null) {
+                                fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
+                            }
+                            refreshForPassengerReservation();
+                            refreshButtons();
                         });
                         return;
                     }
@@ -1289,7 +1290,10 @@ public class MainActivity extends BaseActivity {
 
     private void checkLocationPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            setupLocationComponent();
+            if (mapStyleLoaded) {
+                setupLocationComponent();
+            }
+            checkNotificationPermission();
         } else {
             locationPermissionRequest.launch(new String[]{
                     Manifest.permission.ACCESS_FINE_LOCATION,

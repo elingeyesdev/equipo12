@@ -195,13 +195,13 @@ public class PaymentService(CarPoolingContext context)
             UserPaymentMethodId = dto.UserPaymentMethodId,
             Amount = reservation.Trip.FareAmount * reservation.SeatsReserved,
             Currency = currency,
-            Status = isCash ? PaymentStatus.Approved : PaymentStatus.Pending,
+            Status = method.RequiresManualConfirmation ? PaymentStatus.Pending : PaymentStatus.Approved,
             Description = dto.Description?.Trim(),
             ExternalReference = $"PAY-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}",
-            ExpiresAt = isCash ? null : DateTime.UtcNow.AddMinutes(method.RequiresManualConfirmation ? 60 : 15),
-            PaidAt = isCash ? DateTime.UtcNow : null,
+            ExpiresAt = method.RequiresManualConfirmation ? (isCash ? null : DateTime.UtcNow.AddMinutes(60)) : (method.Type == PaymentMethodType.Simulated ? DateTime.UtcNow.AddMinutes(15) : null),
+            PaidAt = method.RequiresManualConfirmation ? null : DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = isCash ? DateTime.UtcNow : null
+            UpdatedAt = method.RequiresManualConfirmation ? null : DateTime.UtcNow
         };
 
         payment.Transactions.Add(new PaymentTransaction
@@ -209,7 +209,7 @@ public class PaymentService(CarPoolingContext context)
             Id = Guid.NewGuid(),
             PaymentId = payment.Id,
             TransactionType = PaymentTransactionType.Payment,
-            Status = isCash ? PaymentTransactionStatus.Success : PaymentTransactionStatus.Pending,
+            Status = method.RequiresManualConfirmation ? PaymentTransactionStatus.Pending : PaymentTransactionStatus.Success,
             Amount = payment.Amount,
             Provider = method.Type == PaymentMethodType.Simulated ? "SIMULATED_GATEWAY" : method.Code,
             ResponseMessage = isCash
@@ -220,7 +220,7 @@ public class PaymentService(CarPoolingContext context)
             CreatedAt = DateTime.UtcNow
         });
 
-        if (isCash)
+        if (!method.RequiresManualConfirmation)
         {
             await EnsureReceiptAsync(payment);
         }

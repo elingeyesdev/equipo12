@@ -412,15 +412,52 @@ public class DriverPaymentsActivity extends BaseActivity {
     }
 
     private void handleQrImage(Uri uri) {
-        try {
-            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
-            qrPreview.setImageBitmap(bitmap);
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.PNG, 90, output);
-            selectedQrImageBase64 = "data:image/png;base64," + Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
-        } catch (IOException e) {
-            Toast.makeText(this, "No se pudo leer la imagen QR.", Toast.LENGTH_SHORT).show();
+        setLoading(true);
+        executor.execute(() -> {
+            try {
+                Bitmap rawBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+                if (rawBitmap == null) {
+                    runOnUiThread(() -> {
+                        setLoading(false);
+                        Toast.makeText(this, "No se pudo cargar la imagen QR.", Toast.LENGTH_SHORT).show();
+                    });
+                    return;
+                }
+                Bitmap bitmap = resizeBitmapIfNeeded(rawBitmap, 1024);
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 80, output);
+                String base64 = "data:image/jpeg;base64," + Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
+
+                runOnUiThread(() -> {
+                    setLoading(false);
+                    qrPreview.setImageURI(uri);
+                    selectedQrImageBase64 = base64;
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setLoading(false);
+                    Toast.makeText(this, "No se pudo leer la imagen QR.", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private Bitmap resizeBitmapIfNeeded(Bitmap source, int maxDimension) {
+        int width = source.getWidth();
+        int height = source.getHeight();
+        if (width <= maxDimension && height <= maxDimension) {
+            return source;
         }
+        float ratio = (float) width / (float) height;
+        int newWidth, newHeight;
+        if (width > height) {
+            newWidth = maxDimension;
+            newHeight = Math.round(maxDimension / ratio);
+        } else {
+            newHeight = maxDimension;
+            newWidth = Math.round(maxDimension * ratio);
+        }
+        return Bitmap.createScaledBitmap(source, newWidth, newHeight, true);
     }
 
     private void confirmPayment(PaymentItem payment) {

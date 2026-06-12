@@ -887,7 +887,8 @@ function getCreateModalMarkup(type) {
     <label class="field"><span>Contrasena</span><input type="password" id="createPassword" autocomplete="new-password" placeholder="Minimo 6 caracteres" minlength="6" required /></label>
     <label class="field"><span>Confirmar Contrasena</span><input type="password" id="createConfirmPassword" autocomplete="new-password" placeholder="Minimo 6 caracteres" minlength="6" required /></label>
     <label class="field"><span>Foto de perfil</span>
-      <input type="file" id="createProfilePicture" accept="image/*" required />
+      <input type="file" id="createProfilePicture" accept="image/*" required style="display: none;" />
+      <label for="createProfilePicture" class="btn secondary" style="display: inline-block; text-align: center; cursor: pointer; margin-bottom: 6px; width: fit-content;">Poner foto</label>
       <div id="profilePicturePreviewContainer" style="margin-top: 10px; display: none; text-align: center;">
         <img id="profilePicturePreview" src="" alt="Vista previa" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
       </div>
