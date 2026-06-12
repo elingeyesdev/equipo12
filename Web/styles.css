@@ -710,6 +710,10 @@ input[type="date"]::-webkit-datetime-edit {
   gap: 10px;
 }
 
+.driver-fields .field span {
+  color: #111111;
+}
+
 .hint-box {
   border-left: 3px solid var(--accent-2);
   background: #eefaf9;
