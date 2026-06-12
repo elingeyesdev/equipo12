@@ -26,7 +26,7 @@ public class IntegrationTests : IClassFixture<TestWebApplicationFactory<Program>
         // Arrange
         var client = _factory.CreateClient();
         var tripId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1");
-        var passengerId = "44444444-4444-4444-4444-444444444444"; // Seeded passenger (confirmed)
+        var passengerId = "55555555-5555-5555-5555-555555555555"; // Seeded passenger (confirmed)
         var unrelatedId = "33333333-3333-3333-3333-333333333333"; // Seeded unrelated student
 
         // 1. Authorized passenger gets chat messages -> 200 OK
@@ -59,7 +59,7 @@ public class IntegrationTests : IClassFixture<TestWebApplicationFactory<Program>
         var client = _factory.CreateClient();
         var tripId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1");
         var driverId = "22222222-2222-2222-2222-222222222222";
-        var passengerId = "44444444-4444-4444-4444-444444444444";
+        var passengerId = "55555555-5555-5555-5555-555555555555";
 
         // Setup: Make the trip "Finished" (StatusId = 4) in database to allow rating
         using (var scope = _factory.Services.CreateScope())

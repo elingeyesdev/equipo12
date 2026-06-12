@@ -33,6 +33,7 @@
     <string name="button_cancel_trip">Cancelar viaje</string>
     <string name="trip_status_idle">Sin viaje activo</string>
     <string name="trip_status_with_id">Viaje activo: %1$s</string>
+    <string name="trip_status_active">Viaje activo</string>
     <string name="route_time_idle">Tiempo estimado: --</string>
     <string name="route_time_format">Tiempo estimado: %.1f min</string>
     <string name="selection_instruction_idle">Selecciona recogida y destino tocando el mapa.</string>
@@ -72,7 +73,7 @@
     <string name="toast_manual_status_updated">Estado actualizado correctamente.</string>
     <string name="toast_manual_status_failed">No se pudo actualizar el estado.</string>
     <string name="toast_no_boarded_passengers">No hay pasajeros abordados todavía.</string>
-    <string name="button_mark_boarded">Abordar</string>
+    <string name="button_mark_boarded">Abordar pasajero</string>
     <string name="dialog_title_mark_boarded">Validar abordaje</string>
     <string name="dialog_message_mark_boarded">Ingresa el nombre del pasajero (debe coincidir con la reserva):</string>
     <string name="toast_boarding_confirmed">Pasajero marcado como abordado.</string>

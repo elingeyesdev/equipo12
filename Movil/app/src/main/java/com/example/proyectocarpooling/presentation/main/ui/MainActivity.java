@@ -135,11 +135,9 @@ public class MainActivity extends BaseActivity {
     private Button createTripButton;
     private Button cancelTripButton;
     private Button findDriverButton;
-    private Button viewBoardedPassengersButton;
     private Button markBoardedButton;
     private Button startTripButton;
     private Button finishTripButton;
-    private Button boardPassengerCodeButton;
     private LinearLayout controlPanel;
     private LinearLayout tripButtonsRow;
     private LinearLayout driverActionsRow;
@@ -386,11 +384,9 @@ public class MainActivity extends BaseActivity {
         createTripButton = findViewById(R.id.createTripButton);
         cancelTripButton = findViewById(R.id.cancelTripButton);
         findDriverButton = findViewById(R.id.findDriverButton);
-        viewBoardedPassengersButton = findViewById(R.id.viewBoardedPassengersButton);
         markBoardedButton = findViewById(R.id.markBoardedButton);
         startTripButton = findViewById(R.id.startTripButton);
         finishTripButton = findViewById(R.id.finishTripButton);
-        boardPassengerCodeButton = findViewById(R.id.boardPassengerCodeButton);
         tripButtonsRow = findViewById(R.id.tripButtonsRow);
         driverActionsRow = findViewById(R.id.driverActionsRow);
         saveFavoriteButton = findViewById(R.id.saveFavoriteButton);
@@ -504,11 +500,9 @@ public class MainActivity extends BaseActivity {
             }
             openDriverMatchScreen();
         });
-        viewBoardedPassengersButton.setOnClickListener(v -> viewBoardedPassengers());
         markBoardedButton.setOnClickListener(v -> markPassengerBoardedByName());
         startTripButton.setOnClickListener(v -> startTrip());
         finishTripButton.setOnClickListener(v -> finishTrip());
-        boardPassengerCodeButton.setOnClickListener(v -> showBoardPassengerByCodeDialog());
         createTripButton.setOnClickListener(v -> {
             if (activeTripId != null) {
                 Toast.makeText(this, R.string.toast_trip_exists, Toast.LENGTH_SHORT).show();
@@ -1004,25 +998,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void applyRoleAccess() {
-        int driverVisibility = isDriverUser ? View.VISIBLE : View.GONE;
-        int passengerVisibility = isDriverUser ? View.GONE : View.VISIBLE;
-        createTripButton.setVisibility(driverVisibility);
-        cancelTripButton.setVisibility(driverVisibility);
-        tripButtonsRow.setVisibility(driverVisibility);
-        if (fareAmountInput != null) {
-            fareAmountInput.setVisibility(driverVisibility);
-            fareAmountInput.setEnabled(activeTripId == null);
-        }
-        markBoardedButton.setVisibility(driverVisibility);
-        startTripButton.setVisibility(driverVisibility);
-        finishTripButton.setVisibility(driverVisibility);
-        viewBoardedPassengersButton.setVisibility(driverVisibility);
-        driverActionsRow.setVisibility(driverVisibility);
-        findDriverButton.setVisibility(passengerVisibility);
-        if (hasActivePassengerReservation && !isDriverUser) {
-            findDriverButton.setVisibility(View.GONE);
-        }
-        updateDrawerDriverMenuVisibility();
+        refreshButtons();
     }
 
     private void updateDrawerDriverMenuVisibility() {
@@ -1032,6 +1008,10 @@ public class MainActivity extends BaseActivity {
         MenuItem requestsItem = navigationView.getMenu().findItem(R.id.nav_driver_passenger_requests);
         if (requestsItem != null) {
             requestsItem.setVisible(isDriverUser);
+        }
+        MenuItem boardedItem = navigationView.getMenu().findItem(R.id.nav_driver_boarded_passengers);
+        if (boardedItem != null) {
+            boardedItem.setVisible(isDriverUser && activeTripId != null && !activeTripId.isEmpty());
         }
         MenuItem paymentsItem = navigationView.getMenu().findItem(R.id.nav_driver_payments);
         if (paymentsItem != null) {
@@ -1065,6 +1045,8 @@ public class MainActivity extends BaseActivity {
                     Toast.makeText(this, R.string.drawer_option_coming_soon, Toast.LENGTH_SHORT).show();
                 } else if (id == R.id.nav_driver_passenger_requests) {
                     openPassengerRequestsScreen(true);
+                } else if (id == R.id.nav_driver_boarded_passengers) {
+                    viewBoardedPassengers();
                 } else if (id == R.id.nav_driver_payments) {
                     startActivity(new Intent(this, DriverPaymentsActivity.class));
                 } else if (id == R.id.nav_find_driver) {
@@ -1119,7 +1101,11 @@ public class MainActivity extends BaseActivity {
                 String label = "Pago: pendiente";
                 for (PaymentItem payment : payments) {
                     if (payment.status == PaymentItem.STATUS_APPROVED) {
-                        label = "Pago: viaje pagado";
+                        if ("CASH".equalsIgnoreCase(payment.paymentMethodCode)) {
+                            label = "Pago: en efectivo (al final)";
+                        } else {
+                            label = "Pago: viaje pagado";
+                        }
                         break;
                     }
                     if (payment.status == PaymentItem.STATUS_PENDING) {
@@ -2146,9 +2132,9 @@ public class MainActivity extends BaseActivity {
 
         String baseStatus;
         if (lastTripStatusLabel != null && !lastTripStatusLabel.isEmpty()) {
-            baseStatus = getString(R.string.trip_status_with_id, activeTripId) + " · " + lastTripStatusLabel;
+            baseStatus = getString(R.string.trip_status_active) + " · " + lastTripStatusLabel;
         } else {
-            baseStatus = getString(R.string.trip_status_with_id, activeTripId);
+            baseStatus = getString(R.string.trip_status_active);
         }
         if (isDriverUser && activeTripPendingCount > 0) {
             baseStatus = baseStatus + "\nSolicitudes pendientes: " + activeTripPendingCount;
@@ -2568,26 +2554,90 @@ public class MainActivity extends BaseActivity {
     }
 
     private void refreshButtons() {
-        boolean canCreate = isDriverUser && selectedOrigin != null && selectedDestination != null && activeTripId == null;
-        createTripButton.setEnabled(canCreate);
-        cancelTripButton.setEnabled(isDriverUser && activeTripId != null);
-        findDriverButton.setEnabled(!isDriverUser && selectedDestination != null && !hasActivePassengerReservation);
-        viewBoardedPassengersButton.setEnabled(isDriverUser && activeTripId != null);
-        markBoardedButton.setEnabled(isDriverUser && activeTripId != null);
-        startTripButton.setEnabled(isDriverUser && activeTripId != null && isTripReadyToStart());
-        finishTripButton.setEnabled(isDriverUser && activeTripId != null && isTripInProgress());
-        if (boardPassengerCodeButton != null) {
-            boolean tripInProgress = isDriverUser && activeTripId != null && isTripInProgress();
-            boardPassengerCodeButton.setEnabled(tripInProgress);
-            boardPassengerCodeButton.setVisibility(tripInProgress ? View.VISIBLE : View.GONE);
-        }
-        if (saveFavoriteButton != null) {
-            boolean canSaveFavorite = selectedOrigin != null || selectedDestination != null;
-            saveFavoriteButton.setEnabled(canSaveFavorite);
-        }
-        if (chatFloatingButton != null) {
-            boolean hasActiveTrip = (isDriverUser && activeTripId != null && !activeTripId.isEmpty()) || (!isDriverUser && hasActivePassengerReservation);
-            chatFloatingButton.setVisibility(hasActiveTrip ? View.VISIBLE : View.GONE);
+        if (!isDriverUser) {
+            // Modo Pasajero
+            if (createTripButton != null) createTripButton.setVisibility(View.GONE);
+            if (cancelTripButton != null) cancelTripButton.setVisibility(View.GONE);
+            if (tripButtonsRow != null) tripButtonsRow.setVisibility(View.GONE);
+            if (fareAmountInput != null) fareAmountInput.setVisibility(View.GONE);
+            if (driverActionsRow != null) driverActionsRow.setVisibility(View.GONE);
+            
+            if (findDriverButton != null) {
+                boolean hasReservation = hasActivePassengerReservation;
+                findDriverButton.setEnabled(selectedDestination != null && !hasReservation);
+                findDriverButton.setVisibility(hasReservation ? View.GONE : View.VISIBLE);
+            }
+            if (saveFavoriteButton != null) {
+                boolean canSave = selectedOrigin != null || selectedDestination != null;
+                saveFavoriteButton.setEnabled(canSave);
+                saveFavoriteButton.setVisibility(View.VISIBLE);
+            }
+            if (chatFloatingButton != null) {
+                chatFloatingButton.setVisibility(hasActivePassengerReservation ? View.VISIBLE : View.GONE);
+            }
+        } else {
+            // Modo Conductor
+            if (findDriverButton != null) findDriverButton.setVisibility(View.GONE);
+            
+            boolean hasActiveTrip = activeTripId != null && !activeTripId.isEmpty();
+            
+            if (hasActiveTrip) {
+                // Viaje activo
+                if (createTripButton != null) createTripButton.setVisibility(View.GONE);
+                if (tripButtonsRow != null) tripButtonsRow.setVisibility(View.GONE);
+                if (fareAmountInput != null) fareAmountInput.setVisibility(View.GONE);
+                
+                if (driverActionsRow != null) driverActionsRow.setVisibility(View.VISIBLE);
+                if (cancelTripButton != null) {
+                    cancelTripButton.setVisibility(View.VISIBLE);
+                    cancelTripButton.setEnabled(true);
+                }
+                
+                boolean readyToStart = isTripReadyToStart();
+                boolean inProgress = isTripInProgress();
+                
+                if (startTripButton != null) {
+                    startTripButton.setVisibility(readyToStart ? View.VISIBLE : View.GONE);
+                    startTripButton.setEnabled(readyToStart);
+                }
+                if (finishTripButton != null) {
+                    finishTripButton.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+                    finishTripButton.setEnabled(inProgress);
+                }
+                
+                int boardingVis = inProgress ? View.VISIBLE : View.GONE;
+                if (markBoardedButton != null) {
+                    markBoardedButton.setVisibility(boardingVis);
+                    markBoardedButton.setEnabled(inProgress);
+                }
+            } else {
+                // Sin viaje activo
+                if (tripButtonsRow != null) tripButtonsRow.setVisibility(View.VISIBLE);
+                if (createTripButton != null) {
+                    boolean canCreate = selectedOrigin != null && selectedDestination != null;
+                    createTripButton.setVisibility(View.VISIBLE);
+                    createTripButton.setEnabled(canCreate);
+                }
+                if (fareAmountInput != null) {
+                    fareAmountInput.setVisibility(View.VISIBLE);
+                    fareAmountInput.setEnabled(true);
+                }
+                
+                if (driverActionsRow != null) driverActionsRow.setVisibility(View.GONE);
+                if (cancelTripButton != null) cancelTripButton.setVisibility(View.GONE);
+                if (startTripButton != null) startTripButton.setVisibility(View.GONE);
+                if (finishTripButton != null) finishTripButton.setVisibility(View.GONE);
+                if (markBoardedButton != null) markBoardedButton.setVisibility(View.GONE);
+            }
+            
+            if (saveFavoriteButton != null) {
+                boolean canSave = selectedOrigin != null || selectedDestination != null;
+                saveFavoriteButton.setEnabled(canSave);
+                saveFavoriteButton.setVisibility(hasActiveTrip ? View.GONE : View.VISIBLE);
+            }
+            if (chatFloatingButton != null) {
+                chatFloatingButton.setVisibility(hasActiveTrip ? View.VISIBLE : View.GONE);
+            }
         }
         updateDrawerDriverMenuVisibility();
     }
@@ -2832,7 +2882,22 @@ public class MainActivity extends BaseActivity {
                     Toast.makeText(MainActivity.this, "No hay reservas confirmadas para abordar", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                ArrayAdapter<ReservationResponse> adapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_list_item_1, confirmed);
+                ArrayAdapter<ReservationResponse> adapter = new ArrayAdapter<>(MainActivity.this, R.layout.item_dialog_passenger, confirmed) {
+                    @Override
+                    public android.view.View getView(int position, android.view.View convertView, android.view.ViewGroup parent) {
+                        if (convertView == null) {
+                            convertView = getLayoutInflater().inflate(R.layout.item_dialog_passenger, parent, false);
+                        }
+                        ReservationResponse item = getItem(position);
+                        TextView name = convertView.findViewById(R.id.passengerNameText);
+                        TextView seats = convertView.findViewById(R.id.passengerSeatsText);
+                        if (item != null) {
+                            if (name != null) name.setText(item.getPassengerName());
+                            if (seats != null) seats.setText("Asientos reservados: " + item.seatsReserved);
+                        }
+                        return convertView;
+                    }
+                };
                 new AlertDialog.Builder(MainActivity.this)
                         .setTitle("Seleccionar pasajero a abordar")
                         .setAdapter(adapter, (dialog, which) -> {
@@ -2852,21 +2917,23 @@ public class MainActivity extends BaseActivity {
     }
 
     private void promptForBoardingCode(final ReservationResponse selected) {
-        final EditText input = new EditText(this);
-        input.setHint("Código de 4 dígitos");
-        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_boarding_code_input, null);
+        TextView title = dialogView.findViewById(R.id.boardingTitle);
+        if (title != null) title.setText("Abordar a " + selected.getPassengerName());
+        
+        final EditText input = dialogView.findViewById(R.id.boardingCodeEditText);
 
         new AlertDialog.Builder(this)
-                .setTitle("Abordar a " + selected.getPassengerName())
-                .setMessage("Pídele al pasajero su código de abordaje de 4 dígitos:")
-                .setView(input)
+                .setView(dialogView)
                 .setPositiveButton("Confirmar", (dialog, which) -> {
-                    String code = input.getText().toString().trim();
-                    if (code.isEmpty()) {
-                        Toast.makeText(this, "Debe ingresar el código", Toast.LENGTH_SHORT).show();
-                        return;
+                    if (input != null) {
+                        String code = input.getText().toString().trim();
+                        if (code.isEmpty()) {
+                            Toast.makeText(this, "Debe ingresar el código", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        verifyAndBoardPassengerByIdAndCode(selected.id, code);
                     }
-                    verifyAndBoardPassengerByIdAndCode(selected.id, code);
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -3038,83 +3105,7 @@ public class MainActivity extends BaseActivity {
         });
     }
 
-    private void showBoardPassengerByCodeDialog() {
-        if (activeTripId == null || activeTripId.isEmpty()) {
-            return;
-        }
-        final EditText input = new EditText(this);
-        input.setHint("Código de abordaje del pasajero");
-        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Subir pasajero")
-                .setView(input)
-                .setPositiveButton("Confirmar", (dialog, which) -> {
-                    String code = input.getText().toString().trim();
-                    if (code.isEmpty()) {
-                        Toast.makeText(this, "Ingrese el codigo", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    verifyAndBoardPassengerByCode(code);
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
-    }
-
-    private void verifyAndBoardPassengerByCode(String code) {
-        final String tripId = activeTripId;
-        setProgressVisible(true);
-        mainViewModel.getConfirmedReservations(tripId, new MainViewModel.ResultCallback<>() {
-            @Override
-            public void onSuccess(List<ReservationResponse> confirmed) {
-                if (confirmed.isEmpty()) {
-                    setProgressVisible(false);
-                    Toast.makeText(MainActivity.this, "No hay pasajeros confirmados", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                tryMatchCode(tripId, confirmed, code, 0);
-            }
-
-            @Override
-            public void onError(String message) {
-                setProgressVisible(false);
-                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void tryMatchCode(String tripId, List<ReservationResponse> confirmed, String code, int index) {
-        if (index >= confirmed.size()) {
-            setProgressVisible(false);
-            Toast.makeText(MainActivity.this, "Codigo no coincide con ningun pasajero confirmado", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        ReservationResponse reservation = confirmed.get(index);
-        mainViewModel.verifyBoardingCode(tripId, reservation.id, code, new MainViewModel.SimpleCallback() {
-            @Override
-            public void onSuccess() {
-                mainViewModel.boardPassenger(tripId, reservation.id, new MainViewModel.SimpleCallback() {
-                    @Override
-                    public void onSuccess() {
-                        setProgressVisible(false);
-                        Toast.makeText(MainActivity.this, "Pasajero abordado", Toast.LENGTH_SHORT).show();
-                        viewBoardedPassengers();
-                    }
-
-                    @Override
-                    public void onError(String message) {
-                        setProgressVisible(false);
-                        Toast.makeText(MainActivity.this, "Error al abordar", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                tryMatchCode(tripId, confirmed, code, index + 1);
-            }
-        });
-    }
+    // Métodos de abordaje por código automático eliminados por consolidación
 
     private void pollPassengerReservationStatus() {
         if (!hasActivePassengerReservation || isDriverUser) {

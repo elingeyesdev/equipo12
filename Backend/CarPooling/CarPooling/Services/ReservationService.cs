@@ -22,6 +22,9 @@ public class ReservationService(CarPoolingContext context, INotificationService 
         if (trip.StatusId == 5) // cancelled
             throw new InvalidOperationException("El viaje no esta disponible.");
 
+        if (trip.AvailableSeats < dto.SeatsReserved)
+            throw new InvalidOperationException("No hay suficientes cupos disponibles.");
+
         var userExists = await _context.Users.AnyAsync(u => u.Id == dto.PassengerUserId);
         if (!userExists)
             throw new InvalidOperationException("Usuario pasajero no encontrado.");

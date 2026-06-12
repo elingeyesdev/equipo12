@@ -84,6 +84,12 @@
             android:visible="false" />
 
         <item
+            android:id="@+id/nav_driver_boarded_passengers"
+            android:icon="@android:drawable/ic_menu_myplaces"
+            android:title="Pasajeros abordados"
+            android:visible="false" />
+
+        <item
             android:id="@+id/nav_driver_payments"
             android:icon="@android:drawable/ic_menu_upload"
             android:title="Cobros"

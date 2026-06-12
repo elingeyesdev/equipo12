@@ -1,51 +1,65 @@
 using System.Security.Cryptography;
 using System.Text;
 using CarPooling.Models;
-using Microsoft.EntityFrameworkCore;
 using CarPooling.Security;
+using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Data;
 
 public static class DevelopmentDataSeeder
 {
-    // Admin User
     private static readonly Guid AdminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly Guid DriverOneId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+    private static readonly Guid DriverTwoId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+    private static readonly Guid DriverThreeId = Guid.Parse("33333333-3333-3333-3333-333333333334");
+    private static readonly Guid PassengerOneId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+    private static readonly Guid PassengerTwoId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+    private static readonly Guid PassengerThreeId = Guid.Parse("66666666-6666-6666-6666-666666666666");
+    private static readonly Guid PassengerFourId = Guid.Parse("66666666-6666-6666-6666-666666666667");
+    private static readonly Guid PassengerFiveId = Guid.Parse("66666666-6666-6666-6666-666666666668");
+    private static readonly Guid AnalystId = Guid.Parse("77777777-7777-7777-7777-777777777777");
 
-    // Drivers
-    private static readonly Guid DriverOneId = Guid.Parse("22222222-2222-2222-2222-222222222222"); // Juan Pérez
-    private static readonly Guid DriverTwoId = Guid.Parse("33333333-3333-3333-3333-333333333333"); // María Gómez
-
-    // Passengers
-    private static readonly Guid PassengerOneId = Guid.Parse("44444444-4444-4444-4444-444444444444"); // Carlos Rojas
-    private static readonly Guid PassengerTwoId = Guid.Parse("55555555-5555-5555-5555-555555555555"); // Ana Torres
-    private static readonly Guid PassengerThreeId = Guid.Parse("66666666-6666-6666-6666-666666666666"); // Luis Castro
-
-    // Analyst
-    private static readonly Guid AnalystId = Guid.Parse("77777777-7777-7777-7777-777777777777"); // Sofía Morales
-
-    // Driver Profiles
     private static readonly Guid DriverOneProfileId = Guid.Parse("88888888-8888-8888-8888-888888888888");
     private static readonly Guid DriverTwoProfileId = Guid.Parse("88888888-8888-8888-8888-888888888889");
+    private static readonly Guid DriverThreeProfileId = Guid.Parse("88888888-8888-8888-8888-88888888888a");
 
-    // Vehicles
     private static readonly Guid VehicleOneId = Guid.Parse("99999999-9999-9999-9999-999999999991");
     private static readonly Guid VehicleTwoId = Guid.Parse("99999999-9999-9999-9999-999999999992");
+    private static readonly Guid VehicleThreeId = Guid.Parse("99999999-9999-9999-9999-999999999993");
 
-    // Safe Zones & Locations (Santa Cruz, Bolivia)
     private static readonly Guid LocUnivalleId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1");
     private static readonly Guid LocPlazaId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2");
     private static readonly Guid LocEquipetrolId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3");
     private static readonly Guid LocBuschId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4");
     private static readonly Guid LocBimodalId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5");
+    private static readonly Guid LocVenturaId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6");
+    private static readonly Guid LocCristoId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7");
+    private static readonly Guid LocLasPalmasId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa8");
+    private static readonly Guid LocPlan3000Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa9");
+    private static readonly Guid LocHamacasId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10");
+    private static readonly Guid LocLibraryBookmarkId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa11");
+    private static readonly Guid LocHomeBookmarkId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa12");
 
-    // Trips
-    private static readonly Guid TripOneId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"); // Scheduled
-    private static readonly Guid TripTwoId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2"); // Ready
-    private static readonly Guid TripThreeId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3"); // In Progress
-    private static readonly Guid TripFourId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4"); // Finished
-    private static readonly Guid TripFiveId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb5"); // Cancelled
+    private static readonly Guid ZoneUnivalleId = Guid.Parse("abababab-abab-abab-abab-ababababab01");
+    private static readonly Guid ZonePlazaId = Guid.Parse("abababab-abab-abab-abab-ababababab02");
+    private static readonly Guid ZoneEquipetrolId = Guid.Parse("abababab-abab-abab-abab-ababababab03");
+    private static readonly Guid ZoneBimodalId = Guid.Parse("abababab-abab-abab-abab-ababababab04");
+    private static readonly Guid ZoneVenturaId = Guid.Parse("abababab-abab-abab-abab-ababababab05");
+    private static readonly Guid ZoneCristoId = Guid.Parse("abababab-abab-abab-abab-ababababab06");
+    private static readonly Guid ZoneLasPalmasId = Guid.Parse("abababab-abab-abab-abab-ababababab07");
+    private static readonly Guid ZonePlan3000Id = Guid.Parse("abababab-abab-abab-abab-ababababab08");
 
-    // Reservations
+    private static readonly Guid TripScheduledId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1");
+    private static readonly Guid TripReadyId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2");
+    private static readonly Guid TripInProgressId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3");
+    private static readonly Guid TripFinishedId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4");
+    private static readonly Guid TripCancelledId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb5");
+    private static readonly Guid TripRefundableId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb6");
+    private static readonly Guid TripFullId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb7");
+    private static readonly Guid TripMorningFinishedId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb8");
+    private static readonly Guid BookmarkPlaceId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbf1");
+    private static readonly Guid BookmarkRouteId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbf2");
+
     private static readonly Guid ResOneId = Guid.Parse("cccccccc-cccc-cccc-cccc-ccccccccccc1");
     private static readonly Guid ResTwoId = Guid.Parse("cccccccc-cccc-cccc-cccc-ccccccccccc2");
     private static readonly Guid ResThreeId = Guid.Parse("cccccccc-cccc-cccc-cccc-ccccccccccc3");
@@ -54,33 +68,34 @@ public static class DevelopmentDataSeeder
     private static readonly Guid ResSixId = Guid.Parse("cccccccc-cccc-cccc-cccc-ccccccccccc6");
     private static readonly Guid ResSevenId = Guid.Parse("cccccccc-cccc-cccc-cccc-ccccccccccc7");
     private static readonly Guid ResEightId = Guid.Parse("cccccccc-cccc-cccc-cccc-ccccccccccc8");
+    private static readonly Guid ResNineId = Guid.Parse("cccccccc-cccc-cccc-cccc-ccccccccccc9");
+    private static readonly Guid ResTenId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc10");
+    private static readonly Guid ResElevenId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc11");
+    private static readonly Guid ResTwelveId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc12");
+    private static readonly Guid ResThirteenId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc13");
+    private static readonly Guid ResFourteenId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc14");
+    private static readonly Guid ResFifteenId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccc15");
 
-    // Payments
+    private static readonly Guid DriverOneQrMethodId = Guid.Parse("abab1111-1111-1111-1111-111111111111");
+    private static readonly Guid DriverTwoQrMethodId = Guid.Parse("abab2222-2222-2222-2222-222222222222");
+    private static readonly Guid PassengerCardMethodId = Guid.Parse("abab3333-3333-3333-3333-333333333333");
+    private static readonly Guid PassengerWalletMethodId = Guid.Parse("abab4444-4444-4444-4444-444444444444");
+
     private static readonly Guid PayOneId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd1");
     private static readonly Guid PayTwoId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd2");
     private static readonly Guid PayThreeId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd3");
     private static readonly Guid PayFourId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd4");
+    private static readonly Guid PayFiveId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd5");
+    private static readonly Guid PaySixId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd6");
+    private static readonly Guid PaySevenId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd7");
+    private static readonly Guid RefundOneId = Guid.Parse("dadadada-dada-dada-dada-dadadadada01");
 
-    // Chats & Messages
-    private static readonly Guid ChatOneId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1");
-    private static readonly Guid MsgOneId = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff1");
-    private static readonly Guid MsgTwoId = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff2");
-    private static readonly Guid MsgThreeId = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff3");
-    private static readonly Guid MsgFourId = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff4");
+    private static readonly Guid ChatActiveId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1");
+    private static readonly Guid ChatFinishedId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2");
 
-    // Ratings
-    private static readonly Guid RatingOneId = Guid.Parse("11112222-3333-4444-5555-666677778881");
-    private static readonly Guid RatingTwoId = Guid.Parse("11112222-3333-4444-5555-666677778882");
-    private static readonly Guid RatingThreeId = Guid.Parse("11112222-3333-4444-5555-666677778883");
-    private static readonly Guid RatingFourId = Guid.Parse("11112222-3333-4444-5555-666677778884");
-
-    // Support Tickets & Messages
     private static readonly Guid TicketOneId = Guid.Parse("22223333-4444-5555-6666-777788889991");
-    private static readonly Guid TicketOneMsgId = Guid.Parse("33334444-5555-6666-7777-888899990001");
     private static readonly Guid TicketTwoId = Guid.Parse("22223333-4444-5555-6666-777788889992");
-    private static readonly Guid TicketTwoMsgOneId = Guid.Parse("33334444-5555-6666-7777-888899990002");
-    private static readonly Guid TicketTwoMsgTwoId = Guid.Parse("33334444-5555-6666-7777-888899990003");
-    private static readonly Guid TicketTwoMsgThreeId = Guid.Parse("33334444-5555-6666-7777-888899990004");
+    private static readonly Guid TicketThreeId = Guid.Parse("22223333-4444-5555-6666-777788889993");
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -96,79 +111,93 @@ public static class DevelopmentDataSeeder
             await context.Database.EnsureCreatedAsync();
         }
 
-        // 0. Seed Permissions lookup table
-        foreach (var p in AppPermissions.AllPermissions)
+        await SeedPermissionsAndRolesAsync(context);
+        await ClearDemoDataAsync(context);
+        await SeedDemoDataAsync(context);
+        await SeedDefaultThemeAsync(context);
+    }
+
+    private static async Task SeedPermissionsAndRolesAsync(CarPoolingContext context)
+    {
+        foreach (var permission in AppPermissions.AllPermissions)
         {
-            var existingPermission = await context.Permissions.FirstOrDefaultAsync(dbP => dbP.Id == p.Id);
-            if (existingPermission == null)
+            if (!await context.Permissions.AnyAsync(p => p.Id == permission.Id))
             {
                 context.Permissions.Add(new Permission
                 {
-                    Id = p.Id,
-                    Name = p.Name,
-                    GroupName = p.GroupName
+                    Id = permission.Id,
+                    Name = permission.Name,
+                    GroupName = permission.GroupName
                 });
             }
         }
+
         await context.SaveChangesAsync();
 
-        // Seed Roles lookup table
         var rolesToSeed = new[]
         {
             new { Name = "SuperAdmin", Description = "Acceso total al sistema", IsSystemRole = true },
             new { Name = "Student", Description = "Rol por defecto para estudiantes", IsSystemRole = true },
             new { Name = "Driver", Description = "Rol por defecto para conductores", IsSystemRole = true },
-            new { Name = "Analyst", Description = "Rol limitado para visualizar métricas", IsSystemRole = false }
+            new { Name = "Analyst", Description = "Rol limitado para visualizar metricas", IsSystemRole = false }
         };
 
-        foreach (var r in rolesToSeed)
+        foreach (var roleSeed in rolesToSeed)
         {
-            var existingRole = await context.Roles
-                .Include(dbR => dbR.RolePermissions)
-                .FirstOrDefaultAsync(dbR => dbR.Name == r.Name);
+            var role = await context.Roles
+                .Include(r => r.RolePermissions)
+                .FirstOrDefaultAsync(r => r.Name == roleSeed.Name);
 
-            if (existingRole == null)
+            if (role is null)
             {
-                var newRole = new Role
+                role = new Role
                 {
                     Id = Guid.NewGuid(),
-                    Name = r.Name,
-                    Description = r.Description,
-                    IsSystemRole = r.IsSystemRole
+                    Name = roleSeed.Name,
+                    Description = roleSeed.Description,
+                    IsSystemRole = roleSeed.IsSystemRole
                 };
-                context.Roles.Add(newRole);
-                existingRole = newRole;
+                context.Roles.Add(role);
                 await context.SaveChangesAsync();
             }
 
-            // Assign permissions to SuperAdmin
-            if (r.Name == "SuperAdmin")
+            if (roleSeed.Name == "SuperAdmin")
             {
-                var allDbPermissions = await context.Permissions.ToListAsync();
-                foreach (var dbP in allDbPermissions)
+                var permissions = await context.Permissions.ToListAsync();
+                foreach (var permission in permissions)
                 {
-                    if (!existingRole.RolePermissions.Any(rp => rp.PermissionId == dbP.Id))
+                    if (!role.RolePermissions.Any(rp => rp.PermissionId == permission.Id))
                     {
-                        context.RolePermissions.Add(new RolePermission { RoleId = existingRole.Id, PermissionId = dbP.Id });
+                        context.RolePermissions.Add(new RolePermission
+                        {
+                            RoleId = role.Id,
+                            PermissionId = permission.Id
+                        });
                     }
                 }
             }
-            // Assign permissions to Analyst
-            else if (r.Name == "Analyst")
+            else if (roleSeed.Name == "Analyst")
             {
                 var analystPermissions = new[] { AppPermissions.ViewMetrics, AppPermissions.ReadUsers, AppPermissions.ReadTrips };
-                foreach (var pId in analystPermissions)
+                foreach (var permissionId in analystPermissions)
                 {
-                    if (!existingRole.RolePermissions.Any(rp => rp.PermissionId == pId))
+                    if (!role.RolePermissions.Any(rp => rp.PermissionId == permissionId))
                     {
-                        context.RolePermissions.Add(new RolePermission { RoleId = existingRole.Id, PermissionId = pId });
+                        context.RolePermissions.Add(new RolePermission
+                        {
+                            RoleId = role.Id,
+                            PermissionId = permissionId
+                        });
                     }
                 }
             }
         }
-        await context.SaveChangesAsync();
 
-        // 1. CLEAR DYNAMIC AND TRANSACTION TABLES
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task ClearDemoDataAsync(CarPoolingContext context)
+    {
         context.Refunds.RemoveRange(context.Refunds);
         context.PaymentTransactions.RemoveRange(context.PaymentTransactions);
         context.PaymentReceipts.RemoveRange(context.PaymentReceipts);
@@ -192,8 +221,11 @@ public static class DevelopmentDataSeeder
         context.Locations.RemoveRange(context.Locations);
 
         await context.SaveChangesAsync();
+    }
 
-        // 2. SEED USERS & ROLES ASSIGNMENT
+    private static async Task SeedDemoDataAsync(CarPoolingContext context)
+    {
+        var now = DateTime.UtcNow;
         var passwordHash = HashPassword("123456");
 
         var roleSuperAdmin = await context.Roles.FirstAsync(r => r.Name == "SuperAdmin");
@@ -201,522 +233,803 @@ public static class DevelopmentDataSeeder
         var roleStudent = await context.Roles.FirstAsync(r => r.Name == "Student");
         var roleAnalyst = await context.Roles.FirstAsync(r => r.Name == "Analyst");
 
-        // Create Users
-        var adminUser = new User { Id = AdminId, FullName = "Administrador Univalle", Email = "admin@univalle.edu", PasswordHash = passwordHash, PhoneNumber = "+591 71011111" };
-        var driverOne = new User { Id = DriverOneId, FullName = "Juan Pérez", Email = "conductor1@univalle.edu", PasswordHash = passwordHash, PhoneNumber = "+591 71020304" };
-        var driverTwo = new User { Id = DriverTwoId, FullName = "María Gómez", Email = "conductor2@univalle.edu", PasswordHash = passwordHash, PhoneNumber = "+591 72030405" };
-        var passengerOne = new User { Id = PassengerOneId, FullName = "Carlos Rojas", Email = "estudiante1@univalle.edu", PasswordHash = passwordHash, PhoneNumber = "+591 73040506" };
-        var passengerTwo = new User { Id = PassengerTwoId, FullName = "Ana Torres", Email = "estudiante2@univalle.edu", PasswordHash = passwordHash, PhoneNumber = "+591 74050607" };
-        var passengerThree = new User { Id = PassengerThreeId, FullName = "Luis Castro", Email = "estudiante3@univalle.edu", PasswordHash = passwordHash, PhoneNumber = "+591 75060708" };
-        var analystUser = new User { Id = AnalystId, FullName = "Sofía Morales", Email = "analista@univalle.edu", PasswordHash = passwordHash, PhoneNumber = "+591 76070809" };
+        var users = new[]
+        {
+            DemoUser(AdminId, "Administrador Univalle", "admin@univalle.edu", "+591 71011111", passwordHash, now.AddMonths(-5)),
+            DemoUser(DriverOneId, "Juan Perez", "conductor1@univalle.edu", "+591 71020304", passwordHash, now.AddMonths(-4)),
+            DemoUser(DriverTwoId, "Maria Gomez", "conductor2@univalle.edu", "+591 72030405", passwordHash, now.AddMonths(-4).AddDays(2)),
+            DemoUser(DriverThreeId, "Rodrigo Vaca", "conductor3@univalle.edu", "+591 72030406", passwordHash, now.AddMonths(-2)),
+            DemoUser(PassengerOneId, "Carlos Rojas", "estudiante1@univalle.edu", "+591 73040506", passwordHash, now.AddMonths(-3)),
+            DemoUser(PassengerTwoId, "Ana Torres", "estudiante2@univalle.edu", "+591 74050607", passwordHash, now.AddMonths(-3).AddDays(4)),
+            DemoUser(PassengerThreeId, "Luis Castro", "estudiante3@univalle.edu", "+591 75060708", passwordHash, now.AddMonths(-2)),
+            DemoUser(PassengerFourId, "Valeria Suarez", "estudiante4@univalle.edu", "+591 76011122", passwordHash, now.AddMonths(-1)),
+            DemoUser(PassengerFiveId, "Diego Molina", "estudiante5@univalle.edu", "+591 76033344", passwordHash, now.AddMonths(-1).AddDays(5)),
+            DemoUser(AnalystId, "Sofia Morales", "analista@univalle.edu", "+591 76070809", passwordHash, now.AddMonths(-2).AddDays(8))
+        };
 
-        context.Users.AddRange(adminUser, driverOne, driverTwo, passengerOne, passengerTwo, passengerThree, analystUser);
+        context.Users.AddRange(users);
         await context.SaveChangesAsync();
 
-        // Assign Roles
         context.UserRoles.AddRange(
             new UserRole { UserId = AdminId, RoleId = roleSuperAdmin.Id },
             new UserRole { UserId = DriverOneId, RoleId = roleDriver.Id },
             new UserRole { UserId = DriverTwoId, RoleId = roleDriver.Id },
+            new UserRole { UserId = DriverThreeId, RoleId = roleDriver.Id },
             new UserRole { UserId = PassengerOneId, RoleId = roleStudent.Id },
             new UserRole { UserId = PassengerTwoId, RoleId = roleStudent.Id },
             new UserRole { UserId = PassengerThreeId, RoleId = roleStudent.Id },
-            new UserRole { UserId = AnalystId, RoleId = roleAnalyst.Id }
-        );
-        await context.SaveChangesAsync();
+            new UserRole { UserId = PassengerFourId, RoleId = roleStudent.Id },
+            new UserRole { UserId = PassengerFiveId, RoleId = roleStudent.Id },
+            new UserRole { UserId = AnalystId, RoleId = roleAnalyst.Id });
 
-        // 3. SEED DRIVER PROFILES
-        var profileOne = new DriverProfile
-        {
-            Id = DriverOneProfileId,
-            UserId = DriverOneId,
-            LicenseNumber = "LIC-54321",
-            IsVerified = true,
-            VerifiedAt = DateTime.UtcNow.AddDays(-10)
-        };
-        var profileTwo = new DriverProfile
-        {
-            Id = DriverTwoProfileId,
-            UserId = DriverTwoId,
-            LicenseNumber = "LIC-09876",
-            IsVerified = true,
-            VerifiedAt = DateTime.UtcNow.AddDays(-5)
-        };
+        context.DriverProfiles.AddRange(
+            DemoDriverProfile(DriverOneProfileId, DriverOneId, "LIC-54321-SCZ", now.AddDays(-80)),
+            DemoDriverProfile(DriverTwoProfileId, DriverTwoId, "LIC-09876-SCZ", now.AddDays(-65)),
+            DemoDriverProfile(DriverThreeProfileId, DriverThreeId, "LIC-11223-SCZ", now.AddDays(-30)));
 
-        context.DriverProfiles.AddRange(profileOne, profileTwo);
-        await context.SaveChangesAsync();
-
-        // 4. SEED VEHICLES
-        var vehicleOne = new Vehicle
-        {
-            Id = VehicleOneId,
-            OwnerUserId = DriverOneId,
-            LicensePlate = "4567-XYZ",
-            Brand = "Toyota",
-            Model = "Corolla",
-            Color = "Blanco",
-            VehicleYear = 2021,
-            TotalSeats = 4,
-            IsActive = true,
-            IsVerified = true
-        };
-        var vehicleTwo = new Vehicle
-        {
-            Id = VehicleTwoId,
-            OwnerUserId = DriverTwoId,
-            LicensePlate = "1234-ABC",
-            Brand = "Suzuki",
-            Model = "Swift",
-            Color = "Gris",
-            VehicleYear = 2020,
-            TotalSeats = 4,
-            IsActive = true,
-            IsVerified = true
-        };
-
-        context.Vehicles.AddRange(vehicleOne, vehicleTwo);
-        await context.SaveChangesAsync();
-
-        // 5. SEED SAFE ZONES AND LOCATIONS (Santa Cruz, Bolivia)
-        // Coordenadas basadas en Santa Cruz de la Sierra:
-        // Campus Univalle: -17.74797, -63.16611
-        // Plaza 24 de Septiembre (Centro): -17.78330, -63.18210
-        // Equipetrol: -17.76560, -63.19320
-        // Av. Busch y 2do Anillo: -17.77120, -63.18540
-        // Terminal Bimodal: -17.79410, -63.16640
-
-        var locUnivalle = new Location { Id = LocUnivalleId, Latitude = -17.74797, Longitude = -63.16611, AddressLabel = "Campus Univalle Santa Cruz, Av. Banzer Km 8" };
-        var locPlaza = new Location { Id = LocPlazaId, Latitude = -17.78330, Longitude = -63.18210, AddressLabel = "Plaza 24 de Septiembre, Centro" };
-        var locEquipetrol = new Location { Id = LocEquipetrolId, Latitude = -17.76560, Longitude = -63.19320, AddressLabel = "Av. San Martín, Barrio Equipetrol" };
-        var locBusch = new Location { Id = LocBuschId, Latitude = -17.77120, Longitude = -63.18540, AddressLabel = "Avenida Busch y Segundo Anillo" };
-        var locBimodal = new Location { Id = LocBimodalId, Latitude = -17.79410, Longitude = -63.16640, AddressLabel = "Terminal Bimodal, Santa Cruz" };
-
-        context.Locations.AddRange(locUnivalle, locPlaza, locEquipetrol, locBusch, locBimodal);
-        await context.SaveChangesAsync();
-
-        var zoneUnivalle = new SafeZone { Id = Guid.NewGuid(), Name = "Campus Univalle Banzer", Description = "Puerta de ingreso principal del Campus Santa Cruz", Latitude = -17.74797, Longitude = -63.16611, AddressLabel = "Campus Univalle Santa Cruz, Av. Banzer Km 8", Purpose = SafeZonePurpose.Both, IsActive = true, DisplayOrder = 1, CampusArea = "Entrada Principal" };
-        var zonePlaza = new SafeZone { Id = Guid.NewGuid(), Name = "Plaza 24 de Septiembre", Description = "Parada de encuentro en la esquina Libertad y Ayacucho", Latitude = -17.78330, Longitude = -63.18210, AddressLabel = "Calle Libertad esq. Ayacucho, Centro Histórico", Purpose = SafeZonePurpose.Both, IsActive = true, DisplayOrder = 2, CampusArea = "Centro" };
-        var zoneEquipetrol = new SafeZone { Id = Guid.NewGuid(), Name = "Zona Equipetrol", Description = "Encuentro frente al centro comercial de la Av. San Martín", Latitude = -17.76560, Longitude = -63.19320, AddressLabel = "Av. San Martín y 3er Anillo, Equipetrol", Purpose = SafeZonePurpose.Both, IsActive = true, DisplayOrder = 3, CampusArea = "Equipetrol" };
-        var zoneBimodal = new SafeZone { Id = Guid.NewGuid(), Name = "Terminal Bimodal", Description = "Punto de abordaje seguro frente a la boletería principal", Latitude = -17.79410, Longitude = -63.16640, AddressLabel = "Av. Interbimodal, Terminal de Buses", Purpose = SafeZonePurpose.Both, IsActive = true, DisplayOrder = 4, CampusArea = "Bimodal" };
-
-        context.SafeZones.AddRange(zoneUnivalle, zonePlaza, zoneEquipetrol, zoneBimodal);
-        await context.SaveChangesAsync();
-
-        // 6. SEED TRIPS
-        // Trip 1: Scheduled. Plaza -> Univalle. Driver One. 4 seats offered, 3 available.
-        var tripOne = new Trip
-        {
-            Id = TripOneId,
-            OriginLocationId = LocPlazaId,
-            DestinationLocationId = LocUnivalleId,
-            StatusId = 1, // Scheduled
-            DriverUserId = DriverOneId,
-            DriverName = "Juan Pérez",
-            VehicleId = VehicleOneId,
-            OfferedSeats = 4,
-            AvailableSeats = 3,
-            FareAmount = 10.00m,
-            Kind = TripKind.Regular,
-            CreatedAt = DateTime.UtcNow.AddHours(-1)
-        };
-
-        // Trip 2: Ready. Equipetrol -> Univalle. Driver Two. 4 seats offered, 2 available.
-        var tripTwo = new Trip
-        {
-            Id = TripTwoId,
-            OriginLocationId = LocEquipetrolId,
-            DestinationLocationId = LocUnivalleId,
-            StatusId = 2, // Ready
-            DriverUserId = DriverTwoId,
-            DriverName = "María Gómez",
-            VehicleId = VehicleTwoId,
-            OfferedSeats = 4,
-            AvailableSeats = 2,
-            FareAmount = 8.00m,
-            Kind = TripKind.Regular,
-            CreatedAt = DateTime.UtcNow.AddHours(-2)
-        };
-
-        // Trip 3: In Progress. Univalle -> Av. Busch. Driver One. 4 seats offered, 2 available.
-        var tripThree = new Trip
-        {
-            Id = TripThreeId,
-            OriginLocationId = LocUnivalleId,
-            DestinationLocationId = LocBuschId,
-            StatusId = 3, // In Progress
-            DriverUserId = DriverOneId,
-            DriverName = "Juan Pérez",
-            VehicleId = VehicleOneId,
-            OfferedSeats = 4,
-            AvailableSeats = 2,
-            FareAmount = 10.00m,
-            Kind = TripKind.Regular,
-            CreatedAt = DateTime.UtcNow.AddMinutes(-45),
-            StartedAt = DateTime.UtcNow.AddMinutes(-15)
-        };
-
-        // Trip 4: Finished. Terminal Bimodal -> Univalle. Driver Two. 4 seats offered, 2 available.
-        var tripFour = new Trip
-        {
-            Id = TripFourId,
-            OriginLocationId = LocBimodalId,
-            DestinationLocationId = LocUnivalleId,
-            StatusId = 4, // Finished
-            DriverUserId = DriverTwoId,
-            DriverName = "María Gómez",
-            VehicleId = VehicleTwoId,
-            OfferedSeats = 4,
-            AvailableSeats = 2,
-            FareAmount = 12.00m,
-            Kind = TripKind.Regular,
-            CreatedAt = DateTime.UtcNow.AddHours(-4),
-            StartedAt = DateTime.UtcNow.AddHours(-3),
-            FinishedAt = DateTime.UtcNow.AddHours(-2)
-        };
-
-        // Trip 5: Cancelled. Univalle -> Plaza. Driver One. 4 seats offered, 4 available.
-        var tripFive = new Trip
-        {
-            Id = TripFiveId,
-            OriginLocationId = LocUnivalleId,
-            DestinationLocationId = LocPlazaId,
-            StatusId = 5, // Cancelled
-            DriverUserId = DriverOneId,
-            DriverName = "Juan Pérez",
-            VehicleId = VehicleOneId,
-            OfferedSeats = 4,
-            AvailableSeats = 4,
-            FareAmount = 10.00m,
-            Kind = TripKind.Regular,
-            CreatedAt = DateTime.UtcNow.AddHours(-6),
-            CancelledAt = DateTime.UtcNow.AddHours(-5)
-        };
-
-        context.Trips.AddRange(tripOne, tripTwo, tripThree, tripFour, tripFive);
-        await context.SaveChangesAsync();
-
-        // 7. SEED RESERVATIONS
-        // Trip 1
-        var resOne = new Reservation { Id = ResOneId, TripId = TripOneId, PassengerUserId = PassengerTwoId, SeatsReserved = 1, StatusId = 2, BoardingCode = "1111", CreatedAt = DateTime.UtcNow.AddMinutes(-30) }; // Ana: Confirmed
-
-        // Trip 2
-        var resTwo = new Reservation { Id = ResTwoId, TripId = TripTwoId, PassengerUserId = PassengerOneId, SeatsReserved = 1, StatusId = 2, BoardingCode = "2222", CreatedAt = DateTime.UtcNow.AddMinutes(-90) }; // Carlos: Confirmed
-        var resThree = new Reservation { Id = ResThreeId, TripId = TripTwoId, PassengerUserId = PassengerThreeId, SeatsReserved = 1, StatusId = 1, BoardingCode = "3333", CreatedAt = DateTime.UtcNow.AddMinutes(-40) }; // Luis: Pending
-
-        // Trip 3
-        var resFour = new Reservation { Id = ResFourId, TripId = TripThreeId, PassengerUserId = PassengerTwoId, SeatsReserved = 1, StatusId = 3, BoardingCode = "4444", CreatedAt = DateTime.UtcNow.AddMinutes(-35) }; // Ana: Boarded
-        var resFive = new Reservation { Id = ResFiveId, TripId = TripThreeId, PassengerUserId = PassengerOneId, SeatsReserved = 1, StatusId = 3, BoardingCode = "5555", CreatedAt = DateTime.UtcNow.AddMinutes(-30) }; // Carlos: Boarded
-
-        // Trip 4
-        var resSix = new Reservation { Id = ResSixId, TripId = TripFourId, PassengerUserId = PassengerOneId, SeatsReserved = 1, StatusId = 3, BoardingCode = "6666", CreatedAt = DateTime.UtcNow.AddHours(-3).AddMinutes(-30) }; // Carlos: Boarded (Completed)
-        var resSeven = new Reservation { Id = ResSevenId, TripId = TripFourId, PassengerUserId = PassengerThreeId, SeatsReserved = 1, StatusId = 3, BoardingCode = "7777", CreatedAt = DateTime.UtcNow.AddHours(-3).AddMinutes(-10) }; // Luis: Boarded (Completed)
-        var resEight = new Reservation { Id = ResEightId, TripId = TripFourId, PassengerUserId = PassengerTwoId, SeatsReserved = 1, StatusId = 4, BoardingCode = "8888", CreatedAt = DateTime.UtcNow.AddHours(-3).AddMinutes(-5) }; // Ana: Cancelled
-
-        context.Reservations.AddRange(resOne, resTwo, resThree, resFour, resFive, resSix, resSeven, resEight);
-        await context.SaveChangesAsync();
-
-        // 8. SEED DRIVER QR CONFIGURATION (UserPaymentMethod)
-        var driverQrMethod = new UserPaymentMethod
-        {
-            Id = Guid.NewGuid(),
-            UserId = DriverTwoId, // María Gómez
-            PaymentMethodId = 3,  // BankQr
-            Alias = "Mi QR BNB Personal",
-            QrImageUrl = "https://i.imgur.com/7b1Xw2r.png",
-            BankName = "Banco Nacional de Bolivia",
-            AccountHolderName = "María Gómez Vaca",
-            IsDefault = true,
-            IsActive = true
-        };
-        context.UserPaymentMethods.Add(driverQrMethod);
-        await context.SaveChangesAsync();
-
-        // 9. SEED PAYMENTS & TRANSACTIONS
-        // Payment 1: Ana (Card SIM) for Trip 3 (Active, Boarded)
-        var payOne = new Payment
-        {
-            Id = PayOneId,
-            ReservationId = ResFourId,
-            PassengerUserId = PassengerTwoId,
-            PaymentMethodId = 2, // Card Simulated
-            Amount = 10.00m,
-            Currency = "BOB",
-            Status = PaymentStatus.Approved,
-            Description = "Pago de pasaje simulado por tarjeta de débito",
-            PaidAt = DateTime.UtcNow.AddMinutes(-15)
-        };
-
-        // Payment 2: Carlos (Cash) for Trip 3 (Active, Boarded) - Pending confirmation
-        var payTwo = new Payment
-        {
-            Id = PayTwoId,
-            ReservationId = ResFiveId,
-            PassengerUserId = PassengerOneId,
-            PaymentMethodId = 1, // Cash
-            Amount = 10.00m,
-            Currency = "BOB",
-            Status = PaymentStatus.Pending,
-            Description = "Pago en efectivo - Pendiente de confirmación del conductor"
-        };
-
-        // Payment 3: Carlos (BankQr) for Trip 4 (Finished)
-        var payThree = new Payment
-        {
-            Id = PayThreeId,
-            ReservationId = ResSixId,
-            PassengerUserId = PassengerOneId,
-            PaymentMethodId = 3, // QR bancario
-            UserPaymentMethodId = driverQrMethod.Id,
-            Amount = 12.00m,
-            Currency = "BOB",
-            Status = PaymentStatus.Approved,
-            Description = "Pago verificado por QR",
-            ConfirmedByUserId = DriverTwoId,
-            ConfirmedAt = DateTime.UtcNow.AddHours(-2).AddMinutes(-30),
-            ConfirmationNotes = "QR verificado en cuenta BNB",
-            PaidAt = DateTime.UtcNow.AddHours(-2).AddMinutes(-40)
-        };
-
-        // Payment 4: Luis (Cash) for Trip 4 (Finished)
-        var payFour = new Payment
-        {
-            Id = PayFourId,
-            ReservationId = ResSevenId,
-            PassengerUserId = PassengerThreeId,
-            PaymentMethodId = 1, // Cash
-            Amount = 12.00m,
-            Currency = "BOB",
-            Status = PaymentStatus.Approved,
-            Description = "Pago en efectivo entregado a conductora",
-            ConfirmedByUserId = DriverTwoId,
-            ConfirmedAt = DateTime.UtcNow.AddHours(-2),
-            PaidAt = DateTime.UtcNow.AddHours(-2)
-        };
-
-        context.Payments.AddRange(payOne, payTwo, payThree, payFour);
-        await context.SaveChangesAsync();
-
-        // Seed Payment Transactions
-        var txOne = new PaymentTransaction
-        {
-            Id = Guid.NewGuid(),
-            PaymentId = PayOneId,
-            TransactionType = PaymentTransactionType.Payment,
-            Status = PaymentTransactionStatus.Success,
-            Amount = 10.00m,
-            Provider = "SIMULATOR_GATEWAY",
-            ProviderTransactionId = "TX-CARD-987654",
-            AuthorizationCode = "AUTH-8877",
-            ResponseCode = "00",
-            ResponseMessage = "Aprobado exitosamente",
-            ProcessedAt = DateTime.UtcNow.AddMinutes(-15)
-        };
-        var txThree = new PaymentTransaction
-        {
-            Id = Guid.NewGuid(),
-            PaymentId = PayThreeId,
-            TransactionType = PaymentTransactionType.Payment,
-            Status = PaymentTransactionStatus.Success,
-            Amount = 12.00m,
-            Provider = "QR_BNB_INTEGRATION",
-            ProviderTransactionId = "TX-QR-112233",
-            ResponseMessage = "Verificación manual de QR exitosa",
-            ProcessedAt = DateTime.UtcNow.AddHours(-2).AddMinutes(-30)
-        };
-
-        context.PaymentTransactions.AddRange(txOne, txThree);
-        await context.SaveChangesAsync();
-
-        // Seed Payment Receipts
-        context.PaymentReceipts.AddRange(
-            new PaymentReceipt
+        context.Vehicles.AddRange(
+            new Vehicle
             {
-                Id = Guid.NewGuid(),
-                PaymentId = PayThreeId,
-                ReceiptNumber = "R-2026-00001",
-                QrCodeValue = "RECEIPT-VAL-00001",
-                IssuedAt = DateTime.UtcNow.AddHours(-2).AddMinutes(-30)
+                Id = VehicleOneId,
+                OwnerUserId = DriverOneId,
+                LicensePlate = "4567-XYZ",
+                Brand = "Toyota",
+                Model = "Corolla",
+                Color = "Blanco",
+                VehicleYear = 2021,
+                TotalSeats = 4,
+                IsActive = true,
+                IsVerified = true,
+                CreatedAt = now.AddDays(-78)
             },
-            new PaymentReceipt
+            new Vehicle
             {
-                Id = Guid.NewGuid(),
-                PaymentId = PayFourId,
-                ReceiptNumber = "R-2026-00002",
-                QrCodeValue = "RECEIPT-VAL-00002",
-                IssuedAt = DateTime.UtcNow.AddHours(-2)
-            }
-        );
-        await context.SaveChangesAsync();
-
-        // 10. SEED TRIP CHATS & MESSAGES
-        var tripChat = new TripChat
-        {
-            Id = ChatOneId,
-            TripId = TripThreeId,
-            CreatedAt = DateTime.UtcNow.AddMinutes(-40)
-        };
-        context.TripChats.Add(tripChat);
-        await context.SaveChangesAsync();
-
-        var msg1 = new TripChatMessage { Id = MsgOneId, ChatId = ChatOneId, SenderUserId = DriverOneId, MessageText = "Hola a todos. Ya estoy parqueado en la salida del Campus, frente al portón principal.", CreatedAt = DateTime.UtcNow.AddMinutes(-15) };
-        var msg2 = new TripChatMessage { Id = MsgTwoId, ChatId = ChatOneId, SenderUserId = PassengerTwoId, MessageText = "Hola Juan, voy saliendo de mi clase del edificio de Ingeniería. Llego en 3 minutos.", CreatedAt = DateTime.UtcNow.AddMinutes(-12) };
-        var msg3 = new TripChatMessage { Id = MsgThreeId, ChatId = ChatOneId, SenderUserId = PassengerOneId, MessageText = "Listo, yo también ya estoy bajando por las escaleras principales. Voy en camino.", CreatedAt = DateTime.UtcNow.AddMinutes(-10) };
-        var msg4 = new TripChatMessage { Id = MsgFourId, ChatId = ChatOneId, SenderUserId = DriverOneId, MessageText = "Excelente, no se preocupen, aquí los espero en el Corolla Blanco.", CreatedAt = DateTime.UtcNow.AddMinutes(-8) };
-
-        context.TripChatMessages.AddRange(msg1, msg2, msg3, msg4);
-        await context.SaveChangesAsync();
-
-        // Mark messages as read
-        context.TripChatMessageReads.AddRange(
-            new TripChatMessageRead { MessageId = MsgOneId, UserId = PassengerTwoId, ReadAt = DateTime.UtcNow.AddMinutes(-14) },
-            new TripChatMessageRead { MessageId = MsgOneId, UserId = PassengerOneId, ReadAt = DateTime.UtcNow.AddMinutes(-13) },
-            new TripChatMessageRead { MessageId = MsgTwoId, UserId = DriverOneId, ReadAt = DateTime.UtcNow.AddMinutes(-11) },
-            new TripChatMessageRead { MessageId = MsgThreeId, UserId = DriverOneId, ReadAt = DateTime.UtcNow.AddMinutes(-9) }
-        );
-        await context.SaveChangesAsync();
-
-        // 11. SEED RATINGS (Trip 4)
-        // Passenger 1 to Driver
-        var rating1 = new TripRating
-        {
-            Id = RatingOneId,
-            TripId = TripFourId,
-            EvaluatorUserId = PassengerOneId,
-            EvaluatedUserId = DriverTwoId,
-            RatingRole = RatingRole.PassengerToDriver,
-            Score = 5,
-            Comment = "La conductora fue muy puntual y el auto estaba sumamente limpio y cómodo.",
-            Tags = "Puntual,Limpio,Amable",
-            CreatedAt = DateTime.UtcNow.AddHours(-1).AddMinutes(-50)
-        };
-        // Passenger 3 to Driver
-        var rating2 = new TripRating
-        {
-            Id = RatingThreeId,
-            TripId = TripFourId,
-            EvaluatorUserId = PassengerThreeId,
-            EvaluatedUserId = DriverTwoId,
-            RatingRole = RatingRole.PassengerToDriver,
-            Score = 4,
-            Comment = "Buen viaje, aunque la ruta elegida tenía bastante tráfico por el 3er anillo.",
-            Tags = "Respetuoso,Puntual",
-            CreatedAt = DateTime.UtcNow.AddHours(-1).AddMinutes(-45)
-        };
-        // Driver to Passenger 1
-        var rating3 = new TripRating
-        {
-            Id = RatingTwoId,
-            TripId = TripFourId,
-            EvaluatorUserId = DriverTwoId,
-            EvaluatedUserId = PassengerOneId,
-            RatingRole = RatingRole.DriverToPassenger,
-            Score = 5,
-            Comment = "Pasajero muy educado y amigable. Abordó el vehículo puntualmente.",
-            Tags = "Educado,Puntual",
-            CreatedAt = DateTime.UtcNow.AddHours(-1).AddMinutes(-30)
-        };
-        // Driver to Passenger 3
-        var rating4 = new TripRating
-        {
-            Id = RatingFourId,
-            TripId = TripFourId,
-            EvaluatorUserId = DriverTwoId,
-            EvaluatedUserId = PassengerThreeId,
-            RatingRole = RatingRole.DriverToPassenger,
-            Score = 5,
-            Comment = "Pasajero muy respetuoso y callado.",
-            Tags = "Respetuoso",
-            CreatedAt = DateTime.UtcNow.AddHours(-1).AddMinutes(-28)
-        };
-
-        context.TripRatings.AddRange(rating1, rating2, rating3, rating4);
-        await context.SaveChangesAsync();
-
-        // 12. SEED SUPPORT TICKETS & MESSAGES
-        // Ticket 1: Lost Item
-        var ticketOne = new SupportTicket
-        {
-            Id = TicketOneId,
-            UserId = PassengerOneId,
-            TripId = TripFourId,
-            Category = SupportTicketCategory.Trip,
-            Subject = "Celular olvidado en el vehículo",
-            Description = "Creo que olvidé mi celular Samsung con funda azul en el asiento trasero del Suzuki Swift gris de María Gómez durante el viaje de ayer por la tarde.",
-            Status = SupportTicketStatus.Open,
-            CreatedAt = DateTime.UtcNow.AddHours(-3)
-        };
-        context.SupportTickets.Add(ticketOne);
-        await context.SaveChangesAsync();
-
-        var t1Msg = new SupportTicketMessage
-        {
-            Id = TicketOneMsgId,
-            TicketId = TicketOneId,
-            SenderUserId = PassengerOneId,
-            SenderKind = SupportMessageSenderKind.User,
-            MessageText = "Hola, les escribo por aquí porque no he podido comunicarme con la conductora directamente. Ojalá me puedan ayudar.",
-            CreatedAt = DateTime.UtcNow.AddHours(-2).AddMinutes(-50)
-        };
-        context.SupportTicketMessages.Add(t1Msg);
-        await context.SaveChangesAsync();
-
-        // Ticket 2: Account issue (Resolved)
-        var ticketTwo = new SupportTicket
-        {
-            Id = TicketTwoId,
-            UserId = PassengerTwoId,
-            Category = SupportTicketCategory.Account,
-            Subject = "Problema con saldo de Billetera Simulada",
-            Description = "Realicé una recarga de 50 BOB a mi cuenta mediante tarjeta pero el saldo sigue apareciendo en 0 BOB. Solicito la verificación por favor.",
-            Status = SupportTicketStatus.Resolved,
-            CreatedAt = DateTime.UtcNow.AddDays(-3),
-            FirstAdminReplyAt = DateTime.UtcNow.AddDays(-2),
-            ClosedAt = DateTime.UtcNow.AddDays(-1)
-        };
-        context.SupportTickets.Add(ticketTwo);
-        await context.SaveChangesAsync();
-
-        var t2Msg1 = new SupportTicketMessage
-        {
-            Id = TicketTwoMsgOneId,
-            TicketId = TicketTwoId,
-            SenderUserId = PassengerTwoId,
-            SenderKind = SupportMessageSenderKind.User,
-            MessageText = "Ayer hice la recarga pero no se refleja en mi balance. Adjunto captura si es necesario.",
-            CreatedAt = DateTime.UtcNow.AddDays(-3).AddHours(1)
-        };
-        var t2Msg2 = new SupportTicketMessage
-        {
-            Id = TicketTwoMsgTwoId,
-            TicketId = TicketTwoId,
-            SenderUserId = AdminId,
-            SenderKind = SupportMessageSenderKind.Admin,
-            MessageText = "Hola Ana. Hemos verificado la transacción en el simulador y tuvimos una desconexión momentánea. Ya hemos acreditado manualmente los 50 BOB a tu billetera. Por favor verifica tu balance en la app.",
-            CreatedAt = DateTime.UtcNow.AddDays(-2)
-        };
-        var t2Msg3 = new SupportTicketMessage
-        {
-            Id = TicketTwoMsgThreeId,
-            TicketId = TicketTwoId,
-            SenderUserId = PassengerTwoId,
-            SenderKind = SupportMessageSenderKind.User,
-            MessageText = "Excelente, ya verifiqué y aparece el saldo correcto. Muchas gracias por la pronta solución!",
-            CreatedAt = DateTime.UtcNow.AddDays(-1)
-        };
-
-        context.SupportTicketMessages.AddRange(t2Msg1, t2Msg2, t2Msg3);
-        await context.SaveChangesAsync();
-
-        // 13. SEED DEFAULT UNIVALLE THEME SETTING IF NOT PRESENT
-        if (!await context.AppSettings.AnyAsync(s => s.Key == "theme"))
-        {
-            context.AppSettings.Add(new AppSetting 
-            { 
-                Key = "theme", 
-                Value = "{\"primaryLight\":\"#82254B\",\"secondaryLight\":\"#6E1E3F\",\"textLight\":\"#111827\",\"bgLight\":\"#FFFFFF\",\"cardLight\":\"#F5F5F5\",\"borderLight\":\"#9CA8B0\",\"primaryDark\":\"#82254B\",\"secondaryDark\":\"#6E1E3F\",\"textDark\":\"#ffffff\",\"bgDark\":\"#121011\",\"cardDark\":\"#251a1e\",\"borderDark\":\"#6E1E3F\"}" 
+                Id = VehicleTwoId,
+                OwnerUserId = DriverTwoId,
+                LicensePlate = "1234-ABC",
+                Brand = "Suzuki",
+                Model = "Swift",
+                Color = "Gris",
+                VehicleYear = 2020,
+                TotalSeats = 4,
+                IsActive = true,
+                IsVerified = true,
+                CreatedAt = now.AddDays(-62)
+            },
+            new Vehicle
+            {
+                Id = VehicleThreeId,
+                OwnerUserId = DriverThreeId,
+                LicensePlate = "7890-TRD",
+                Brand = "Nissan",
+                Model = "Kicks",
+                Color = "Rojo",
+                VehicleYear = 2022,
+                TotalSeats = 4,
+                IsActive = true,
+                IsVerified = true,
+                CreatedAt = now.AddDays(-28)
             });
-            await context.SaveChangesAsync();
+
+        await context.SaveChangesAsync();
+
+        SeedLocationsAndSafeZones(context, now);
+        await context.SaveChangesAsync();
+
+        SeedTrips(context, now);
+        await context.SaveChangesAsync();
+
+        SeedReservations(context, now);
+        await context.SaveChangesAsync();
+
+        SeedPaymentMethodsForUsers(context, now);
+        await context.SaveChangesAsync();
+
+        SeedPayments(context, now);
+        await context.SaveChangesAsync();
+
+        SeedChats(context, now);
+        await context.SaveChangesAsync();
+
+        SeedRatings(context, now);
+        await context.SaveChangesAsync();
+
+        SeedSupport(context, now);
+        SeedDevices(context, now);
+        await context.SaveChangesAsync();
+    }
+
+    private static User DemoUser(Guid id, string fullName, string email, string phone, string passwordHash, DateTime createdAt)
+    {
+        return new User
+        {
+            Id = id,
+            FullName = fullName,
+            Email = email,
+            PasswordHash = passwordHash,
+            PhoneNumber = phone,
+            CreatedAt = createdAt
+        };
+    }
+
+    private static DriverProfile DemoDriverProfile(Guid id, Guid userId, string licenseNumber, DateTime verifiedAt)
+    {
+        return new DriverProfile
+        {
+            Id = id,
+            UserId = userId,
+            LicenseNumber = licenseNumber,
+            LicenseDocumentUrl = $"https://demo.univalle.edu.bo/licenses/{licenseNumber}.pdf",
+            IsVerified = true,
+            VerifiedAt = verifiedAt,
+            CreatedAt = verifiedAt.AddDays(-1),
+            UpdatedAt = verifiedAt
+        };
+    }
+
+    private static void SeedLocationsAndSafeZones(CarPoolingContext context, DateTime now)
+    {
+        context.Locations.AddRange(
+            new Location { Id = LocUnivalleId, Latitude = -17.74797, Longitude = -63.16611, AddressLabel = "Campus Univalle Santa Cruz, Av. Banzer Km 8", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocPlazaId, Latitude = -17.78330, Longitude = -63.18210, AddressLabel = "Plaza 24 de Septiembre, Centro", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocEquipetrolId, Latitude = -17.76560, Longitude = -63.19320, AddressLabel = "Av. San Martin, Barrio Equipetrol", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocBuschId, Latitude = -17.77120, Longitude = -63.18540, AddressLabel = "Avenida Busch y Segundo Anillo", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocBimodalId, Latitude = -17.79410, Longitude = -63.16640, AddressLabel = "Terminal Bimodal, Santa Cruz", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocVenturaId, Latitude = -17.75490, Longitude = -63.19820, AddressLabel = "Ventura Mall, Cuarto Anillo", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocCristoId, Latitude = -17.76940, Longitude = -63.18070, AddressLabel = "Monumento Cristo Redentor", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocLasPalmasId, Latitude = -17.79020, Longitude = -63.20520, AddressLabel = "Barrio Las Palmas", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocPlan3000Id, Latitude = -17.83050, Longitude = -63.13810, AddressLabel = "Plan 3000, Rotonda principal", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocHamacasId, Latitude = -17.73650, Longitude = -63.18100, AddressLabel = "Zona Hamacas, Av. Banzer", CreatedAt = now.AddDays(-20) },
+            new Location { Id = LocLibraryBookmarkId, Latitude = -17.74880, Longitude = -63.16560, AddressLabel = "Biblioteca central Univalle", CreatedAt = now.AddDays(-10) },
+            new Location { Id = LocHomeBookmarkId, Latitude = -17.78120, Longitude = -63.17510, AddressLabel = "Casa de Carlos, zona Centro", CreatedAt = now.AddDays(-10) });
+
+        context.SafeZones.AddRange(
+            DemoSafeZone(ZoneUnivalleId, "Campus Univalle Banzer", "Puerta principal del campus para recoger y dejar pasajeros.", -17.74797, -63.16611, "Campus", 1),
+            DemoSafeZone(ZonePlazaId, "Plaza 24 de Septiembre", "Punto de encuentro visible sobre Libertad y Ayacucho.", -17.78330, -63.18210, "Centro", 2),
+            DemoSafeZone(ZoneEquipetrolId, "Zona Equipetrol", "Parada segura cerca de Av. San Martin y Tercer Anillo.", -17.76560, -63.19320, "Equipetrol", 3),
+            DemoSafeZone(ZoneBimodalId, "Terminal Bimodal", "Encuentro frente al acceso principal de boleterias.", -17.79410, -63.16640, "Bimodal", 4),
+            DemoSafeZone(ZoneVenturaId, "Ventura Mall", "Zona iluminada de recojo sobre el Cuarto Anillo.", -17.75490, -63.19820, "Norte", 5),
+            DemoSafeZone(ZoneCristoId, "Cristo Redentor", "Punto de referencia central para rutas cortas.", -17.76940, -63.18070, "Centro Norte", 6),
+            DemoSafeZone(ZoneLasPalmasId, "Las Palmas", "Parada recomendada para estudiantes del suroeste.", -17.79020, -63.20520, "Suroeste", 7),
+            DemoSafeZone(ZonePlan3000Id, "Plan 3000", "Punto seguro con alta demanda de pasajeros.", -17.83050, -63.13810, "Este", 8));
+    }
+
+    private static SafeZone DemoSafeZone(Guid id, string name, string description, double lat, double lon, string area, int order)
+    {
+        return new SafeZone
+        {
+            Id = id,
+            Name = name,
+            Description = description,
+            Latitude = lat,
+            Longitude = lon,
+            AddressLabel = name,
+            Purpose = SafeZonePurpose.Both,
+            IsActive = true,
+            DisplayOrder = order,
+            CampusArea = area,
+            CreatedAt = DateTime.UtcNow.AddDays(-20)
+        };
+    }
+
+    private static void SeedTrips(CarPoolingContext context, DateTime now)
+    {
+        context.Trips.AddRange(
+            new Trip
+            {
+                Id = TripScheduledId,
+                OriginLocationId = LocPlazaId,
+                DestinationLocationId = LocUnivalleId,
+                StatusId = 1,
+                DriverUserId = DriverOneId,
+                DriverName = "Juan Perez",
+                VehicleId = VehicleOneId,
+                OfferedSeats = 4,
+                AvailableSeats = 3,
+                FareAmount = 10m,
+                Kind = TripKind.Regular,
+                CreatedAt = now.AddMinutes(-75),
+                UpdatedAt = now.AddMinutes(-72)
+            },
+            new Trip
+            {
+                Id = TripReadyId,
+                OriginLocationId = LocEquipetrolId,
+                DestinationLocationId = LocUnivalleId,
+                StatusId = 2,
+                DriverUserId = DriverTwoId,
+                DriverName = "Maria Gomez",
+                VehicleId = VehicleTwoId,
+                OfferedSeats = 4,
+                AvailableSeats = 3,
+                FareAmount = 8m,
+                Kind = TripKind.Regular,
+                CreatedAt = now.AddHours(-2),
+                UpdatedAt = now.AddHours(-1).AddMinutes(-50)
+            },
+            new Trip
+            {
+                Id = TripInProgressId,
+                OriginLocationId = LocUnivalleId,
+                DestinationLocationId = LocBuschId,
+                StatusId = 3,
+                DriverUserId = DriverOneId,
+                DriverName = "Juan Perez",
+                VehicleId = VehicleOneId,
+                OfferedSeats = 4,
+                AvailableSeats = 2,
+                FareAmount = 10m,
+                Kind = TripKind.Regular,
+                CreatedAt = now.AddMinutes(-55),
+                UpdatedAt = now.AddMinutes(-16),
+                StartedAt = now.AddMinutes(-15)
+            },
+            new Trip
+            {
+                Id = TripFinishedId,
+                OriginLocationId = LocBimodalId,
+                DestinationLocationId = LocUnivalleId,
+                StatusId = 4,
+                DriverUserId = DriverTwoId,
+                DriverName = "Maria Gomez",
+                VehicleId = VehicleTwoId,
+                OfferedSeats = 4,
+                AvailableSeats = 2,
+                FareAmount = 12m,
+                Kind = TripKind.Regular,
+                CreatedAt = now.AddHours(-4),
+                UpdatedAt = now.AddHours(-2),
+                StartedAt = now.AddHours(-3),
+                FinishedAt = now.AddHours(-2)
+            },
+            new Trip
+            {
+                Id = TripCancelledId,
+                OriginLocationId = LocUnivalleId,
+                DestinationLocationId = LocPlazaId,
+                StatusId = 5,
+                DriverUserId = DriverOneId,
+                DriverName = "Juan Perez",
+                VehicleId = VehicleOneId,
+                OfferedSeats = 4,
+                AvailableSeats = 4,
+                FareAmount = 10m,
+                Kind = TripKind.Regular,
+                CreatedAt = now.AddHours(-6),
+                UpdatedAt = now.AddHours(-5),
+                CancelledAt = now.AddHours(-5)
+            },
+            new Trip
+            {
+                Id = TripRefundableId,
+                OriginLocationId = LocVenturaId,
+                DestinationLocationId = LocUnivalleId,
+                StatusId = 2,
+                DriverUserId = DriverThreeId,
+                DriverName = "Rodrigo Vaca",
+                VehicleId = VehicleThreeId,
+                OfferedSeats = 4,
+                AvailableSeats = 3,
+                FareAmount = 9m,
+                Kind = TripKind.Regular,
+                CreatedAt = now.AddMinutes(-35),
+                UpdatedAt = now.AddMinutes(-25)
+            },
+            new Trip
+            {
+                Id = TripFullId,
+                OriginLocationId = LocPlan3000Id,
+                DestinationLocationId = LocUnivalleId,
+                StatusId = 2,
+                DriverUserId = DriverThreeId,
+                DriverName = "Rodrigo Vaca",
+                VehicleId = VehicleThreeId,
+                OfferedSeats = 4,
+                AvailableSeats = 0,
+                FareAmount = 11m,
+                Kind = TripKind.Regular,
+                CreatedAt = now.AddHours(-1).AddMinutes(-25),
+                UpdatedAt = now.AddHours(-1).AddMinutes(-10)
+            },
+            new Trip
+            {
+                Id = TripMorningFinishedId,
+                OriginLocationId = LocHamacasId,
+                DestinationLocationId = LocUnivalleId,
+                StatusId = 4,
+                DriverUserId = DriverOneId,
+                DriverName = "Juan Perez",
+                VehicleId = VehicleOneId,
+                OfferedSeats = 4,
+                AvailableSeats = 1,
+                FareAmount = 7m,
+                Kind = TripKind.Regular,
+                CreatedAt = now.AddDays(-1).AddHours(-8),
+                UpdatedAt = now.AddDays(-1).AddHours(-6),
+                StartedAt = now.AddDays(-1).AddHours(-7),
+                FinishedAt = now.AddDays(-1).AddHours(-6)
+            },
+            new Trip
+            {
+                Id = BookmarkPlaceId,
+                Kind = TripKind.UserBookmark,
+                OriginLocationId = LocLibraryBookmarkId,
+                DestinationLocationId = LocLibraryBookmarkId,
+                StatusId = 4,
+                DriverName = "Biblioteca central",
+                DriverUserId = PassengerOneId,
+                CreatedAt = now.AddDays(-9),
+                BookmarkUseCount = 5,
+                BookmarkLastUsedAt = now.AddHours(-5)
+            },
+            new Trip
+            {
+                Id = BookmarkRouteId,
+                Kind = TripKind.UserBookmark,
+                OriginLocationId = LocHomeBookmarkId,
+                DestinationLocationId = LocUnivalleId,
+                StatusId = 4,
+                DriverName = "Casa - Campus",
+                DriverUserId = PassengerOneId,
+                CreatedAt = now.AddDays(-8),
+                BookmarkUseCount = 3,
+                BookmarkLastUsedAt = now.AddDays(-1)
+            });
+    }
+
+    private static void SeedReservations(CarPoolingContext context, DateTime now)
+    {
+        context.Reservations.AddRange(
+            new Reservation { Id = ResOneId, TripId = TripScheduledId, PassengerUserId = PassengerTwoId, SeatsReserved = 1, StatusId = 2, BoardingCode = "1111", CreatedAt = now.AddMinutes(-30) },
+            new Reservation { Id = ResTwoId, TripId = TripReadyId, PassengerUserId = PassengerOneId, SeatsReserved = 1, StatusId = 2, BoardingCode = "2222", CreatedAt = now.AddMinutes(-90) },
+            new Reservation { Id = ResThreeId, TripId = TripReadyId, PassengerUserId = PassengerThreeId, SeatsReserved = 1, StatusId = 1, BoardingCode = "3333", CreatedAt = now.AddMinutes(-40) },
+            new Reservation { Id = ResFourId, TripId = TripInProgressId, PassengerUserId = PassengerTwoId, SeatsReserved = 1, StatusId = 3, BoardingCode = "4444", CreatedAt = now.AddMinutes(-35) },
+            new Reservation { Id = ResFiveId, TripId = TripInProgressId, PassengerUserId = PassengerOneId, SeatsReserved = 1, StatusId = 3, BoardingCode = "5555", CreatedAt = now.AddMinutes(-30) },
+            new Reservation { Id = ResSixId, TripId = TripFinishedId, PassengerUserId = PassengerOneId, SeatsReserved = 1, StatusId = 3, BoardingCode = "6666", CreatedAt = now.AddHours(-3).AddMinutes(-30) },
+            new Reservation { Id = ResSevenId, TripId = TripFinishedId, PassengerUserId = PassengerThreeId, SeatsReserved = 1, StatusId = 3, BoardingCode = "7777", CreatedAt = now.AddHours(-3).AddMinutes(-10) },
+            new Reservation { Id = ResEightId, TripId = TripFinishedId, PassengerUserId = PassengerTwoId, SeatsReserved = 1, StatusId = 4, BoardingCode = "8888", CreatedAt = now.AddHours(-3).AddMinutes(-5) },
+            new Reservation { Id = ResNineId, TripId = TripRefundableId, PassengerUserId = PassengerFourId, SeatsReserved = 1, StatusId = 2, BoardingCode = "9090", CreatedAt = now.AddMinutes(-28) },
+            new Reservation { Id = ResTenId, TripId = TripFullId, PassengerUserId = PassengerOneId, SeatsReserved = 1, StatusId = 2, BoardingCode = "1010", CreatedAt = now.AddHours(-1).AddMinutes(-18) },
+            new Reservation { Id = ResElevenId, TripId = TripFullId, PassengerUserId = PassengerTwoId, SeatsReserved = 1, StatusId = 2, BoardingCode = "1110", CreatedAt = now.AddHours(-1).AddMinutes(-17) },
+            new Reservation { Id = ResTwelveId, TripId = TripFullId, PassengerUserId = PassengerThreeId, SeatsReserved = 1, StatusId = 2, BoardingCode = "1212", CreatedAt = now.AddHours(-1).AddMinutes(-16) },
+            new Reservation { Id = ResThirteenId, TripId = TripFullId, PassengerUserId = PassengerFiveId, SeatsReserved = 1, StatusId = 2, BoardingCode = "1313", CreatedAt = now.AddHours(-1).AddMinutes(-15) },
+            new Reservation { Id = ResFourteenId, TripId = TripMorningFinishedId, PassengerUserId = PassengerFourId, SeatsReserved = 1, StatusId = 3, BoardingCode = "1414", CreatedAt = now.AddDays(-1).AddHours(-7).AddMinutes(-40) },
+            new Reservation { Id = ResFifteenId, TripId = TripCancelledId, PassengerUserId = PassengerFiveId, SeatsReserved = 1, StatusId = 4, BoardingCode = "1515", CreatedAt = now.AddHours(-5).AddMinutes(-45) });
+    }
+
+    private static void SeedPaymentMethodsForUsers(CarPoolingContext context, DateTime now)
+    {
+        const string demoQr = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+
+        context.UserPaymentMethods.AddRange(
+            new UserPaymentMethod
+            {
+                Id = DriverOneQrMethodId,
+                UserId = DriverOneId,
+                PaymentMethodId = 3,
+                Alias = "QR Banco Union",
+                QrImageUrl = demoQr,
+                BankName = "Banco Union",
+                AccountHolderName = "Juan Perez",
+                IsDefault = true,
+                IsActive = true,
+                CreatedAt = now.AddDays(-15)
+            },
+            new UserPaymentMethod
+            {
+                Id = DriverTwoQrMethodId,
+                UserId = DriverTwoId,
+                PaymentMethodId = 3,
+                Alias = "QR BNB Personal",
+                QrImageUrl = demoQr,
+                BankName = "Banco Nacional de Bolivia",
+                AccountHolderName = "Maria Gomez Vaca",
+                IsDefault = true,
+                IsActive = true,
+                CreatedAt = now.AddDays(-14)
+            },
+            new UserPaymentMethod
+            {
+                Id = PassengerCardMethodId,
+                UserId = PassengerFourId,
+                PaymentMethodId = 2,
+                Alias = "Tarjeta demo",
+                MaskedValue = "**** **** **** 4242",
+                ProviderToken = "tok_demo_4242",
+                IsDefault = true,
+                IsActive = true,
+                CreatedAt = now.AddDays(-5)
+            },
+            new UserPaymentMethod
+            {
+                Id = PassengerWalletMethodId,
+                UserId = PassengerOneId,
+                PaymentMethodId = 4,
+                Alias = "Billetera Univalle",
+                MaskedValue = "Saldo demo 75 BOB",
+                ProviderToken = "wallet_demo_carlos",
+                IsDefault = true,
+                IsActive = true,
+                CreatedAt = now.AddDays(-6)
+            });
+    }
+
+    private static void SeedPayments(CarPoolingContext context, DateTime now)
+    {
+        context.Payments.AddRange(
+            new Payment
+            {
+                Id = PayOneId,
+                ReservationId = ResFourId,
+                PassengerUserId = PassengerTwoId,
+                PaymentMethodId = 2,
+                Amount = 10m,
+                Currency = "BOB",
+                Status = PaymentStatus.Approved,
+                Description = "Pago de pasaje simulado por tarjeta de debito",
+                ExternalReference = "PAY-DEMO-CARD-0001",
+                PaidAt = now.AddMinutes(-15),
+                CreatedAt = now.AddMinutes(-18),
+                UpdatedAt = now.AddMinutes(-15)
+            },
+            new Payment
+            {
+                Id = PayTwoId,
+                ReservationId = ResFiveId,
+                PassengerUserId = PassengerOneId,
+                PaymentMethodId = 1,
+                Amount = 10m,
+                Currency = "BOB",
+                Status = PaymentStatus.Pending,
+                Description = "Pago en efectivo pendiente de confirmacion del conductor",
+                ExternalReference = "PAY-DEMO-CASH-0002",
+                ExpiresAt = now.AddMinutes(45),
+                CreatedAt = now.AddMinutes(-12)
+            },
+            new Payment
+            {
+                Id = PayThreeId,
+                ReservationId = ResSixId,
+                PassengerUserId = PassengerOneId,
+                PaymentMethodId = 3,
+                UserPaymentMethodId = DriverTwoQrMethodId,
+                Amount = 12m,
+                Currency = "BOB",
+                Status = PaymentStatus.Approved,
+                Description = "Pago verificado por QR",
+                ExternalReference = "PAY-DEMO-QR-0003",
+                ConfirmedByUserId = DriverTwoId,
+                ConfirmedAt = now.AddHours(-2).AddMinutes(-30),
+                ConfirmationNotes = "QR verificado en cuenta BNB",
+                PaidAt = now.AddHours(-2).AddMinutes(-40),
+                CreatedAt = now.AddHours(-2).AddMinutes(-50),
+                UpdatedAt = now.AddHours(-2).AddMinutes(-30)
+            },
+            new Payment
+            {
+                Id = PayFourId,
+                ReservationId = ResSevenId,
+                PassengerUserId = PassengerThreeId,
+                PaymentMethodId = 1,
+                Amount = 12m,
+                Currency = "BOB",
+                Status = PaymentStatus.Approved,
+                Description = "Pago en efectivo entregado a conductora",
+                ExternalReference = "PAY-DEMO-CASH-0004",
+                ConfirmedByUserId = DriverTwoId,
+                ConfirmedAt = now.AddHours(-2),
+                PaidAt = now.AddHours(-2),
+                CreatedAt = now.AddHours(-2).AddMinutes(-15),
+                UpdatedAt = now.AddHours(-2)
+            },
+            new Payment
+            {
+                Id = PayFiveId,
+                ReservationId = ResNineId,
+                PassengerUserId = PassengerFourId,
+                PaymentMethodId = 2,
+                UserPaymentMethodId = PassengerCardMethodId,
+                Amount = 9m,
+                Currency = "BOB",
+                RefundedAmount = 4m,
+                Status = PaymentStatus.PartiallyRefunded,
+                Description = "Pago parcial con devolucion solicitada antes de iniciar",
+                ExternalReference = "PAY-DEMO-REFUND-0005",
+                PaidAt = now.AddMinutes(-24),
+                CreatedAt = now.AddMinutes(-26),
+                UpdatedAt = now.AddMinutes(-8)
+            },
+            new Payment
+            {
+                Id = PaySixId,
+                ReservationId = ResTenId,
+                PassengerUserId = PassengerOneId,
+                PaymentMethodId = 4,
+                UserPaymentMethodId = PassengerWalletMethodId,
+                Amount = 11m,
+                Currency = "BOB",
+                Status = PaymentStatus.Approved,
+                Description = "Pago con billetera simulada",
+                ExternalReference = "PAY-DEMO-WALLET-0006",
+                PaidAt = now.AddHours(-1),
+                CreatedAt = now.AddHours(-1).AddMinutes(-5),
+                UpdatedAt = now.AddHours(-1)
+            },
+            new Payment
+            {
+                Id = PaySevenId,
+                ReservationId = ResFifteenId,
+                PassengerUserId = PassengerFiveId,
+                PaymentMethodId = 2,
+                Amount = 10m,
+                Currency = "BOB",
+                RefundedAmount = 10m,
+                Status = PaymentStatus.Refunded,
+                Description = "Pago devuelto por cancelacion del viaje",
+                ExternalReference = "PAY-DEMO-CANCEL-0007",
+                PaidAt = now.AddHours(-5).AddMinutes(-35),
+                CreatedAt = now.AddHours(-5).AddMinutes(-40),
+                UpdatedAt = now.AddHours(-5)
+            });
+
+        context.PaymentTransactions.AddRange(
+            DemoTransaction(PayOneId, PaymentTransactionType.Payment, PaymentTransactionStatus.Success, 10m, "SIMULATED_GATEWAY", "TX-CARD-987654", "00", "Aprobado exitosamente", now.AddMinutes(-15)),
+            DemoTransaction(PayTwoId, PaymentTransactionType.Payment, PaymentTransactionStatus.Pending, 10m, "CASH", "TX-CASH-PENDING", "PENDING", "Esperando confirmacion del conductor", null),
+            DemoTransaction(PayThreeId, PaymentTransactionType.Payment, PaymentTransactionStatus.Success, 12m, "QR_BANK", "TX-QR-112233", "CONFIRMED", "Verificacion manual de QR exitosa", now.AddHours(-2).AddMinutes(-30)),
+            DemoTransaction(PayFourId, PaymentTransactionType.Confirmation, PaymentTransactionStatus.Success, 12m, "CASH", "TX-CASH-445566", "CONFIRMED", "Pago en efectivo confirmado", now.AddHours(-2)),
+            DemoTransaction(PayFiveId, PaymentTransactionType.Payment, PaymentTransactionStatus.Success, 9m, "SIMULATED_GATEWAY", "TX-CARD-REFUND", "00", "Pago aprobado en simulador", now.AddMinutes(-24)),
+            DemoTransaction(PayFiveId, PaymentTransactionType.Refund, PaymentTransactionStatus.Success, 4m, "CARD_SIM", "TX-REFUND-PARTIAL", "REFUNDED", "Devolucion parcial procesada", now.AddMinutes(-8)),
+            DemoTransaction(PaySixId, PaymentTransactionType.Payment, PaymentTransactionStatus.Success, 11m, "WALLET_SIM", "TX-WALLET-0006", "00", "Debito de billetera simulado", now.AddHours(-1)),
+            DemoTransaction(PaySevenId, PaymentTransactionType.Refund, PaymentTransactionStatus.Success, 10m, "SIMULATED_GATEWAY", "TX-REFUND-CANCEL", "REFUNDED", "Devolucion completa por cancelacion", now.AddHours(-5)));
+
+        context.PaymentReceipts.AddRange(
+            DemoReceipt(PayOneId, "R-2026-00001", now.AddMinutes(-15)),
+            DemoReceipt(PayThreeId, "R-2026-00002", now.AddHours(-2).AddMinutes(-30)),
+            DemoReceipt(PayFourId, "R-2026-00003", now.AddHours(-2)),
+            DemoReceipt(PayFiveId, "R-2026-00004", now.AddMinutes(-24)),
+            DemoReceipt(PaySixId, "R-2026-00005", now.AddHours(-1)),
+            DemoReceipt(PaySevenId, "R-2026-00006", now.AddHours(-5)));
+
+        context.Refunds.Add(new Refund
+        {
+            Id = RefundOneId,
+            PaymentId = PayFiveId,
+            Amount = 4m,
+            Status = RefundStatus.Processed,
+            RequestedByUserId = PassengerFourId,
+            ProcessedByUserId = DriverThreeId,
+            Reason = "El pasajero cambio a un punto de encuentro mas cercano.",
+            IsWithinCancellationWindow = true,
+            CancellationDeadline = now.AddMinutes(20),
+            MinutesBeforeTripStart = 40,
+            RequestedAt = now.AddMinutes(-10),
+            ProcessedAt = now.AddMinutes(-8),
+            CreatedAt = now.AddMinutes(-10)
+        });
+    }
+
+    private static PaymentTransaction DemoTransaction(
+        Guid paymentId,
+        PaymentTransactionType type,
+        PaymentTransactionStatus status,
+        decimal amount,
+        string provider,
+        string providerTransactionId,
+        string responseCode,
+        string responseMessage,
+        DateTime? processedAt)
+    {
+        return new PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            PaymentId = paymentId,
+            TransactionType = type,
+            Status = status,
+            Amount = amount,
+            Provider = provider,
+            ProviderTransactionId = providerTransactionId,
+            ResponseCode = responseCode,
+            ResponseMessage = responseMessage,
+            ProcessedAt = processedAt,
+            CreatedAt = processedAt ?? DateTime.UtcNow
+        };
+    }
+
+    private static PaymentReceipt DemoReceipt(Guid paymentId, string receiptNumber, DateTime issuedAt)
+    {
+        return new PaymentReceipt
+        {
+            Id = Guid.NewGuid(),
+            PaymentId = paymentId,
+            ReceiptNumber = receiptNumber,
+            QrCodeValue = $"RECEIPT-{receiptNumber}",
+            IssuedAt = issuedAt,
+            CreatedAt = issuedAt
+        };
+    }
+
+    private static void SeedChats(CarPoolingContext context, DateTime now)
+    {
+        context.TripChats.AddRange(
+            new TripChat { Id = ChatActiveId, TripId = TripInProgressId, CreatedAt = now.AddMinutes(-40) },
+            new TripChat { Id = ChatFinishedId, TripId = TripFinishedId, CreatedAt = now.AddHours(-3) });
+
+        var activeMessages = new[]
+        {
+            new TripChatMessage { Id = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff1"), ChatId = ChatActiveId, SenderUserId = DriverOneId, MessageText = "Hola a todos. Estoy parqueado en la salida del campus, frente al porton principal.", CreatedAt = now.AddMinutes(-15) },
+            new TripChatMessage { Id = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff2"), ChatId = ChatActiveId, SenderUserId = PassengerTwoId, MessageText = "Hola Juan, salgo de mi clase del edificio de Ingenieria. Llego en 3 minutos.", CreatedAt = now.AddMinutes(-12) },
+            new TripChatMessage { Id = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff3"), ChatId = ChatActiveId, SenderUserId = PassengerOneId, MessageText = "Listo, tambien voy bajando por las escaleras principales.", CreatedAt = now.AddMinutes(-10) },
+            new TripChatMessage { Id = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff4"), ChatId = ChatActiveId, SenderUserId = DriverOneId, MessageText = "Excelente, los espero en el Corolla blanco.", CreatedAt = now.AddMinutes(-8) }
+        };
+
+        var finishedMessages = new[]
+        {
+            new TripChatMessage { Id = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff5"), ChatId = ChatFinishedId, SenderUserId = DriverTwoId, MessageText = "Gracias por viajar conmigo. Ya finalice el recorrido.", CreatedAt = now.AddHours(-2).AddMinutes(-5) },
+            new TripChatMessage { Id = Guid.Parse("ffffffff-ffff-ffff-ffff-fffffffffff6"), ChatId = ChatFinishedId, SenderUserId = PassengerOneId, MessageText = "Gracias Maria, todo bien. Ya deje mi calificacion.", CreatedAt = now.AddHours(-1).AddMinutes(-55) }
+        };
+
+        context.TripChatMessages.AddRange(activeMessages);
+        context.TripChatMessages.AddRange(finishedMessages);
+
+        context.TripChatMessageReads.AddRange(
+            new TripChatMessageRead { MessageId = activeMessages[0].Id, UserId = PassengerTwoId, ReadAt = now.AddMinutes(-14) },
+            new TripChatMessageRead { MessageId = activeMessages[0].Id, UserId = PassengerOneId, ReadAt = now.AddMinutes(-13) },
+            new TripChatMessageRead { MessageId = activeMessages[1].Id, UserId = DriverOneId, ReadAt = now.AddMinutes(-11) },
+            new TripChatMessageRead { MessageId = activeMessages[2].Id, UserId = DriverOneId, ReadAt = now.AddMinutes(-9) },
+            new TripChatMessageRead { MessageId = finishedMessages[0].Id, UserId = PassengerOneId, ReadAt = now.AddHours(-2) },
+            new TripChatMessageRead { MessageId = finishedMessages[1].Id, UserId = DriverTwoId, ReadAt = now.AddHours(-1).AddMinutes(-50) });
+    }
+
+    private static void SeedRatings(CarPoolingContext context, DateTime now)
+    {
+        context.TripRatings.AddRange(
+            new TripRating
+            {
+                Id = Guid.Parse("11112222-3333-4444-5555-666677778881"),
+                TripId = TripFinishedId,
+                EvaluatorUserId = PassengerOneId,
+                EvaluatedUserId = DriverTwoId,
+                RatingRole = RatingRole.PassengerToDriver,
+                Score = 5,
+                Comment = "La conductora fue puntual y el auto estaba limpio y comodo.",
+                Tags = "Puntual,Limpio,Amable",
+                CreatedAt = now.AddHours(-1).AddMinutes(-50)
+            },
+            new TripRating
+            {
+                Id = Guid.Parse("11112222-3333-4444-5555-666677778882"),
+                TripId = TripFinishedId,
+                EvaluatorUserId = PassengerThreeId,
+                EvaluatedUserId = DriverTwoId,
+                RatingRole = RatingRole.PassengerToDriver,
+                Score = 4,
+                Comment = "Buen viaje, habia trafico pero la ruta fue segura.",
+                Tags = "Respetuoso,Puntual",
+                CreatedAt = now.AddHours(-1).AddMinutes(-45)
+            },
+            new TripRating
+            {
+                Id = Guid.Parse("11112222-3333-4444-5555-666677778883"),
+                TripId = TripFinishedId,
+                EvaluatorUserId = DriverTwoId,
+                EvaluatedUserId = PassengerOneId,
+                RatingRole = RatingRole.DriverToPassenger,
+                Score = 5,
+                Comment = "Pasajero educado y puntual al abordar.",
+                Tags = "Educado,Puntual",
+                CreatedAt = now.AddHours(-1).AddMinutes(-30)
+            },
+            new TripRating
+            {
+                Id = Guid.Parse("11112222-3333-4444-5555-666677778884"),
+                TripId = TripFinishedId,
+                EvaluatorUserId = DriverTwoId,
+                EvaluatedUserId = PassengerThreeId,
+                RatingRole = RatingRole.DriverToPassenger,
+                Score = 5,
+                Comment = "Pasajero respetuoso durante todo el trayecto.",
+                Tags = "Respetuoso",
+                CreatedAt = now.AddHours(-1).AddMinutes(-28)
+            },
+            new TripRating
+            {
+                Id = Guid.Parse("11112222-3333-4444-5555-666677778885"),
+                TripId = TripMorningFinishedId,
+                EvaluatorUserId = PassengerFourId,
+                EvaluatedUserId = DriverOneId,
+                RatingRole = RatingRole.PassengerToDriver,
+                Score = 5,
+                Comment = "Llegamos a tiempo para el primer modulo.",
+                Tags = "Puntual,Seguro",
+                CreatedAt = now.AddDays(-1).AddHours(-5)
+            });
+    }
+
+    private static void SeedSupport(CarPoolingContext context, DateTime now)
+    {
+        context.SupportTickets.AddRange(
+            new SupportTicket
+            {
+                Id = TicketOneId,
+                UserId = PassengerOneId,
+                TripId = TripFinishedId,
+                ReservationId = ResSixId,
+                Category = SupportTicketCategory.Trip,
+                Subject = "Celular olvidado en el vehiculo",
+                Description = "Creo que olvide mi celular Samsung con funda azul en el asiento trasero del Suzuki Swift gris.",
+                Status = SupportTicketStatus.Open,
+                AssignedAdminUserId = AdminId,
+                CreatedAt = now.AddHours(-3),
+                LastMessageAt = now.AddHours(-2).AddMinutes(-50)
+            },
+            new SupportTicket
+            {
+                Id = TicketTwoId,
+                UserId = PassengerTwoId,
+                Category = SupportTicketCategory.Account,
+                Subject = "Problema con saldo de billetera simulada",
+                Description = "Realice una recarga de 50 BOB pero el saldo seguia apareciendo en 0 BOB.",
+                Status = SupportTicketStatus.Resolved,
+                AssignedAdminUserId = AdminId,
+                CreatedAt = now.AddDays(-3),
+                FirstAdminReplyAt = now.AddDays(-2),
+                LastMessageAt = now.AddDays(-1),
+                ClosedAt = now.AddDays(-1)
+            },
+            new SupportTicket
+            {
+                Id = TicketThreeId,
+                UserId = PassengerFourId,
+                ReservationId = ResNineId,
+                Category = SupportTicketCategory.Payment,
+                Subject = "Consulta sobre devolucion parcial",
+                Description = "Solicite una devolucion parcial y quiero confirmar que quedo registrada.",
+                Status = SupportTicketStatus.InReview,
+                AssignedAdminUserId = AdminId,
+                CreatedAt = now.AddMinutes(-18),
+                FirstAdminReplyAt = now.AddMinutes(-12),
+                LastMessageAt = now.AddMinutes(-10)
+            });
+
+        var messages = new[]
+        {
+            new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990001"), TicketId = TicketOneId, SenderUserId = PassengerOneId, SenderKind = SupportMessageSenderKind.User, MessageText = "Hola, no he podido comunicarme con la conductora. Ojala me puedan ayudar.", CreatedAt = now.AddHours(-2).AddMinutes(-50) },
+            new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990002"), TicketId = TicketTwoId, SenderUserId = PassengerTwoId, SenderKind = SupportMessageSenderKind.User, MessageText = "Ayer hice la recarga pero no se refleja en mi balance.", CreatedAt = now.AddDays(-3).AddHours(1) },
+            new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990003"), TicketId = TicketTwoId, SenderUserId = AdminId, SenderKind = SupportMessageSenderKind.Admin, MessageText = "Hola Ana. Verificamos la transaccion y acreditamos manualmente los 50 BOB.", CreatedAt = now.AddDays(-2) },
+            new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990004"), TicketId = TicketTwoId, SenderUserId = PassengerTwoId, SenderKind = SupportMessageSenderKind.User, MessageText = "Ya aparece el saldo correcto. Muchas gracias.", CreatedAt = now.AddDays(-1) },
+            new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990005"), TicketId = TicketThreeId, SenderUserId = PassengerFourId, SenderKind = SupportMessageSenderKind.User, MessageText = "La devolucion parcial aparece en el detalle del pago, pero quiero confirmar el estado.", CreatedAt = now.AddMinutes(-16) },
+            new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990006"), TicketId = TicketThreeId, SenderUserId = AdminId, SenderKind = SupportMessageSenderKind.Admin, MessageText = "Estamos revisando el movimiento. El estado figura como procesado por el conductor.", CreatedAt = now.AddMinutes(-12) }
+        };
+
+        context.SupportTicketMessages.AddRange(messages);
+        context.SupportTicketMessageReads.AddRange(
+            new SupportTicketMessageRead { MessageId = messages[0].Id, UserId = AdminId, ReadAt = now.AddHours(-2).AddMinutes(-45) },
+            new SupportTicketMessageRead { MessageId = messages[2].Id, UserId = PassengerTwoId, ReadAt = now.AddDays(-2).AddMinutes(5) },
+            new SupportTicketMessageRead { MessageId = messages[5].Id, UserId = PassengerFourId, ReadAt = now.AddMinutes(-10) });
+    }
+
+    private static void SeedDevices(CarPoolingContext context, DateTime now)
+    {
+        context.UserDevices.AddRange(
+            new UserDevice { Id = Guid.Parse("12121212-1212-1212-1212-121212121201"), UserId = DriverOneId, FcmToken = "demo-fcm-driver-juan", DeviceName = "Pixel conductor Juan", LastUsedAt = now.AddMinutes(-5) },
+            new UserDevice { Id = Guid.Parse("12121212-1212-1212-1212-121212121202"), UserId = PassengerOneId, FcmToken = "demo-fcm-carlos", DeviceName = "Android Carlos", LastUsedAt = now.AddMinutes(-3) },
+            new UserDevice { Id = Guid.Parse("12121212-1212-1212-1212-121212121203"), UserId = PassengerTwoId, FcmToken = "demo-fcm-ana", DeviceName = "Android Ana", LastUsedAt = now.AddMinutes(-8) });
+    }
+
+    private static async Task SeedDefaultThemeAsync(CarPoolingContext context)
+    {
+        if (await context.AppSettings.AnyAsync(s => s.Key == "theme"))
+        {
+            return;
         }
+
+        context.AppSettings.Add(new AppSetting
+        {
+            Key = "theme",
+            Value = "{\"primaryLight\":\"#82254B\",\"secondaryLight\":\"#6E1E3F\",\"textLight\":\"#111827\",\"bgLight\":\"#FFFFFF\",\"cardLight\":\"#F5F5F5\",\"borderLight\":\"#9CA8B0\",\"primaryDark\":\"#82254B\",\"secondaryDark\":\"#6E1E3F\",\"textDark\":\"#ffffff\",\"bgDark\":\"#121011\",\"cardDark\":\"#251a1e\",\"borderDark\":\"#6E1E3F\"}"
+        });
+
+        await context.SaveChangesAsync();
     }
 
     private static string HashPassword(string password)

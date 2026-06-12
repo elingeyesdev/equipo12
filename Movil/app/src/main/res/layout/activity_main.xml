@@ -295,26 +295,11 @@
 
                 <Button
                     android:id="@+id/createTripButton"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
                     android:background="@drawable/bg_primary_action"
                     android:backgroundTint="@null"
                     android:text="@string/button_create_trip"
-                    android:textColor="@color/button_text_color"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/cancelTripButton"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_primary_action"
-                    android:backgroundTint="@null"
-                    android:enabled="false"
-                    android:text="@string/button_cancel_trip"
                     android:textColor="@color/button_text_color"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -362,11 +347,25 @@
                     android:layout_marginBottom="8dp">
 
                     <Button
+                        android:id="@+id/cancelTripButton"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_danger_action"
+                        android:backgroundTint="@null"
+                        android:enabled="false"
+                        android:text="@string/button_cancel_trip"
+                        android:textColor="@color/button_text_color"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <Button
                         android:id="@+id/startTripButton"
                         android:layout_width="0dp"
                         android:layout_height="48dp"
-                        android:layout_marginEnd="8dp"
                         android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
                         android:background="@drawable/bg_primary_action"
                         android:backgroundTint="@null"
                         android:enabled="false"
@@ -390,50 +389,16 @@
                 </LinearLayout>
 
                 <Button
-                    android:id="@+id/boardPassengerCodeButton"
+                    android:id="@+id/markBoardedButton"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:layout_marginBottom="8dp"
                     android:background="@drawable/bg_primary_action"
                     android:backgroundTint="@null"
                     android:enabled="false"
-                    android:text="Subir pasajero"
+                    android:text="@string/button_mark_boarded"
                     android:textColor="@color/button_text_color"
                     android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/markBoardedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_marginEnd="8dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_primary_action"
-                        android:backgroundTint="@null"
-                        android:enabled="false"
-                        android:text="@string/button_mark_boarded"
-                        android:textColor="@color/button_text_color"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/viewBoardedPassengersButton"
-                        android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_info_field"
-                        android:enabled="false"
-                        android:text="@string/button_view_boarded_passengers"
-                        android:textColor="@color/carpool_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <Button
