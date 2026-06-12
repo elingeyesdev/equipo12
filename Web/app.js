@@ -851,7 +851,12 @@ function getCreateModalMarkup(type) {
     <label class="field"><span>Email</span><input type="email" id="createEmail" autocomplete="email" placeholder="usuario@univalle.edu" required /></label>
     <label class="field"><span>Contrasena</span><input type="password" id="createPassword" autocomplete="new-password" placeholder="Minimo 6 caracteres" minlength="6" required /></label>
     <label class="field"><span>Confirmar Contrasena</span><input type="password" id="createConfirmPassword" autocomplete="new-password" placeholder="Minimo 6 caracteres" minlength="6" required /></label>
-    <label class="field"><span>Foto de perfil</span><input type="file" id="createProfilePicture" accept="image/*" required /></label>
+    <label class="field"><span>Foto de perfil</span>
+      <input type="file" id="createProfilePicture" accept="image/*" required />
+      <div id="profilePicturePreviewContainer" style="margin-top: 10px; display: none; text-align: center;">
+        <img id="profilePicturePreview" src="" alt="Vista previa" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+      </div>
+    </label>
     <label class="field"><span>Telefono</span><input type="text" id="createPhone" autocomplete="tel" placeholder="Ej: 7654321" required /></label>
     <label class="field"><span>Rol</span>
       <select id="createRole">
@@ -2483,6 +2488,22 @@ createModalForm?.addEventListener("change", (event) => {
 
   if (event.target?.id === "createReservationPassengerSelect") {
     syncCreateReservationPassengerSelection();
+  }
+
+  if (event.target?.id === "createProfilePicture") {
+    const file = event.target.files[0];
+    const previewContainer = document.getElementById("profilePicturePreviewContainer");
+    const previewImg = document.getElementById("profilePicturePreview");
+    if (file && previewContainer && previewImg) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewImg.src = e.target.result;
+        previewContainer.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    } else if (previewContainer) {
+      previewContainer.style.display = "none";
+    }
   }
 });
 
