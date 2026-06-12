@@ -2190,7 +2190,6 @@ function renderPaymentsTable(payments) {
 
     return `
     <tr data-status="${payment.status}">
-      <td>${escapeHtml(payment.id.substring(0, 8))}</td>
       <td>${escapeHtml(payment.passengerName || "-")}</td>
       <td>${escapeHtml(payment.driverName || "-")}</td>
       <td>${escapeHtml(payment.paymentMethodName || "-")}</td>
@@ -2365,8 +2364,7 @@ function renderTripsTable(trips) {
       const tripStatusValue = trip.statusLabel ?? trip.statusId ?? trip.status;
 
       return `
-    <tr>
-      <td>${escapeHtml(trip.id || "-")}</td>
+    <tr data-created-at="${trip.createdAt || ''}">
       <td>${escapeHtml(trip.driverName || "-")}</td>
       <td>${escapeHtml(hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "-")}</td>
       <td>${escapeHtml(hasTripCoordinates(destination) ? `${destination.lat}, ${destination.lng}` : "-")}</td>
@@ -2392,9 +2390,8 @@ function renderReservationsTable(reservations) {
   }
 
   adminReservationsBody.innerHTML = reservations.map((reservation) => `
-    <tr>
+    <tr data-created-at="${reservation.createdAt || ''}">
       <td>${escapeHtml(reservation.passengerName)}</td>
-      <td>${escapeHtml(reservation.tripId)}</td>
       <td>${escapeHtml(formatReservationStatus(reservation.status))}</td>
       <td>${escapeHtml(new Date(reservation.createdAt).toLocaleString())}</td>
       <td>
@@ -2804,7 +2801,7 @@ function viewUserTrips(userId) {
   
   // Viajes como pasajero
   reservations.forEach(r => {
-    if (String(r.passengerId) === String(userId)) {
+    if (String(r.passengerUserId) === String(userId)) {
       const t = trips.find(trip => String(trip.id) === String(r.tripId));
       if (t) {
         const origin = getTripOriginCoordinates(t);
@@ -2926,13 +2923,27 @@ document.getElementById("usersFilterInput")?.addEventListener("input", applyUser
 document.getElementById("usersFilterStartDate")?.addEventListener("change", applyUsersFilter);
 document.getElementById("usersFilterEndDate")?.addEventListener("change", applyUsersFilter);
 
-document.getElementById("tripsFilterInput")?.addEventListener("input", (event) => {
-  applyTableFilter("adminTripsBody", event.target.value);
-});
+const applyTripsFilter = () => {
+  const search = document.getElementById("tripsFilterInput")?.value || "";
+  const start = document.getElementById("tripsFilterStartDate")?.value || "";
+  const end = document.getElementById("tripsFilterEndDate")?.value || "";
+  applyTableFilter("adminTripsBody", search, start, end);
+};
 
-document.getElementById("reservationsFilterInput")?.addEventListener("input", (event) => {
-  applyTableFilter("adminReservationsBody", event.target.value);
-});
+document.getElementById("tripsFilterInput")?.addEventListener("input", applyTripsFilter);
+document.getElementById("tripsFilterStartDate")?.addEventListener("change", applyTripsFilter);
+document.getElementById("tripsFilterEndDate")?.addEventListener("change", applyTripsFilter);
+
+const applyReservationsFilter = () => {
+  const search = document.getElementById("reservationsFilterInput")?.value || "";
+  const start = document.getElementById("reservationsFilterStartDate")?.value || "";
+  const end = document.getElementById("reservationsFilterEndDate")?.value || "";
+  applyTableFilter("adminReservationsBody", search, start, end);
+};
+
+document.getElementById("reservationsFilterInput")?.addEventListener("input", applyReservationsFilter);
+document.getElementById("reservationsFilterStartDate")?.addEventListener("change", applyReservationsFilter);
+document.getElementById("reservationsFilterEndDate")?.addEventListener("change", applyReservationsFilter);
 
 supportFilterInput?.addEventListener("input", (event) => {
   applyTableFilter("adminSupportBody", event.target.value);
@@ -3112,6 +3123,8 @@ function applyClientTheme(colors) {
   // Calcular contraste para el texto del sidebar
   const luminance = (secondaryRgb.r * 0.299 + secondaryRgb.g * 0.587 + secondaryRgb.b * 0.114) / 255;
   root.style.setProperty("--sidebar-text", luminance > 0.6 ? "#1a1a1a" : "#ffffff");
+  
+  localStorage.setItem("cp.theme", JSON.stringify(colors));
 }
 
 function updateHexLabels() {
@@ -3188,6 +3201,13 @@ document.querySelectorAll(".preset-card").forEach(card => {
       if (presetName === "Custom") {
         updateCustomPresetVisuals(colors);
       }
+      
+      // Auto-guardar al seleccionar preset
+      apiFetch("/api/settings/theme", {
+        method: "PUT",
+        headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {},
+        body: JSON.stringify(colors)
+      }).catch(console.error);
     }
   });
 });
@@ -3212,6 +3232,7 @@ const getCurrentThemeColors = () => {
   };
 };
 
+let themeSaveTimeout = null;
 ["themePrimaryLight", "themeSecondaryLight", "themeTextLight", "themeBgLight", "themeCardLight", "themeBorderLight",
  "themePrimaryDark", "themeSecondaryDark", "themeTextDark", "themeBgDark", "themeCardDark", "themeBorderDark"].forEach(id => {
   document.getElementById(id)?.addEventListener("input", () => {
@@ -3227,6 +3248,16 @@ const getCurrentThemeColors = () => {
     
     applyClientTheme(currentColors);
     updatePresetActiveState("Custom");
+
+    // Auto-guardar en el backend con debounce
+    clearTimeout(themeSaveTimeout);
+    themeSaveTimeout = setTimeout(() => {
+      apiFetch("/api/settings/theme", {
+        method: "PUT",
+        headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {},
+        body: JSON.stringify(currentColors)
+      }).catch(console.error);
+    }, 1000);
   });
 });
 
@@ -3237,6 +3268,12 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 });
 
 async function fetchThemeOnStartup() {
+  const localTheme = localStorage.getItem("cp.theme");
+  if (localTheme) {
+    try {
+      applyClientTheme(JSON.parse(localTheme));
+    } catch (e) {}
+  }
   try {
     const response = await fetch(`${normalizeUrl(state.apiBaseUrl)}/api/settings/theme`, {
       method: "GET",
@@ -3247,8 +3284,8 @@ async function fetchThemeOnStartup() {
       applyClientTheme(colors);
     }
   } catch (error) {
-    console.warn("No se pudo cargar el tema dinámico del backend. Usando tema Univalle por defecto.", error);
-    applyClientTheme(presets.Univalle);
+    console.warn("No se pudo cargar el tema dinámico del backend. Usando tema local o Univalle por defecto.", error);
+    if (!localTheme) applyClientTheme(presets.Univalle);
   }
 }
 
@@ -4377,6 +4414,21 @@ function getExportUsersData() {
     filteredUsers = users.filter(u => Number(u.roleId) === 3 || String(u.role || "").toLowerCase().includes("admin"));
     filename = "administradores";
   }
+
+  const startStr = document.getElementById("usersFilterStartDate")?.value;
+  const endStr = document.getElementById("usersFilterEndDate")?.value;
+  if (startStr || endStr) {
+    const start = startStr ? new Date(startStr) : null;
+    const end = endStr ? new Date(endStr) : null;
+    if (end) end.setHours(23, 59, 59, 999);
+    filteredUsers = filteredUsers.filter(u => {
+      if (!u.createdAt) return false;
+      const d = new Date(u.createdAt);
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+      return true;
+    });
+  }
   
   let headers = ["ID", "Nombre", "Email", "Rol", "Telefono", "Fecha Creacion"];
   let data = filteredUsers.map(u => [u.id, u.fullName, u.email, formatUserRole(u.role), u.phoneNumber, u.createdAt]);
@@ -4393,8 +4445,24 @@ function getExportUsersData() {
 }
 
 function getExportTripsData() {
-  const trips = state.adminData.trips || [];
-  const headers = ["ID Viaje", "Conductor", "Origen", "Destino", "Estado", "Cupos", "Tipo", "Fecha Creacion"];
+  let trips = state.adminData.trips || [];
+  
+  const startStr = document.getElementById("tripsFilterStartDate")?.value;
+  const endStr = document.getElementById("tripsFilterEndDate")?.value;
+  if (startStr || endStr) {
+    const start = startStr ? new Date(startStr) : null;
+    const end = endStr ? new Date(endStr) : null;
+    if (end) end.setHours(23, 59, 59, 999);
+    trips = trips.filter(t => {
+      if (!t.createdAt) return false;
+      const d = new Date(t.createdAt);
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+      return true;
+    });
+  }
+
+  const headers = ["Conductor", "Origen", "Destino", "Estado", "Cupos", "Tipo", "Fecha Creacion"];
   const data = trips.map(t => {
     const statusVal = t.statusLabel ?? t.statusId ?? t.status;
     const origin = getTripOriginCoordinates(t);
@@ -4402,7 +4470,6 @@ function getExportTripsData() {
     const originText = hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "-";
     const destText = hasTripCoordinates(destination) ? `${destination.lat}, ${destination.lng}` : "-";
     return [
-      t.id,
       t.driverName || "-",
       originText,
       destText,
@@ -4416,9 +4483,25 @@ function getExportTripsData() {
 }
 
 function getExportReservationsData() {
-  const reservations = state.adminData.reservations || [];
-  const headers = ["ID Reserva", "ID Viaje", "Pasajero", "Asientos", "Estado", "Fecha Creacion"];
-  const data = reservations.map(r => [r.id, r.tripId, r.passengerName, r.seatsReserved, formatReservationStatus(r.status), r.createdAt]);
+  let reservations = state.adminData.reservations || [];
+
+  const startStr = document.getElementById("reservationsFilterStartDate")?.value;
+  const endStr = document.getElementById("reservationsFilterEndDate")?.value;
+  if (startStr || endStr) {
+    const start = startStr ? new Date(startStr) : null;
+    const end = endStr ? new Date(endStr) : null;
+    if (end) end.setHours(23, 59, 59, 999);
+    reservations = reservations.filter(r => {
+      if (!r.createdAt) return false;
+      const d = new Date(r.createdAt);
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+      return true;
+    });
+  }
+
+  const headers = ["Pasajero", "Asientos", "Estado", "Fecha Creacion"];
+  const data = reservations.map(r => [r.passengerName, r.seatsReserved, formatReservationStatus(r.status), r.createdAt]);
   return { data, headers, filename: "reservas" };
 }
 
