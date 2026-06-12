@@ -689,7 +689,7 @@ function getSectionMeta(section) {
   return map[section] || map.overview;
 }
 
-function applyTableFilter(containerId, searchTerm) {
+function applyTableFilter(containerId, searchTerm, startDateStr = null, endDateStr = null) {
   const tbody = document.getElementById(containerId);
   if (!tbody) {
     return;
@@ -697,6 +697,10 @@ function applyTableFilter(containerId, searchTerm) {
 
   const normalizedSearch = String(searchTerm || "").trim().toLowerCase();
   const rows = Array.from(tbody.querySelectorAll("tr"));
+  
+  const start = startDateStr ? new Date(startDateStr) : null;
+  const end = endDateStr ? new Date(endDateStr) : null;
+  if (end) end.setHours(23, 59, 59, 999);
 
   rows.forEach((row) => {
     const isEmptyRow = row.children.length === 1;
@@ -705,18 +709,28 @@ function applyTableFilter(containerId, searchTerm) {
       return;
     }
 
-    if (!normalizedSearch) {
-      row.style.display = "";
-      return;
+    let matchesSearch = true;
+    if (normalizedSearch) {
+      const rowText = row.textContent?.toLowerCase() || "";
+      matchesSearch = rowText.includes(normalizedSearch);
+    }
+    
+    let matchesDate = true;
+    if (start || end) {
+      const rowDateStr = row.getAttribute("data-created-at");
+      if (rowDateStr && rowDateStr !== "undefined" && rowDateStr !== "null") {
+        const rowDate = new Date(rowDateStr);
+        if (start && rowDate < start) matchesDate = false;
+        if (end && rowDate > end) matchesDate = false;
+      }
     }
 
-    const rowText = row.textContent?.toLowerCase() || "";
-    row.style.display = rowText.includes(normalizedSearch) ? "" : "none";
+    row.style.display = (matchesSearch && matchesDate) ? "" : "none";
   });
 }
 
 function applyAllTableFilters() {
-  applyTableFilter("adminUsersBody", document.getElementById("usersFilterInput")?.value || "");
+  applyTableFilter("adminUsersBody", document.getElementById("usersFilterInput")?.value || "", document.getElementById("usersFilterStartDate")?.value, document.getElementById("usersFilterEndDate")?.value);
   applyTableFilter("adminTripsBody", document.getElementById("tripsFilterInput")?.value || "");
   applyTableFilter("adminReservationsBody", document.getElementById("reservationsFilterInput")?.value || "");
   applyTableFilter("adminSupportBody", supportFilterInput?.value || "");
@@ -2321,7 +2335,7 @@ function renderUsersTable(users) {
   }
 
   adminUsersBody.innerHTML = users.map((user) => `
-    <tr>
+    <tr data-created-at="${user.createdAt || ''}">
       <td>${escapeHtml(user.fullName)}</td>
       <td>${escapeHtml(user.email)}</td>
       <td>${escapeHtml(formatUserRole(user.role))}</td>
@@ -2901,9 +2915,16 @@ document.getElementById("loginForm").addEventListener("submit", async (event) =>
   }
 });
 
-document.getElementById("usersFilterInput")?.addEventListener("input", (event) => {
-  applyTableFilter("adminUsersBody", event.target.value);
-});
+const applyUsersFilter = () => {
+  const search = document.getElementById("usersFilterInput")?.value || "";
+  const start = document.getElementById("usersFilterStartDate")?.value || "";
+  const end = document.getElementById("usersFilterEndDate")?.value || "";
+  applyTableFilter("adminUsersBody", search, start, end);
+};
+
+document.getElementById("usersFilterInput")?.addEventListener("input", applyUsersFilter);
+document.getElementById("usersFilterStartDate")?.addEventListener("change", applyUsersFilter);
+document.getElementById("usersFilterEndDate")?.addEventListener("change", applyUsersFilter);
 
 document.getElementById("tripsFilterInput")?.addEventListener("input", (event) => {
   applyTableFilter("adminTripsBody", event.target.value);
@@ -4317,23 +4338,7 @@ function performExport(data, headers, filename, format) {
   if (format === "pdf") {
     exportToPDF(data, headers, filename);
   } else if (format === "excel") {
-    // Para Excel en español, el separador punto y coma (;) es el óptimo
-    const csvContent = [
-      headers.join(";"),
-      ...data.map(row => row.map(val => {
-        const strVal = String(val ?? "");
-        return `"${strVal.replace(/"/g, '""')}"`;
-      }).join(";"))
-    ].join("\n");
-    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename + "_excel.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    exportToExcel(data, headers, filename);
   } else {
     // CSV Estándar (separado por comas)
     const csvContent = [
