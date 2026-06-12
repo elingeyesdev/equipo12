@@ -389,6 +389,27 @@ function renderTripDetails(trip) {
         <div id="detailTripMap" class="trip-map" aria-label="Mapa con origen y destino del viaje"></div>
         <p class="hint-box">Origen y destino se muestran juntos para revisar la ruta antes de editar o eliminar.</p>
       </div>
+
+      ${(() => {
+        const tripReservations = state.adminData.reservations?.filter(r => r.tripId === trip.id) || [];
+        if (!tripReservations.length) return "";
+        return `
+          <div class="detail-card__section">
+            <h5>Pasajeros de este viaje</h5>
+            <div class="detail-stack">
+              ${tripReservations.map(r => `
+                <article class="detail-card detail-card--nested">
+                  <div class="detail-grid">
+                    <div><strong>Pasajero:</strong> ${escapeHtml(r.passengerName || "-")}</div>
+                    <div><strong>Asientos:</strong> ${escapeHtml(r.seatsReserved ?? "-")}</div>
+                    <div><strong>Estado:</strong> ${escapeHtml(formatReservationStatus(r.status))}</div>
+                  </div>
+                </article>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      })()}
     </article>
   `;
 }
