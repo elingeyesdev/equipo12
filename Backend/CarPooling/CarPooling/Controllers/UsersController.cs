@@ -86,6 +86,7 @@ public class UsersController(CarPoolingContext context,
             .FirstOrDefaultAsync(u => u.Email == normalizedEmail && u.PasswordHash == incomingHash);
 
         if (user is null) return Unauthorized("Credenciales invalidas.");
+        if (!user.IsActive) return Unauthorized("Tu cuenta ha sido deshabilitada. Contacta al administrador.");
         return Ok(UserResponseDto.FromEntity(user));
     }
 

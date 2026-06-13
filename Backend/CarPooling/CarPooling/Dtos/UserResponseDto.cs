@@ -15,6 +15,7 @@ public class UserResponseDto
     public List<string> Permissions { get; set; } = [];
     public DriverProfileDto? DriverProfile { get; set; }
     public List<VehicleDto> Vehicles { get; set; } = [];
+    public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 
     public static UserResponseDto FromEntity(User user)
@@ -66,6 +67,7 @@ public class UserResponseDto
                 ? null
                 : DriverProfileDto.FromEntity(user.DriverProfile, activeVehicle),
             Vehicles = user.Vehicles?.Select(VehicleDto.FromEntity).ToList() ?? [],
+            IsActive = user.IsActive,
             CreatedAt = user.CreatedAt
         };
     }

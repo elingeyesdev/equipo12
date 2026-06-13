@@ -160,6 +160,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(u => u.Email).IsRequired().HasMaxLength(120);
             entity.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256);
             entity.Property(u => u.PhoneNumber).HasMaxLength(25);
+            entity.Property(u => u.IsActive).IsRequired().HasDefaultValue(true);
             entity.Property(u => u.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
 
             entity.HasMany(u => u.UserRoles)

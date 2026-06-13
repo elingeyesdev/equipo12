@@ -111,6 +111,15 @@ function sanitizeWebError(rawError) {
     return "Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.";
   }
   const errorMsg = String(rawError).trim();
+
+  // If the error message contains the API_ERROR marker, extract and return the raw server message
+  if (errorMsg.includes("API_ERROR: ")) {
+    const markerIndex = errorMsg.indexOf("API_ERROR: ");
+    const serverMessage = errorMsg.substring(markerIndex + 11);
+    const prefix = errorMsg.substring(0, markerIndex);
+    return prefix + serverMessage;
+  }
+
   const lower = errorMsg.toLowerCase();
   if (lower.includes("fetch") || lower.includes("connect") || lower.includes("network") ||
       lower.includes("timeout") || lower.includes("socket") || lower.includes("unable to resolve host") ||
@@ -594,7 +603,7 @@ async function apiFetch(path, options = {}) {
 
   if (!response.ok) {
     const message = typeof data === "string" ? data : data?.message || "Error en la solicitud.";
-    throw new Error(message);
+    throw new Error(`API_ERROR: ${message}`);
   }
 
   return data;
@@ -2330,7 +2339,7 @@ function formatUserRole(roleStr) {
 
 function renderUsersTable(users) {
   if (!users.length) {
-    adminUsersBody.innerHTML = '<tr><td colspan="5">Sin usuarios.</td></tr>';
+    adminUsersBody.innerHTML = '<tr><td colspan="6">Sin usuarios.</td></tr>';
     return;
   }
 
@@ -2339,13 +2348,22 @@ function renderUsersTable(users) {
       <td>${escapeHtml(user.fullName)}</td>
       <td>${escapeHtml(user.email)}</td>
       <td>${escapeHtml(formatUserRole(user.role))}</td>
+      <td>
+        <span class="status-badge status-badge--${user.isActive ? 'active' : 'inactive'}">
+          ${user.isActive ? 'Activo' : 'Inactivo'}
+        </span>
+      </td>
       <td>${escapeHtml(user.phoneNumber || "-")}</td>
       <td>
         <div class="action-row">
           <button class="btn tiny secondary admin-view-details" data-type="user" data-id="${escapeHtml(user.id)}">Ver detalles</button>
           <button class="btn tiny primary admin-view-trips" data-id="${escapeHtml(user.id)}">Consultar viajes</button>
           ${hasPermission('users:write') ? `<button class="btn tiny secondary admin-edit" data-type="user" data-id="${escapeHtml(user.id)}">Editar</button>` : ''}
-          ${hasPermission('users:delete') ? `<button class="btn tiny danger admin-delete" data-type="user" data-id="${escapeHtml(user.id)}">Eliminar</button>` : ''}
+          ${hasPermission('users:write') ? `
+            <button class="btn tiny ${user.isActive ? 'danger' : 'success'} admin-toggle-user-status" data-id="${escapeHtml(user.id)}" data-active="${user.isActive}">
+              ${user.isActive ? 'Deshabilitar' : 'Habilitar'}
+            </button>
+          ` : ''}
         </div>
       </td>
     </tr>
@@ -2431,6 +2449,16 @@ async function deleteAdminEntity(type, id) {
   await apiFetch(routes[type], {
     method: "DELETE",
     headers: getAdminHeaders()
+  });
+
+  await loadAdminData();
+}
+
+async function toggleUserStatus(id, newActive) {
+  await apiFetch(`/api/admin/users/${id}/status`, {
+    method: "PATCH",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ isActive: newActive })
   });
 
   await loadAdminData();
@@ -2883,6 +2911,27 @@ document.addEventListener("click", async (event) => {
       setMessage(adminDataMessage, "Registro eliminado correctamente.", "success");
     } catch (error) {
       setMessage(adminDataMessage, `No se pudo eliminar: ${error.message}`, "error");
+    }
+    return;
+  }
+
+  const toggleStatusBtn = event.target.closest(".admin-toggle-user-status");
+  if (toggleStatusBtn) {
+    try {
+      const id = toggleStatusBtn.dataset.id;
+      const currentActive = toggleStatusBtn.dataset.active === "true";
+      const newActive = !currentActive;
+      const actionText = newActive ? "habilitar" : "deshabilitar";
+      
+      const confirmed = confirm(`¿Deseas ${actionText} a este usuario?`);
+      if (!confirmed) {
+        return;
+      }
+      
+      await toggleUserStatus(id, newActive);
+      setMessage(adminDataMessage, `Usuario ${newActive ? 'habilitado' : 'deshabilitado'} correctamente.`, "success");
+    } catch (error) {
+      setMessage(adminDataMessage, `No se pudo cambiar el estado del usuario: ${error.message}`, "error");
     }
   }
 });

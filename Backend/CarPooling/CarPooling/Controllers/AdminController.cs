@@ -168,10 +168,103 @@ public class AdminController(
             return NotFound("Usuario no encontrado.");
         }
 
+        // Comprobar si el usuario tiene viajes asociados como conductor
+        var hasTrips = await _context.Trips.AnyAsync(t => t.DriverUserId == id);
+        if (hasTrips)
+        {
+            return BadRequest("No se puede eliminar el usuario porque tiene viajes asociados.");
+        }
+
+        // Comprobar si el usuario tiene reservas asociadas como pasajero
+        var hasReservations = await _context.Reservations.AnyAsync(r => r.PassengerUserId == id);
+        if (hasReservations)
+        {
+            return BadRequest("No se puede eliminar el usuario porque tiene reservas asociadas.");
+        }
+
+        // Comprobar si el usuario tiene reportes de soporte creados o asignados
+        var hasSupportTickets = await _context.SupportTickets.AnyAsync(t => t.UserId == id || t.AssignedAdminUserId == id);
+        if (hasSupportTickets)
+        {
+            return BadRequest("No se puede eliminar el usuario porque tiene reportes de soporte asociados.");
+        }
+
+        // Comprobar si tiene calificaciones asociadas
+        var hasRatings = await _context.TripRatings.AnyAsync(r => r.EvaluatorUserId == id || r.EvaluatedUserId == id);
+        if (hasRatings)
+        {
+            return BadRequest("No se puede eliminar el usuario porque tiene calificaciones asociadas.");
+        }
+
+        // Comprobar si tiene pagos o reembolsos asociados
+        var hasPayments = await _context.Payments.AnyAsync(p => p.PassengerUserId == id || p.ConfirmedByUserId == id) ||
+                          await _context.Refunds.AnyAsync(r => r.RequestedByUserId == id || r.ProcessedByUserId == id);
+        if (hasPayments)
+        {
+            return BadRequest("No se puede eliminar el usuario porque tiene pagos o reembolsos asociados.");
+        }
+
+        // Comprobar si tiene mensajes de chat o soporte asociados
+        var hasMessages = await _context.SupportTicketMessages.AnyAsync(m => m.SenderUserId == id) ||
+                          await _context.TripChatMessages.AnyAsync(m => m.SenderUserId == id);
+        if (hasMessages)
+        {
+            return BadRequest("No se puede eliminar el usuario porque tiene mensajes de chat o soporte asociados.");
+        }
+
+        // Limpiar confirmaciones de lectura de chats y soporte
+        var chatReads = await _context.TripChatMessageReads.Where(r => r.UserId == id).ToListAsync();
+        _context.TripChatMessageReads.RemoveRange(chatReads);
+
+        var supportReads = await _context.SupportTicketMessageReads.Where(r => r.UserId == id).ToListAsync();
+        _context.SupportTicketMessageReads.RemoveRange(supportReads);
+
+        // Limpiar roles explícitamente
+        var userRoles = await _context.UserRoles.Where(ur => ur.UserId == id).ToListAsync();
+        _context.UserRoles.RemoveRange(userRoles);
+
+        // Eliminar dispositivos del usuario
+        var devices = await _context.UserDevices.Where(d => d.UserId == id).ToListAsync();
+        _context.UserDevices.RemoveRange(devices);
+
+        // Eliminar métodos de pago del usuario
+        var userPaymentMethods = await _context.UserPaymentMethods.Where(m => m.UserId == id).ToListAsync();
+        _context.UserPaymentMethods.RemoveRange(userPaymentMethods);
+
+        // Eliminar vehículos propiedad del usuario (ya es seguro porque no tienen viajes asociados)
+        var vehicles = await _context.Vehicles.Where(v => v.OwnerUserId == id).ToListAsync();
+        _context.Vehicles.RemoveRange(vehicles);
+
+        // Eliminar perfil de conductor si existe
+        if (user.DriverProfile != null)
+        {
+            _context.DriverProfiles.Remove(user.DriverProfile);
+        }
+
         _context.Users.Remove(user);
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpPatch("users/{id:guid}/status")]
+    [RequirePermission(AppPermissions.WriteUsers)]
+    public async Task<ActionResult<UserResponseDto>> ToggleUserStatusAsync(Guid id, [FromBody] ToggleUserStatusDto dto)
+    {
+        var user = await _context.Users
+            .Include(u => u.DriverProfile)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null)
+        {
+            return NotFound("Usuario no encontrado.");
+        }
+
+        user.IsActive = dto.IsActive;
+        await _context.SaveChangesAsync();
+
+        return Ok(UserResponseDto.FromEntity(user));
     }
 
     [HttpGet("trips")]
@@ -658,5 +751,10 @@ public class AdminController(
         public string Password { get; set; } = string.Empty;
         public string? RoleName { get; set; }
         public List<string> Permissions { get; set; } = [];
+    }
+
+    public sealed class ToggleUserStatusDto
+    {
+        public bool IsActive { get; set; }
     }
 }

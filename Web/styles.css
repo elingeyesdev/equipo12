@@ -550,6 +550,11 @@ input[type="date"]::-webkit-datetime-edit {
   color: var(--ok);
 }
 
+.status-badge--inactive {
+  background: #ffe8e8;
+  color: var(--danger);
+}
+
 .status-badge--pending {
   background: #fff4e6;
   color: #b35c00;
@@ -865,6 +870,11 @@ input[type="date"]::-webkit-datetime-edit {
 
 .btn.danger {
   background: #b82738;
+  color: #fff;
+}
+
+.btn.success {
+  background: var(--ok);
   color: #fff;
 }
 
