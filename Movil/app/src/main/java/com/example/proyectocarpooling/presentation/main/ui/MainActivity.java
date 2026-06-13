@@ -2952,36 +2952,14 @@ public class MainActivity extends BaseActivity {
         mainViewModel.verifyBoardingCode(activeTripId, reservationId, code, new MainViewModel.SimpleCallback() {
             @Override
             public void onSuccess() {
-                // Código correcto, proceder a abordar
-                boardPassenger(reservationId);
+                setProgressVisible(false);
+                Toast.makeText(MainActivity.this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onError(String message) {
                 setProgressVisible(false);
                 Toast.makeText(MainActivity.this, "Código de abordaje incorrecto para este pasajero.", Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    private void boardPassenger(final String reservationId) {
-        setProgressVisible(true);
-        String apiBase = ApiBaseUrlProvider.get(this);
-        String mapboxToken = getString(R.string.mapbox_access_token);
-        TripRepository repository = ((CarPoolingApplication) getApplication()).getTripRepository();
-        backgroundExecutor.execute(() -> {
-            try {
-                repository.boardPassenger(activeTripId, reservationId);
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    Toast.makeText(MainActivity.this, R.string.toast_boarding_confirmed, Toast.LENGTH_SHORT).show();
-                    viewBoardedPassengers();
-                });
-            } catch (IOException e) {
-                runOnUiThread(() -> {
-                    setProgressVisible(false);
-                    Toast.makeText(MainActivity.this, R.string.toast_boarding_failed, Toast.LENGTH_SHORT).show();
-                });
             }
         });
     }
@@ -2993,7 +2971,7 @@ public class MainActivity extends BaseActivity {
             public void onSuccess() {
                 Toast.makeText(MainActivity.this, R.string.toast_manual_status_updated, Toast.LENGTH_SHORT).show();
                 if (refreshBoardedList) {
-                    viewBoardedPassengers();
+                    viewBoardedPassengers(false);
                 } else {
                     openPassengerRequestsScreen(false);
                 }
@@ -3009,6 +2987,10 @@ public class MainActivity extends BaseActivity {
     }
 
     private void viewBoardedPassengers() {
+        viewBoardedPassengers(true);
+    }
+
+    private void viewBoardedPassengers(boolean showErrorOnFailure) {
         if (activeTripId == null) return;
         setProgressVisible(true);
         mainViewModel.getBoardedPassengers(activeTripId, new MainViewModel.ResultCallback<>() {
@@ -3020,7 +3002,9 @@ public class MainActivity extends BaseActivity {
 
             @Override
             public void onError(String message) {
-                Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+                if (showErrorOnFailure) {
+                    Toast.makeText(MainActivity.this, R.string.toast_network_error, Toast.LENGTH_SHORT).show();
+                }
                 setProgressVisible(false);
             }
         });

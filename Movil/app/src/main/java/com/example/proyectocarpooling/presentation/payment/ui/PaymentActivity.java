@@ -255,17 +255,20 @@ public class PaymentActivity extends BaseActivity {
             qrHolderText.setText(selectedDriverMethod.accountHolderName.isEmpty()
                     ? "Titular no especificado"
                     : selectedDriverMethod.accountHolderName);
-            qrValueText.setText(selectedDriverMethod.qrImageUrl.isEmpty()
-                    ? "QR disponible al confirmar con el conductor"
-                    : selectedDriverMethod.qrImageUrl);
             if (selectedDriverMethod.qrImageUrl.startsWith("data:image")) {
                 loadBase64Image(selectedDriverMethod.qrImageUrl, qrImage, null);
+                qrValueText.setVisibility(View.GONE);
             } else {
                 qrImage.setVisibility(View.GONE);
+                qrValueText.setVisibility(View.VISIBLE);
+                qrValueText.setText(selectedDriverMethod.qrImageUrl.isEmpty()
+                        ? "QR disponible al confirmar con el conductor"
+                        : "Escanea el QR del conductor para pagar");
             }
         } else {
             qrSubtitle.setText("El conductor aun no registro un QR.");
             qrHolderText.setText("No disponible");
+            qrValueText.setVisibility(View.VISIBLE);
             qrValueText.setText("Puedes usar efectivo o tarjeta simulada.");
             qrImage.setVisibility(View.GONE);
         }
@@ -407,7 +410,7 @@ public class PaymentActivity extends BaseActivity {
                         selectedUserMethodId,
                         "Pago de reserva Univalle Ride"
                 );
-                if (selectedMethod.isSimulatedCard()) {
+                if (selectedMethod.isSimulatedCard() && payment.status == PaymentItem.STATUS_PENDING) {
                     payment = paymentRemote.simulatePayment(sessionManager.getUserId(), payment.id, true);
                 }
                 PaymentItem result = payment;
@@ -422,6 +425,7 @@ public class PaymentActivity extends BaseActivity {
                     setLoading(false);
                     payButton.setEnabled(true);
                     showError(e.getMessage());
+                    loadScreen();
                 });
             }
         });

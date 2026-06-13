@@ -70,7 +70,6 @@ public class DriverPassengerRequestsViewModel extends AndroidViewModel {
         taskRunner.run(() -> {
             boolean isValid = tripRepository.verifyBoardingCode(tripId, reservationId, code);
             if (!isValid) throw new Exception("Codigo invalido");
-            tripRepository.boardPassenger(tripId, reservationId);
         }, new BackgroundTaskRunner.SimpleCallback() {
             @Override public void onSuccess() { successEvent.postValue("Abordaje confirmado"); }
             @Override public void onError(String msg) { errorEvent.postValue(msg); }

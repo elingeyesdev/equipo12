@@ -326,12 +326,20 @@ public class PaymentService(CarPoolingContext context)
 
     public async Task<PaymentResponseDto> ConfirmManualPaymentAsync(Guid userId, Guid paymentId, ConfirmPaymentDto dto)
     {
-        var payment = await PaymentDetailsQuery().FirstOrDefaultAsync(p => p.Id == paymentId)
+        var payment = await _context.Payments
+            .Include(p => p.PaymentMethod)
+            .Include(p => p.Reservation).ThenInclude(r => r.Trip)
+            .FirstOrDefaultAsync(p => p.Id == paymentId)
             ?? throw new KeyNotFoundException("Pago no encontrado.");
 
         if (payment.Reservation.Trip.DriverUserId != userId)
         {
             throw new InvalidOperationException("Solo el conductor del viaje puede confirmar este pago.");
+        }
+
+        if (payment.Status == PaymentStatus.Approved)
+        {
+            return await GetPaymentForUserAsync(userId, paymentId);
         }
 
         if (payment.Status != PaymentStatus.Pending)
@@ -353,41 +361,37 @@ public class PaymentService(CarPoolingContext context)
         payment.PaidAt = now;
         payment.UpdatedAt = now;
 
-        AddTransaction(payment, PaymentTransactionType.Confirmation, PaymentTransactionStatus.Success,
-            payment.Amount, payment.PaymentMethod.Code, "CONFIRMED",
-            "Pago confirmado manualmente por el conductor.");
+        var originalTransaction = await _context.PaymentTransactions
+            .Where(t => t.PaymentId == paymentId && t.TransactionType == PaymentTransactionType.Payment)
+            .OrderBy(t => t.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (originalTransaction != null && originalTransaction.Status == PaymentTransactionStatus.Pending)
+        {
+            originalTransaction.Status = PaymentTransactionStatus.Success;
+            originalTransaction.ResponseCode = "CONFIRMED";
+            originalTransaction.ResponseMessage = "Pago confirmado manualmente por el conductor.";
+            originalTransaction.ProcessedAt = now;
+        }
+
+        _context.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            PaymentId = payment.Id,
+            TransactionType = PaymentTransactionType.Confirmation,
+            Status = PaymentTransactionStatus.Success,
+            Amount = payment.Amount,
+            Provider = payment.PaymentMethod.Code,
+            ProviderTransactionId = $"TX-{now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}",
+            ResponseCode = "CONFIRMED",
+            ResponseMessage = "Pago confirmado manualmente por el conductor.",
+            ProcessedAt = now,
+            CreatedAt = now
+        });
         await EnsureReceiptAsync(payment);
 
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            _context.Entry(payment).State = EntityState.Detached;
-            if (payment.Receipt != null)
-            {
-                _context.Entry(payment.Receipt).State = EntityState.Detached;
-            }
-            foreach (var tx in payment.Transactions)
-            {
-                _context.Entry(tx).State = EntityState.Detached;
-            }
-
-            var reloaded = await PaymentDetailsQuery().AsNoTracking().FirstOrDefaultAsync(p => p.Id == paymentId);
-            if (reloaded == null)
-            {
-                throw new KeyNotFoundException("El pago fue eliminado por otro proceso.");
-            }
-
-            if (reloaded.Status == PaymentStatus.Approved)
-            {
-                return PaymentResponseDto.FromEntity(reloaded);
-            }
-
-            throw new InvalidOperationException($"El pago ya no está pendiente. Estado actual: {reloaded.Status}");
-        }
-        return PaymentResponseDto.FromEntity(payment);
+        await _context.SaveChangesAsync();
+        return await GetPaymentForUserAsync(userId, paymentId);
     }
 
     public async Task<PaymentResponseDto> CancelPaymentAsync(Guid userId, Guid paymentId)
@@ -668,7 +672,7 @@ public class PaymentService(CarPoolingContext context)
             return;
         }
 
-        payment.Receipt = new PaymentReceipt
+        var receipt = new PaymentReceipt
         {
             Id = Guid.NewGuid(),
             PaymentId = payment.Id,
@@ -677,6 +681,8 @@ public class PaymentService(CarPoolingContext context)
             IssuedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
+        _context.PaymentReceipts.Add(receipt);
+        payment.Receipt = receipt;
     }
 
     public async Task<List<PaymentResponseDto>> ListAllPaymentsAsync()
