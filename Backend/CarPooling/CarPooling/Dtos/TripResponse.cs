@@ -5,7 +5,6 @@ namespace CarPooling.Dtos;
 public class TripResponse
 {
     public Guid Id { get; init; }
-    public TripKind Kind { get; init; } = TripKind.Regular;
     public LocationDto Origin { get; init; } = null!;
     public LocationDto Destination { get; init; } = null!;
     public string StatusLabel { get; init; } = "";

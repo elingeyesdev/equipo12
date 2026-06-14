@@ -1,44 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:gravity="center_horizontal"
+    android:paddingStart="24dp"
+    android:paddingTop="28dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="24dp">
+
+    <!-- Card with Passenger Boarding Icon -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        app:cardCornerRadius="32dp"
+        app:cardBackgroundColor="#FFF4EFF1"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:src="@android:drawable/ic_menu_myplaces"
+            android:tint="@color/carpool_primary" />
+    </com.google.android.material.card.MaterialCardView>
 
     <TextView
         android:id="@+id/boardingTitle"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Confirmar Abordaje"
-        android:textSize="18sp"
+        android:text="Abordar a Pasajero"
+        android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="@color/carpool_text_primary"
-        android:layout_marginBottom="8dp" />
+        android:gravity="center"
+        android:layout_marginBottom="6dp" />
 
     <TextView
         android:id="@+id/boardingSubtitle"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Pídele al pasajero su código de 4 dígitos:"
+        android:text="Pídele al pasajero su código de 4 dígitos para verificar su viaje:"
         android:textSize="14sp"
         android:textColor="@color/carpool_text_secondary"
-        android:layout_marginBottom="20dp" />
-
-    <EditText
-        android:id="@+id/boardingCodeEditText"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:hint="Código de 4 dígitos"
-        android:inputType="number"
-        android:maxLength="4"
         android:gravity="center"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.2"
-        android:textColor="@color/carpool_text_primary"
-        android:background="@drawable/bg_input_modern"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:focusable="true"
-        android:focusableInTouchMode="true"/>
+        android:layout_marginBottom="24dp" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        app:boxStrokeColor="@color/carpool_primary"
+        app:boxStrokeWidthFocused="2dp"
+        app:boxCornerRadiusTopStart="16dp"
+        app:boxCornerRadiusTopEnd="16dp"
+        app:boxCornerRadiusBottomStart="16dp"
+        app:boxCornerRadiusBottomEnd="16dp"
+        app:hintEnabled="false"
+        android:layout_marginBottom="8dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/boardingCodeEditText"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:hint="0 0 0 0"
+            android:inputType="number"
+            android:maxLength="4"
+            android:gravity="center"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.4"
+            android:textColor="@color/carpool_text_primary"
+            android:focusable="true"
+            android:focusableInTouchMode="true"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
 </LinearLayout>

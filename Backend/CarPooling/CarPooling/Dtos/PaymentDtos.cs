@@ -132,7 +132,6 @@ public class PaymentResponseDto
     public DateTime? ExpiresAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public PaymentReceiptResponseDto? Receipt { get; set; }
     public List<PaymentTransactionResponseDto> Transactions { get; set; } = [];
     public List<RefundResponseDto> Refunds { get; set; } = [];
 
@@ -165,7 +164,6 @@ public class PaymentResponseDto
         ExpiresAt = payment.ExpiresAt,
         CreatedAt = payment.CreatedAt,
         UpdatedAt = payment.UpdatedAt,
-        Receipt = payment.Receipt is null ? null : PaymentReceiptResponseDto.FromEntity(payment.Receipt),
         Transactions = payment.Transactions
             .OrderByDescending(t => t.CreatedAt)
             .Select(PaymentTransactionResponseDto.FromEntity)
@@ -204,24 +202,6 @@ public class PaymentTransactionResponseDto
         ResponseMessage = transaction.ResponseMessage ?? "",
         ProcessedAt = transaction.ProcessedAt,
         CreatedAt = transaction.CreatedAt
-    };
-}
-
-public class PaymentReceiptResponseDto
-{
-    public Guid Id { get; set; }
-    public string ReceiptNumber { get; set; } = "";
-    public string ReceiptUrl { get; set; } = "";
-    public string QrCodeValue { get; set; } = "";
-    public DateTime IssuedAt { get; set; }
-
-    public static PaymentReceiptResponseDto FromEntity(PaymentReceipt receipt) => new()
-    {
-        Id = receipt.Id,
-        ReceiptNumber = receipt.ReceiptNumber,
-        ReceiptUrl = receipt.ReceiptUrl ?? "",
-        QrCodeValue = receipt.QrCodeValue ?? "",
-        IssuedAt = receipt.IssuedAt
     };
 }
 

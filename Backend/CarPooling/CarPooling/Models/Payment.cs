@@ -72,7 +72,6 @@ public class Payment
 
     public ICollection<PaymentTransaction> Transactions { get; set; } = [];
 
-    public PaymentReceipt? Receipt { get; set; }
 
     public ICollection<Refund> Refunds { get; set; } = [];
 }

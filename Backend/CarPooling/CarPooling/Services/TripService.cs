@@ -35,7 +35,6 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
 
         var trip = new Trip
         {
-            Kind = TripKind.Regular,
             OriginLocationId = origin.Id,
             DestinationLocationId = origin.Id, // placeholder, se actualiza con SetDestination
             StatusId = 1, // scheduled
@@ -61,7 +60,6 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.StatusEntity)
             .FirstOrDefaultAsync(t => t.Id == tripId);
         if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
-        if (trip.Kind != TripKind.Regular) throw new InvalidOperationException("No es un viaje operativo.");
         if (trip.StatusId == 5) throw new InvalidOperationException("El viaje fue cancelado.");
         if (trip.StatusId != 1) throw new InvalidOperationException("El viaje ya tiene destino.");
 
@@ -90,7 +88,6 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.StatusEntity)
             .FirstOrDefaultAsync(t => t.Id == tripId);
         if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
-        if (trip.Kind != TripKind.Regular) throw new InvalidOperationException("No es un viaje operativo.");
         if (trip.StatusId == 5) return trip;
 
         trip.StatusId = 5; // cancelled
@@ -124,7 +121,6 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.StatusEntity)
             .FirstOrDefaultAsync(t => t.Id == tripId);
         if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
-        if (trip.Kind != TripKind.Regular) throw new InvalidOperationException("No es un viaje operativo.");
         if (trip.StatusId == 5) throw new InvalidOperationException("Viaje cancelado.");
         if (trip.StatusId != 2) throw new InvalidOperationException("El viaje no esta listo para iniciar.");
 
@@ -161,7 +157,6 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.StatusEntity)
             .FirstOrDefaultAsync(t => t.Id == tripId);
         if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
-        if (trip.Kind != TripKind.Regular) throw new InvalidOperationException("No es un viaje operativo.");
         if (trip.StatusId == 5) throw new InvalidOperationException("Viaje cancelado.");
         if (trip.StatusId == 4) return trip;
         if (trip.StatusId != 3) throw new InvalidOperationException("Solo se puede finalizar un viaje en curso.");
@@ -215,8 +210,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.Vehicle)
             .Include(t => t.DriverUser)
             .Where(t =>
-                t.Kind == TripKind.Regular
-                && (t.StatusId == 1 || t.StatusId == 2 || t.StatusId == 3) // scheduled, ready, or in progress
+                (t.StatusId == 1 || t.StatusId == 2 || t.StatusId == 3) // scheduled, ready, or in progress
                 && t.AvailableSeats > 0)
             .ToListAsync();
 
@@ -283,8 +277,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             .Include(t => t.StatusEntity)
             .Include(t => t.DriverUser)
             .Where(t =>
-                t.Kind == TripKind.Regular
-                && t.DriverUserId == driverUserId
+                t.DriverUserId == driverUserId
                 && t.StatusId != 4
                 && t.StatusId != 5)
             .OrderByDescending(t => t.CreatedAt)
@@ -298,8 +291,7 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
                 .Include(t => t.DestinationLocation)
                 .Include(t => t.StatusEntity)
                 .Where(t =>
-                    t.Kind == TripKind.Regular
-                    && t.DriverUserId == null
+                    t.DriverUserId == null
                     && t.DriverName != null
                     && t.DriverName.Trim() == n
                     && t.StatusId != 4
@@ -316,7 +308,6 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         return new TripResponse
         {
             Id = trip.Id,
-            Kind = trip.Kind,
             Origin = new LocationDto
             {
                 Id = trip.OriginLocation.Id,

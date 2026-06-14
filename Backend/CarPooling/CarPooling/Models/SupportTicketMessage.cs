@@ -28,5 +28,4 @@ public class SupportTicketMessage
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<SupportTicketMessageRead> Reads { get; set; } = [];
 }

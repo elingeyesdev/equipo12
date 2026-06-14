@@ -17,6 +17,13 @@ public class ChatMessageResponseDto
     public DateTime CreatedAt { get; set; }
     
     public List<Guid> ReadByUserIds { get; set; } = [];
+    public List<ChatMessageReaderDto> Readers { get; set; } = [];
+}
+
+public class ChatMessageReaderDto
+{
+    public Guid UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
 }
 
 public class SendMessageRequestDto

@@ -38,37 +38,32 @@ public class TripBookmarkResponseDto
     public int UseCount { get; set; }
     public DateTime? LastUsedAt { get; set; }
 
-    public static TripBookmarkResponseDto FromTrip(Trip trip)
+    public static TripBookmarkResponseDto FromEntity(UserBookmark bookmark)
     {
-        var route = trip.DestinationLocationId != trip.OriginLocationId;
-        var dto = new TripBookmarkResponseDto
+        return new TripBookmarkResponseDto
         {
-            Id = trip.Id,
-            Kind = route ? "route" : "place",
-            Title = trip.DriverName ?? string.Empty,
+            Id = bookmark.Id,
+            Kind = bookmark.Kind,
+            Title = bookmark.Title,
             Origin = new LocationDto
             {
-                Id = trip.OriginLocation.Id,
-                Latitude = trip.OriginLocation.Latitude,
-                Longitude = trip.OriginLocation.Longitude,
-                AddressLabel = trip.OriginLocation.AddressLabel
+                Id = bookmark.OriginLocation.Id,
+                Latitude = bookmark.OriginLocation.Latitude,
+                Longitude = bookmark.OriginLocation.Longitude,
+                AddressLabel = bookmark.OriginLocation.AddressLabel
             },
-            CreatedAt = trip.CreatedAt,
-            UseCount = trip.BookmarkUseCount,
-            LastUsedAt = trip.BookmarkLastUsedAt
+            Destination = bookmark.DestinationLocation is not null
+                ? new LocationDto
+                {
+                    Id = bookmark.DestinationLocation.Id,
+                    Latitude = bookmark.DestinationLocation.Latitude,
+                    Longitude = bookmark.DestinationLocation.Longitude,
+                    AddressLabel = bookmark.DestinationLocation.AddressLabel
+                }
+                : null,
+            CreatedAt = bookmark.CreatedAt,
+            UseCount = bookmark.UseCount,
+            LastUsedAt = bookmark.LastUsedAt
         };
-
-        if (route)
-        {
-            dto.Destination = new LocationDto
-            {
-                Id = trip.DestinationLocation.Id,
-                Latitude = trip.DestinationLocation.Latitude,
-                Longitude = trip.DestinationLocation.Longitude,
-                AddressLabel = trip.DestinationLocation.AddressLabel
-            };
-        }
-
-        return dto;
     }
 }

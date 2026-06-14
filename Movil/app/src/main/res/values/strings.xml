@@ -21,9 +21,9 @@
     <string name="safe_zone_suggestion_distance_km">%.1f km</string>
 
     <!-- Emulador: 10.0.2.2 apunta al localhost de tu PC -->
-    <string name="api_base_url_emulator">http://10.0.2.2:5005</string>
+    <string name="api_base_url_emulator">https://okay-stem-percent.ngrok-free.dev </string>
     <!-- Celular por USB: requiere "adb reverse tcp:5005 tcp:5005" con el cable conectado -->
-    <string name="api_base_url_device">http://127.0.0.1:5005</string>
+    <string name="api_base_url_device">https://okay-stem-percent.ngrok-free.dev </string>
 
     <string name="origin_placeholder">Recogida: sin seleccionar</string>
     <string name="destination_placeholder">Destino: a donde quieres ir</string>

@@ -21,7 +21,7 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
             .Include(t => t.OriginLocation)
             .Include(t => t.DestinationLocation)
             .Include(t => t.StatusEntity)
-            .Where(t => t.Kind == TripKind.Regular && t.DriverUserId == userId)
+            .Where(t => t.DriverUserId == userId)
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => new TripHistorySummaryDto
             {
@@ -39,7 +39,7 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
             .Include(r => r.Trip).ThenInclude(t => t.OriginLocation)
             .Include(r => r.Trip).ThenInclude(t => t.DestinationLocation)
             .Include(r => r.Trip).ThenInclude(t => t.StatusEntity)
-            .Where(r => r.PassengerUserId == userId && r.Trip.Kind == TripKind.Regular)
+            .Where(r => r.PassengerUserId == userId)
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => new TripHistorySummaryDto
             {
@@ -77,7 +77,7 @@ public class TripHistoryController(CarPoolingContext context) : ControllerBase
             .Include(t => t.OriginLocation)
             .Include(t => t.DestinationLocation)
             .Include(t => t.StatusEntity)
-            .FirstOrDefaultAsync(t => t.Id == tripId && t.Kind == TripKind.Regular);
+            .FirstOrDefaultAsync(t => t.Id == tripId);
         if (trip is null) return NotFound("Viaje no encontrado.");
 
         var reservationStats = await context.Reservations

@@ -44,7 +44,6 @@ builder.Services.AddScoped<TripService>();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<VehicleService>();
-builder.Services.AddScoped<DriverService>();
 builder.Services.AddScoped<GeocodingService>();
 builder.Services.AddScoped<RatingService>();
 builder.Services.AddScoped<SupportTicketService>();

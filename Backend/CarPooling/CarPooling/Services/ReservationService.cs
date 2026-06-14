@@ -16,9 +16,6 @@ public class ReservationService(CarPoolingContext context, INotificationService 
         var trip = await _context.Trips.FindAsync(tripId)
             ?? throw new InvalidOperationException("Viaje no encontrado.");
 
-        if (trip.Kind != TripKind.Regular)
-            throw new InvalidOperationException("Este viaje no admite reservas.");
-
         if (trip.StatusId == 5) // cancelled
             throw new InvalidOperationException("El viaje no esta disponible.");
 
@@ -239,5 +236,42 @@ public class ReservationService(CarPoolingContext context, INotificationService 
             BoardingCode = r.BoardingCode,
             CreatedAt = r.CreatedAt
         };
+    }
+
+    public async Task<ReservationDto> MapToDtoAsync(Reservation r)
+    {
+        var dto = MapToDto(r);
+        dto.PassengerProfilePicture = r.PassengerUser?.ProfilePicture;
+        
+        var avgRating = await _context.TripRatings
+            .Where(tr => tr.EvaluatedUserId == r.PassengerUserId && tr.RatingRole == RatingRole.DriverToPassenger)
+            .Select(tr => (double?)tr.Score)
+            .AverageAsync();
+            
+        dto.PassengerRating = avgRating.HasValue ? Math.Round(avgRating.Value, 1) : 5.0;
+        return dto;
+    }
+
+    public async Task<List<ReservationDto>> MapToDtoListAsync(List<Reservation> reservations)
+    {
+        if (reservations.Count == 0)
+        {
+            return new List<ReservationDto>();
+        }
+
+        var passengerIds = reservations.Select(r => r.PassengerUserId).Distinct().ToList();
+        var ratings = await _context.TripRatings
+            .Where(tr => passengerIds.Contains(tr.EvaluatedUserId) && tr.RatingRole == RatingRole.DriverToPassenger)
+            .GroupBy(tr => tr.EvaluatedUserId)
+            .Select(g => new { PassengerUserId = g.Key, AvgScore = g.Average(tr => tr.Score) })
+            .ToDictionaryAsync(x => x.PassengerUserId, x => x.AvgScore);
+
+        return reservations.Select(r => 
+        {
+            var dto = MapToDto(r);
+            dto.PassengerProfilePicture = r.PassengerUser?.ProfilePicture;
+            dto.PassengerRating = ratings.TryGetValue(r.PassengerUserId, out var rating) ? Math.Round(rating, 1) : 5.0;
+            return dto;
+        }).ToList();
     }
 }

@@ -12,11 +12,9 @@ namespace CarPooling.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController(CarPoolingContext context,
-    DriverService driverService,
     VehicleService vehicleService) : ControllerBase
 {
     private readonly CarPoolingContext _context = context;
-    private readonly DriverService _driverService = driverService;
     private readonly VehicleService _vehicleService = vehicleService;
     private const string AllowedDomain = "@univalle.edu";
 
@@ -55,11 +53,10 @@ public class UsersController(CarPoolingContext context,
         {
             if (dto.DriverProfile is null)
                 return BadRequest("Chofer debe enviar datos de vehiculo.");
-            await _driverService.CreateProfileAsync(user.Id, dto.DriverProfile);
+            await _vehicleService.CreateForDriverAsync(user.Id, dto.DriverProfile);
         }
 
         await _context.SaveChangesAsync();
-        user.DriverProfile = await _context.DriverProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
         user.Vehicles = await _vehicleService.GetAllForDriverAsync(user.Id);
         
         // Load UserRoles and Roles for mapper
@@ -77,7 +74,6 @@ public class UsersController(CarPoolingContext context,
 
         var incomingHash = HashPassword(dto.Password);
         var user = await _context.Users
-            .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -94,7 +90,6 @@ public class UsersController(CarPoolingContext context,
     public async Task<ActionResult<UserResponseDto>> UpdateAsync(Guid id, [FromBody] UpdateUserDto dto)
     {
         var user = await _context.Users
-            .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -113,7 +108,7 @@ public class UsersController(CarPoolingContext context,
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
         user.ProfilePicture = dto.ProfilePicture;
 
-        bool isCurrentlyDriver = user.DriverProfile != null;
+        bool isCurrentlyDriver = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Name == "Driver");
         bool wantsToBeDriver = !string.IsNullOrWhiteSpace(dto.Role) 
             ? (dto.Role.Trim().ToLowerInvariant() == "driver") 
             : isCurrentlyDriver;
@@ -145,21 +140,15 @@ public class UsersController(CarPoolingContext context,
         if (wantsToBeDriver)
         {
             if (dto.DriverProfile is not null)
-                await _driverService.UpsertProfileAsync(user.Id, dto.DriverProfile);
-            else if (user.DriverProfile is null)
+                await _vehicleService.UpsertForDriverAsync(user.Id, dto.DriverProfile);
+            else if (!isCurrentlyDriver)
                 return BadRequest("Chofer debe enviar datos de vehiculo.");
-        }
-        else if (user.DriverProfile is not null)
-        {
-            _context.DriverProfiles.Remove(user.DriverProfile);
-            user.DriverProfile = null;
         }
 
         if (!string.IsNullOrWhiteSpace(dto.NewPassword))
             user.PasswordHash = HashPassword(dto.NewPassword);
 
         await _context.SaveChangesAsync();
-        await _context.Entry(user).Reference(u => u.DriverProfile).LoadAsync();
         await _context.Entry(user).Collection(u => u.Vehicles).LoadAsync();
         return Ok(UserResponseDto.FromEntity(user));
     }
@@ -171,7 +160,6 @@ public class UsersController(CarPoolingContext context,
     public async Task<ActionResult<UserResponseDto>> GetByIdAsync(Guid id)
     {
         var user = await _context.Users
-            .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -185,7 +173,6 @@ public class UsersController(CarPoolingContext context,
     public async Task<ActionResult<UserResponseDto>> GetByEmailAsync(string email)
     {
         var user = await _context.Users
-            .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)

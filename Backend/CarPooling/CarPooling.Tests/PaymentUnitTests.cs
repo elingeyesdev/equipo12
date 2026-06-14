@@ -95,7 +95,6 @@ public class PaymentUnitTests
         });
 
         Assert.Equal(PaymentStatus.Approved, result.Status);
-        Assert.NotNull(result.Receipt);
         Assert.Equal("Recibido en efectivo", result.ConfirmationNotes);
     }
 }

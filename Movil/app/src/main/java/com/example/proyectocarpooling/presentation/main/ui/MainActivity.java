@@ -2434,7 +2434,7 @@ public class MainActivity extends BaseActivity {
             } catch (Exception ignored) {}
         }
 
-        new AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setView(dialogView)
                 .setPositiveButton(R.string.dialog_button_close, null)
                 .show();
@@ -2811,7 +2811,7 @@ public class MainActivity extends BaseActivity {
             };
         }
 
-        new AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.dialog_title_manual_status) + ": " + reservation.getPassengerName())
                 .setItems(statuses, (dialog, which) -> {
                     if (reservation.statusId == 1) { // pending
@@ -2906,7 +2906,7 @@ public class MainActivity extends BaseActivity {
                         return convertView;
                     }
                 };
-                new AlertDialog.Builder(MainActivity.this)
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(MainActivity.this)
                         .setTitle("Seleccionar pasajero a abordar")
                         .setAdapter(adapter, (dialog, which) -> {
                             ReservationResponse selected = confirmed.get(which);
@@ -2931,7 +2931,7 @@ public class MainActivity extends BaseActivity {
         
         final EditText input = dialogView.findViewById(R.id.boardingCodeEditText);
 
-        new AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setView(dialogView)
                 .setPositiveButton("Confirmar", (dialog, which) -> {
                     if (input != null) {
@@ -3016,8 +3016,34 @@ public class MainActivity extends BaseActivity {
             return;
         }
 
-        ArrayAdapter<ReservationResponse> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, boardedPassengers);
-        new AlertDialog.Builder(this)
+        ArrayAdapter<ReservationResponse> adapter = new ArrayAdapter<>(this, R.layout.item_dialog_passenger, boardedPassengers) {
+            @Override
+            public android.view.View getView(int position, android.view.View convertView, android.view.ViewGroup parent) {
+                if (convertView == null) {
+                    convertView = getLayoutInflater().inflate(R.layout.item_dialog_passenger, parent, false);
+                }
+                ReservationResponse item = getItem(position);
+                TextView name = convertView.findViewById(R.id.passengerNameText);
+                TextView seats = convertView.findViewById(R.id.passengerSeatsText);
+                ImageView avatarImage = convertView.findViewById(R.id.passengerAvatarImage);
+                TextView avatarPlaceholder = convertView.findViewById(R.id.passengerAvatarPlaceholder);
+
+                if (item != null) {
+                    if (name != null) name.setText(item.getPassengerName());
+                    if (seats != null) {
+                        seats.setText("Asientos: " + item.seatsReserved + " | Estado: " + item.status);
+                    }
+                    if (avatarImage != null && avatarPlaceholder != null) {
+                        String initials = generateInitials(item.getPassengerName());
+                        avatarPlaceholder.setText(initials);
+                        loadBase64Image(item.passengerProfilePicture, avatarImage, avatarPlaceholder);
+                    }
+                }
+                return convertView;
+            }
+        };
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.dialog_title_boarded_passengers)
                 .setAdapter(adapter, (dialog, which) -> {
                     ReservationResponse selected = boardedPassengers.get(which);
@@ -3028,7 +3054,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void confirmCancelReservation(ReservationResponse reservation) {
-        new AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle("Cancelar Reserva")
                 .setMessage("¿Deseas cancelar la reserva de " + reservation.getPassengerName() + "?")
                 .setPositiveButton("Sí, Cancelar", (dialog, which) -> executeCancelReservation(reservation.id))

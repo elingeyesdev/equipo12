@@ -2,13 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CarPooling.Models;
 
-/// <summary>Legacy enum - será reemplazado por <see cref="ReservationStatusEntity"/>.</summary>
-public enum ReservationStatus
-{
-    Active = 0,
-    Cancelled = 1,
-    Boarded = 2
-}
 
 /// <summary>
 /// Tabla de estados de reserva. Fuente de verdad para los estados del sistema.

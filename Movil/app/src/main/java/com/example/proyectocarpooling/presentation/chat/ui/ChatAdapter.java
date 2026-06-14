@@ -91,6 +91,27 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
                 holder.receivedAvatarPlaceholder.setVisibility(View.VISIBLE);
             }
         }
+
+        View.OnClickListener clickListener = v -> {
+            if (message.readers == null || message.readers.isEmpty()) {
+                return;
+            }
+            java.util.List<String> names = new java.util.ArrayList<>();
+            for (com.example.proyectocarpooling.data.model.ChatMessage.Reader reader : message.readers) {
+                names.add(reader.fullName);
+            }
+            if (names.isEmpty()) return;
+
+            CharSequence[] items = names.toArray(new CharSequence[0]);
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(v.getContext())
+                    .setTitle("Leído por")
+                    .setItems(items, null)
+                    .setPositiveButton("Aceptar", null)
+                    .show();
+        };
+
+        holder.sentContainer.setOnClickListener(clickListener);
+        holder.receivedContainer.setOnClickListener(clickListener);
     }
 
     @Override

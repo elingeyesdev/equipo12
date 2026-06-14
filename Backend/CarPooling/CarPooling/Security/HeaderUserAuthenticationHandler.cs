@@ -54,7 +54,7 @@ public sealed class HeaderUserAuthenticationHandler(
             .Select(u => new 
             { 
                 u.Id, 
-                IsDriver = u.DriverProfile != null,
+                IsDriver = u.UserRoles.Any(ur => ur.Role.Name == "Driver"),
                 Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList() 
             })
             .FirstOrDefaultAsync();

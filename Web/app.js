@@ -2,6 +2,80 @@ const ADMIN_ROLE_ID = 3;
 const ADMIN_DATA_REFRESH_MS = 60000;
 const MAPBOX_ACCESS_TOKEN = "pk.eyJ1IjoiYW5kcmV3cmNybyIsImEiOiJjbWlzNmluem0waGJkM2dxMjcwejhrdHpyIn0.2L3Op-tGiAmSDlysfhwTsw";
 const MAPBOX_SCRIPT_SRC = "./node_modules/mapbox-gl/dist/mapbox-gl.js";
+const reverseGeocodeCache = new Map();
+
+function getCoordinateNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function getCoordinateCacheKey(lng, lat) {
+  const lngNumber = getCoordinateNumber(lng);
+  const latNumber = getCoordinateNumber(lat);
+
+  if (lngNumber == null || latNumber == null) {
+    return "";
+  }
+
+  return `${lngNumber.toFixed(6)},${latNumber.toFixed(6)}`;
+}
+
+function formatLocationFallback(lat, lng) {
+  const latNumber = getCoordinateNumber(lat);
+  const lngNumber = getCoordinateNumber(lng);
+
+  if (latNumber == null || lngNumber == null) {
+    return "Ubicacion no disponible";
+  }
+
+  return "Ubicacion no disponible";
+}
+
+async function reverseGeocode(lng, lat) {
+  const lngNumber = getCoordinateNumber(lng);
+  const latNumber = getCoordinateNumber(lat);
+  const fallback = formatLocationFallback(latNumber, lngNumber);
+  const cacheKey = getCoordinateCacheKey(lngNumber, latNumber);
+
+  if (!cacheKey) {
+    return fallback;
+  }
+
+  if (reverseGeocodeCache.has(cacheKey)) {
+    return reverseGeocodeCache.get(cacheKey);
+  }
+
+  const lookupPromise = (async () => {
+    const coordinates = encodeURIComponent(`${lngNumber},${latNumber}`);
+    const params = new URLSearchParams({
+      access_token: MAPBOX_ACCESS_TOKEN,
+      language: "es",
+      limit: "1"
+    });
+
+    try {
+      const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${coordinates}.json?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Mapbox respondio ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.features && data.features.length > 0) {
+        return data.features[0].place_name;
+      }
+    } catch (error) {
+      console.error("Error doing reverse geocoding:", error);
+    }
+
+    return fallback;
+  })();
+
+  reverseGeocodeCache.set(cacheKey, lookupPromise);
+
+  const resolvedLabel = await lookupPromise;
+  reverseGeocodeCache.set(cacheKey, resolvedLabel);
+  return resolvedLabel;
+}
 
 const state = {
   apiBaseUrl: localStorage.getItem("cp.apiBaseUrl") || "http://localhost:5005",
@@ -160,8 +234,20 @@ function formatDateTime(value) {
   return date.toLocaleString();
 }
 
+function getFirstTextValue(...values) {
+  const value = values.find((item) => String(item ?? "").trim());
+  return value == null ? "" : String(value).trim();
+}
+
 function formatCoordinates(lat, lng) {
-  return `Lat: ${Number(lat).toFixed(5)}, Lng: ${Number(lng).toFixed(5)}`;
+  const latNumber = getCoordinateNumber(lat);
+  const lngNumber = getCoordinateNumber(lng);
+
+  if (latNumber == null || lngNumber == null) {
+    return "Ubicacion no disponible";
+  }
+
+  return `Lat: ${latNumber.toFixed(5)}, Lng: ${lngNumber.toFixed(5)}`;
 }
 
 function getTripOriginCoordinates(trip) {
@@ -169,7 +255,18 @@ function getTripOriginCoordinates(trip) {
 
   return {
     lat: origin?.latitude ?? trip?.originLatitude ?? trip?.OriginLatitude ?? null,
-    lng: origin?.longitude ?? trip?.originLongitude ?? trip?.OriginLongitude ?? null
+    lng: origin?.longitude ?? trip?.originLongitude ?? trip?.OriginLongitude ?? null,
+    label: getFirstTextValue(
+      trip?.__adminOriginAddressLabel,
+      origin?.addressLabel,
+      origin?.AddressLabel,
+      trip?.originAddressLabel,
+      trip?.OriginAddressLabel,
+      trip?.originAddress,
+      trip?.OriginAddress,
+      trip?.originLabel,
+      trip?.OriginLabel
+    )
   };
 }
 
@@ -178,12 +275,156 @@ function getTripDestinationCoordinates(trip) {
 
   return {
     lat: destination?.latitude ?? trip?.destinationLatitude ?? trip?.DestinationLatitude ?? null,
-    lng: destination?.longitude ?? trip?.destinationLongitude ?? trip?.DestinationLongitude ?? null
+    lng: destination?.longitude ?? trip?.destinationLongitude ?? trip?.DestinationLongitude ?? null,
+    label: getFirstTextValue(
+      trip?.__adminDestinationAddressLabel,
+      destination?.addressLabel,
+      destination?.AddressLabel,
+      trip?.destinationAddressLabel,
+      trip?.DestinationAddressLabel,
+      trip?.destinationAddress,
+      trip?.DestinationAddress,
+      trip?.destinationLabel,
+      trip?.DestinationLabel
+    )
   };
 }
 
 function hasTripCoordinates(point) {
-  return point?.lat != null && point?.lng != null;
+  return getCoordinateNumber(point?.lat) != null && getCoordinateNumber(point?.lng) != null;
+}
+
+function getKnownLocationLabel(point) {
+  return getFirstTextValue(point?.label, point?.addressLabel, point?.AddressLabel);
+}
+
+function getLocationLabelText(point, emptyText = "-") {
+  const knownLabel = getKnownLocationLabel(point);
+  if (knownLabel) {
+    return knownLabel;
+  }
+
+  if (!hasTripCoordinates(point)) {
+    return emptyText;
+  }
+
+  return formatLocationFallback(point.lat, point.lng);
+}
+
+function renderLocationLabel(point, emptyText = "-") {
+  const knownLabel = getKnownLocationLabel(point);
+  if (knownLabel) {
+    return escapeHtml(knownLabel);
+  }
+
+  if (!hasTripCoordinates(point)) {
+    return escapeHtml(emptyText);
+  }
+
+  return `<span data-location-label data-lat="${escapeHtml(point.lat)}" data-lng="${escapeHtml(point.lng)}">Obteniendo direccion...</span>`;
+}
+
+async function hydrateLocationLabels(root = document) {
+  const container = root || document;
+  const elements = Array.from(container.querySelectorAll?.("[data-location-label]") || []);
+
+  await Promise.allSettled(elements.map(async (element) => {
+    const lat = getCoordinateNumber(element.dataset.lat);
+    const lng = getCoordinateNumber(element.dataset.lng);
+
+    if (lat == null || lng == null) {
+      element.textContent = "Ubicacion no disponible";
+      return;
+    }
+
+    const label = await reverseGeocode(lng, lat);
+    if (!element.isConnected) {
+      return;
+    }
+
+    element.textContent = label;
+    element.title = label;
+
+    const titledParent = element.closest("[data-location-title]");
+    if (titledParent) {
+      titledParent.setAttribute("title", label);
+    }
+  }));
+}
+
+function setTripLocationLabel(trip, pointType, label) {
+  const cleanLabel = String(label || "").trim();
+  if (!trip || !cleanLabel) {
+    return false;
+  }
+
+  const key = pointType === "destination" ? "__adminDestinationAddressLabel" : "__adminOriginAddressLabel";
+  if (trip[key] === cleanLabel) {
+    return false;
+  }
+
+  trip[key] = cleanLabel;
+
+  const location = pointType === "destination"
+    ? trip.destination ?? trip.Destination
+    : trip.origin ?? trip.Origin;
+
+  if (location && !getFirstTextValue(location.addressLabel, location.AddressLabel)) {
+    location.addressLabel = cleanLabel;
+  }
+
+  return true;
+}
+
+async function resolveTripLocationLabels(trips = []) {
+  const jobs = [];
+
+  trips.forEach((trip) => {
+    [
+      ["origin", getTripOriginCoordinates(trip)],
+      ["destination", getTripDestinationCoordinates(trip)]
+    ].forEach(([pointType, point]) => {
+      if (!hasTripCoordinates(point) || getKnownLocationLabel(point)) {
+        return;
+      }
+
+      jobs.push(
+        reverseGeocode(point.lng, point.lat)
+          .then((label) => setTripLocationLabel(trip, pointType, label))
+          .catch(() => false)
+      );
+    });
+  });
+
+  if (!jobs.length) {
+    return 0;
+  }
+
+  const results = await Promise.all(jobs);
+  return results.filter(Boolean).length;
+}
+
+async function resolveSafeZoneAddressLabels(zones = []) {
+  const jobs = zones
+    .filter((zone) => !getFirstTextValue(zone?.addressLabel, zone?.AddressLabel) && hasTripCoordinates({ lat: zone?.latitude, lng: zone?.longitude }))
+    .map((zone) => reverseGeocode(zone.longitude, zone.latitude)
+      .then((label) => {
+        const cleanLabel = String(label || "").trim();
+        if (!cleanLabel) {
+          return false;
+        }
+
+        zone.addressLabel = cleanLabel;
+        return true;
+      })
+      .catch(() => false));
+
+  if (!jobs.length) {
+    return 0;
+  }
+
+  const results = await Promise.all(jobs);
+  return results.filter(Boolean).length;
 }
 
 function isDriverUser(user) {
@@ -386,8 +627,8 @@ function renderTripDetails(trip) {
         <div><strong>Estado:</strong> ${escapeHtml(formatTripStatus(tripStatusValue))}</div>
         <div><strong>Asientos ofrecidos:</strong> ${escapeHtml(trip.offeredSeats ?? "-")}</div>
         <div><strong>Cupos:</strong> ${escapeHtml(trip.availableSeats ?? "-")}</div>
-        <div><strong>Origen:</strong> ${escapeHtml(hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "Sin origen")}</div>
-        <div><strong>Destino:</strong> ${escapeHtml(hasDestination ? `${destination.lat}, ${destination.lng}` : "Sin destino")}</div>
+        <div><strong>Origen:</strong> ${renderLocationLabel(origin, "Sin origen")}</div>
+        <div><strong>Destino:</strong> ${renderLocationLabel(destination, "Sin destino")}</div>
         <div><strong>Creado:</strong> ${escapeHtml(formatDateTime(trip.createdAt))}</div>
         <div><strong>Actualizado:</strong> ${escapeHtml(trip.updatedAt ? formatDateTime(trip.updatedAt) : "Sin cambios")}</div>
         <div><strong>Cancelado:</strong> ${escapeHtml(trip.cancelledAt ? formatDateTime(trip.cancelledAt) : "No")}</div>
@@ -998,8 +1239,28 @@ function updateCreateTripMapPanels() {
   const originButton = createModalForm?.querySelector("[data-trip-point='origin']");
   const destinationButton = createModalForm?.querySelector("[data-trip-point='destination']");
 
-  if (originSummary) originSummary.textContent = formatTripPoint(state.tripOrigin);
-  if (destinationSummary) destinationSummary.textContent = formatTripPoint(state.tripDestination);
+  if (originSummary) {
+    if (state.tripOrigin) {
+      originSummary.textContent = "Obteniendo dirección...";
+      reverseGeocode(state.tripOrigin.lng, state.tripOrigin.lat).then(addr => {
+        originSummary.textContent = addr;
+      });
+    } else {
+      originSummary.textContent = "Pendiente de selección";
+    }
+  }
+  
+  if (destinationSummary) {
+    if (state.tripDestination) {
+      destinationSummary.textContent = "Obteniendo dirección...";
+      reverseGeocode(state.tripDestination.lng, state.tripDestination.lat).then(addr => {
+        destinationSummary.textContent = addr;
+      });
+    } else {
+      destinationSummary.textContent = "Pendiente de selección";
+    }
+  }
+
   if (originLatitude) originLatitude.value = state.tripOrigin?.lat ?? "";
   if (originLongitude) originLongitude.value = state.tripOrigin?.lng ?? "";
   if (destinationLatitude) destinationLatitude.value = state.tripDestination?.lat ?? "";
@@ -1597,6 +1858,7 @@ function openDetailsModal(type, entity) {
   state.detailContext = { type, id: entity.id };
   detailsModalTitle.textContent = titles[type] || "Ver detalles";
   detailsModalBody.innerHTML = renderDetailsModalContent(type, entity);
+  void hydrateLocationLabels(detailsModalBody);
   setMessage(detailsModalMessage, "");
   detailsModalOverlay.classList.remove("hidden");
   detailsModalOverlay.setAttribute("aria-hidden", "false");
@@ -1761,12 +2023,20 @@ function getEditFormMarkup(type, entity) {
   }
 
   if (type === "user") {
+    const profilePic = entity.profilePicture || entity.ProfilePicture || "";
     return `
       <label class="field"><span>ID</span><input type="text" value="${escapeHtml(entity.id || "")}" disabled /></label>
       <label class="field"><span>Nombre completo</span><input type="text" name="fullName" value="${escapeHtml(entity.fullName || "")}" required /></label>
       <label class="field"><span>Email institucional</span><input type="email" name="email" value="${escapeHtml(entity.email || "")}" readonly /></label>
       <label class="field"><span>Contrasena (dejar vacio para mantener la actual)</span><input type="password" name="password" placeholder="******" /></label>
       <label class="field"><span>Telefono</span><input type="text" name="phoneNumber" value="${escapeHtml(entity.phoneNumber || "")}" /></label>
+      <label class="field"><span>Foto de perfil</span>
+        <input type="file" id="editProfilePicture" accept="image/*" style="display: none;" />
+        <label for="editProfilePicture" class="btn secondary" style="display: inline-block; text-align: center; cursor: pointer; margin-bottom: 6px; width: fit-content;">Cambiar foto</label>
+        <div id="editProfilePicturePreviewContainer" style="margin-top: 10px; text-align: center;">
+          <img id="editProfilePicturePreview" src="${profilePic || ''}" alt="Foto de perfil" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: ${profilePic ? 'inline-block' : 'none'};" />
+        </div>
+      </label>
       <label class="field"><span>Rol</span>
         <select name="roleId">
           <option value="1" ${getRoleIdValue(entity) === 1 ? "selected" : ""}>Estudiante</option>
@@ -2041,6 +2311,16 @@ async function loadAdminData() {
     renderAdminsTable(users);
     applyAllTableFilters();
     document.getElementById("analyticsConsultBtn")?.click();
+
+    resolveTripLocationLabels(trips)
+      .then((updatedCount) => {
+        if (updatedCount > 0 && state.adminData.trips === trips) {
+          renderTripsTable(trips);
+          applyTableFilter("adminTripsBody", document.getElementById("tripsFilterInput")?.value || "");
+          document.getElementById("analyticsConsultBtn")?.click();
+        }
+      })
+      .catch((error) => console.error("Error resolving admin trip locations:", error));
 
     const issueMessages = [];
     if (usersResult.status === "rejected") {
@@ -2385,8 +2665,8 @@ function renderTripsTable(trips) {
       return `
     <tr data-created-at="${trip.createdAt || ''}">
       <td>${escapeHtml(trip.driverName || "-")}</td>
-      <td>${escapeHtml(hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "-")}</td>
-      <td>${escapeHtml(hasTripCoordinates(destination) ? `${destination.lat}, ${destination.lng}` : "-")}</td>
+      <td>${renderLocationLabel(origin)}</td>
+      <td>${renderLocationLabel(destination)}</td>
       <td>${escapeHtml(formatTripStatus(tripStatusValue))}</td>
       <td>${escapeHtml(trip.availableSeats)}</td>
       <td>
@@ -2400,6 +2680,8 @@ function renderTripsTable(trips) {
   `;
     })()}
   `).join("");
+
+  void hydrateLocationLabels(adminTripsBody);
 }
 
 function renderReservationsTable(reservations) {
@@ -2566,6 +2848,19 @@ createModalForm?.addEventListener("change", (event) => {
       previewContainer.style.display = "none";
     }
   }
+
+  if (event.target?.id === "editProfilePicture") {
+    const file = event.target.files[0];
+    const previewImg = document.getElementById("editProfilePicturePreview");
+    if (file && previewImg) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewImg.src = e.target.result;
+        previewImg.style.display = "inline-block";
+      };
+      reader.readAsDataURL(file);
+    }
+  }
 });
 
 createModalForm?.addEventListener("submit", async (event) => {
@@ -2728,6 +3023,17 @@ editModalForm?.addEventListener("submit", async (event) => {
   try {
     if (type === "user") {
       const password = String(formData.get("password") || "").trim();
+      let profilePicture = null;
+      const fileInput = editModalForm.querySelector("#editProfilePicture");
+      if (fileInput && fileInput.files.length > 0) {
+        profilePicture = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("Error al procesar la foto de perfil"));
+          reader.readAsDataURL(fileInput.files[0]);
+        });
+      }
+
       await apiFetch(`/api/admin/users/${id}`, {
         method: "PUT",
         headers: getAdminHeaders(),
@@ -2736,7 +3042,8 @@ editModalForm?.addEventListener("submit", async (event) => {
           email: String(formData.get("email") || "").trim().toLowerCase(),
           phoneNumber: String(formData.get("phoneNumber") || "").trim() || null,
           roleId: Number(formData.get("roleId") || 1),
-          password: password || null
+          password: password || null,
+          profilePicture: profilePicture || null
         })
       });
     }
@@ -2819,8 +3126,8 @@ function viewUserTrips(userId) {
       const dest = getTripDestinationCoordinates(t);
       userTripsList.push({
         role: "Conductor",
-        origin: hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "Desconocido",
-        dest: hasTripCoordinates(dest) ? `${dest.lat}, ${dest.lng}` : "Desconocido",
+        origin,
+        dest,
         time: t.createdAt,
         driverName: "Él mismo",
         status: t.statusLabel ?? t.statusId ?? t.status
@@ -2837,8 +3144,8 @@ function viewUserTrips(userId) {
         const dest = getTripDestinationCoordinates(t);
         userTripsList.push({
           role: "Pasajero",
-          origin: hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "Desconocido",
-          dest: hasTripCoordinates(dest) ? `${dest.lat}, ${dest.lng}` : "Desconocido",
+          origin,
+          dest,
           time: t.createdAt,
           driverName: t.driverName || "Desconocido",
           status: formatReservationStatus(r.status)
@@ -2856,8 +3163,8 @@ function viewUserTrips(userId) {
     
     tbody.innerHTML = userTripsList.map(item => `
       <tr>
-        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.origin)}">${escapeHtml(item.origin)}</td>
-        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.dest)}">${escapeHtml(item.dest)}</td>
+        <td data-location-title style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(getLocationLabelText(item.origin, "Desconocido"))}">${renderLocationLabel(item.origin, "Desconocido")}</td>
+        <td data-location-title style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(getLocationLabelText(item.dest, "Desconocido"))}">${renderLocationLabel(item.dest, "Desconocido")}</td>
         <td>${escapeHtml(item.time ? formatDateTime(item.time) : "Desconocido")}</td>
         <td>${escapeHtml(item.driverName)}</td>
         <td>
@@ -2867,6 +3174,7 @@ function viewUserTrips(userId) {
         </td>
       </tr>
     `).join("");
+    void hydrateLocationLabels(tbody);
   }
   
   const titleEl = document.getElementById("userTripsModalTitle");
@@ -3575,7 +3883,8 @@ function filterSafeZonesList(zones) {
       return false;
     }
     if (search) {
-      const haystack = `${zone.name} ${zone.campusArea || ""} ${zone.addressLabel || ""}`.toLowerCase();
+      const addressLabel = getFirstTextValue(zone.addressLabel, zone.AddressLabel);
+      const haystack = `${zone.name} ${zone.campusArea || ""} ${addressLabel}`.toLowerCase();
       if (!haystack.includes(search)) {
         return false;
       }
@@ -3629,13 +3938,21 @@ function renderSafeZonesTable(zones, totalCount = zones.length) {
     return;
   }
 
-  adminSafeZonesBody.innerHTML = zones.map((zone) => `
-    <tr data-search="${escapeHtml(`${zone.name} ${zone.campusArea || ""} ${zone.addressLabel || ""}`.toLowerCase())}">
+  adminSafeZonesBody.innerHTML = zones.map((zone) => {
+    const addressLabel = getFirstTextValue(zone.addressLabel, zone.AddressLabel);
+    const locationPoint = {
+      lat: zone.latitude,
+      lng: zone.longitude,
+      label: addressLabel
+    };
+
+    return `
+    <tr data-search="${escapeHtml(`${zone.name} ${zone.campusArea || ""} ${addressLabel}`.toLowerCase())}">
       <td>${escapeHtml(zone.name)}</td>
       <td>${escapeHtml(zone.campusArea || "-")}</td>
       <td>${escapeHtml(zone.purposeLabel || getSafeZonePurposeLabel(zone.purpose))}</td>
       <td>${zone.isActive ? "Activa" : "Inactiva"}</td>
-      <td>${zone.latitude?.toFixed?.(5) ?? zone.latitude}, ${zone.longitude?.toFixed?.(5) ?? zone.longitude}</td>
+      <td>${renderLocationLabel(locationPoint)}</td>
       <td class="table-actions">
         ${hasPermission('trips:write') ? `
           <button type="button" class="btn tiny" data-safe-zone-action="edit" data-id="${zone.id}">Editar</button>
@@ -3643,7 +3960,10 @@ function renderSafeZonesTable(zones, totalCount = zones.length) {
         ` : ''}
       </td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
+
+  void hydrateLocationLabels(adminSafeZonesBody);
 }
 
 function applySafeZonesTableFilter() {
@@ -3665,6 +3985,15 @@ async function loadSafeZonesAdmin() {
     state.publicSafeZones = state.safeZones.filter((zone) => zone.isActive);
     refreshSafeZonesDisplay();
     window.requestAnimationFrame(() => initializeSafeZonesOverviewMap());
+
+    resolveSafeZoneAddressLabels(state.safeZones)
+      .then((updatedCount) => {
+        if (updatedCount > 0) {
+          state.publicSafeZones = state.safeZones.filter((zone) => zone.isActive);
+          refreshSafeZonesDisplay();
+        }
+      })
+      .catch((error) => console.error("Error resolving safe zone locations:", error));
   } catch (error) {
     state.safeZones = [];
     renderSafeZonesTable([], 0);
@@ -3763,11 +4092,14 @@ function updateSafeZoneCoordsHint() {
   }
 
   if (!state.safeZoneDraftPoint) {
-    safeZoneCoordsHint.textContent = "Coordenadas: sin definir";
+    safeZoneCoordsHint.textContent = "Ubicación: sin definir";
     return;
   }
 
-  safeZoneCoordsHint.textContent = `Coordenadas: ${state.safeZoneDraftPoint.lat.toFixed(6)}, ${state.safeZoneDraftPoint.lng.toFixed(6)}`;
+  safeZoneCoordsHint.textContent = "Obteniendo dirección...";
+  reverseGeocode(state.safeZoneDraftPoint.lng, state.safeZoneDraftPoint.lat).then(addr => {
+    safeZoneCoordsHint.textContent = `Ubicación: ${addr}`;
+  });
 }
 
 function updateSafeZoneEditMapMarker() {
@@ -4517,8 +4849,8 @@ function getExportTripsData() {
     const statusVal = t.statusLabel ?? t.statusId ?? t.status;
     const origin = getTripOriginCoordinates(t);
     const destination = getTripDestinationCoordinates(t);
-    const originText = hasTripCoordinates(origin) ? `${origin.lat}, ${origin.lng}` : "-";
-    const destText = hasTripCoordinates(destination) ? `${destination.lat}, ${destination.lng}` : "-";
+    const originText = getLocationLabelText(origin);
+    const destText = getLocationLabelText(destination);
     return [
       t.driverName || "-",
       originText,
@@ -4570,17 +4902,20 @@ document.getElementById("exportUsersPdf")?.addEventListener("click", () => {
 });
 
 // Vinculación de eventos de dropdown de Viajes
-document.getElementById("exportTripsExcel")?.addEventListener("click", () => {
+async function exportTripsWithResolvedLocations(format) {
+  await resolveTripLocationLabels(state.adminData.trips || []);
   const { data, headers, filename } = getExportTripsData();
-  performExport(data, headers, filename, "excel");
+  performExport(data, headers, filename, format);
+}
+
+document.getElementById("exportTripsExcel")?.addEventListener("click", () => {
+  void exportTripsWithResolvedLocations("excel");
 });
 document.getElementById("exportTripsCsv")?.addEventListener("click", () => {
-  const { data, headers, filename } = getExportTripsData();
-  performExport(data, headers, filename, "csv");
+  void exportTripsWithResolvedLocations("csv");
 });
 document.getElementById("exportTripsPdf")?.addEventListener("click", () => {
-  const { data, headers, filename } = getExportTripsData();
-  performExport(data, headers, filename, "pdf");
+  void exportTripsWithResolvedLocations("pdf");
 });
 
 // Vinculación de eventos de dropdown de Reservas

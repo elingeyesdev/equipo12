@@ -26,7 +26,6 @@ public class User
 
     public ICollection<UserRole> UserRoles { get; set; } = [];
 
-    public DriverProfile? DriverProfile { get; set; }
 
     public ICollection<Vehicle> Vehicles { get; set; } = [];
 

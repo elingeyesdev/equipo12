@@ -24,7 +24,6 @@ public class SupportTicketMessagingService(CarPoolingContext context)
                 "El chat de soporte estará disponible cuando el equipo responda tu solicitud.");
         }
 
-        await MarkAllMessagesAsReadAsync(ticketId, userId);
         return await GetMessagesAsync(ticketId);
     }
 
@@ -152,8 +151,6 @@ public class SupportTicketMessagingService(CarPoolingContext context)
 
         await _context.SaveChangesAsync();
 
-        await MarkMessageAsReadAsync(message.Id, senderUserId);
-
         var sender = await _context.Users.AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == senderUserId);
 
@@ -177,42 +174,9 @@ public class SupportTicketMessagingService(CarPoolingContext context)
                     : m.SenderKind == SupportMessageSenderKind.System ? "Sistema" : "Usuario",
                 MessageText = m.MessageText,
                 CreatedAt = m.CreatedAt,
-                ReadByUserIds = m.Reads.Select(r => r.UserId).ToList()
+                ReadByUserIds = new List<Guid>()
             })
             .ToListAsync();
-    }
-
-    private async Task MarkAllMessagesAsReadAsync(Guid ticketId, Guid userId)
-    {
-        var messageIds = await _context.SupportTicketMessages
-            .Where(m => m.TicketId == ticketId)
-            .Select(m => m.Id)
-            .ToListAsync();
-
-        foreach (var messageId in messageIds)
-        {
-            await MarkMessageAsReadAsync(messageId, userId);
-        }
-    }
-
-    private async Task MarkMessageAsReadAsync(Guid messageId, Guid userId)
-    {
-        var exists = await _context.SupportTicketMessageReads
-            .AnyAsync(r => r.MessageId == messageId && r.UserId == userId);
-
-        if (exists)
-        {
-            return;
-        }
-
-        _context.SupportTicketMessageReads.Add(new SupportTicketMessageRead
-        {
-            MessageId = messageId,
-            UserId = userId,
-            ReadAt = DateTime.UtcNow
-        });
-
-        await _context.SaveChangesAsync();
     }
 
     private async Task<SupportTicket> GetTicketForUserAsync(Guid userId, Guid ticketId)

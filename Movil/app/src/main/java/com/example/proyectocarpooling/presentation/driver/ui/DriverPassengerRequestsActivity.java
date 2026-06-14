@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -99,7 +100,7 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
                 String cleanError = sanitizeError(error);
-                new AlertDialog.Builder(this)
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                         .setTitle("Solicitudes de Pasajeros")
                         .setMessage(cleanError)
                         .setPositiveButton("Aceptar", null)
@@ -157,7 +158,7 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
     }
 
     private void confirmReject(ReservationResponse reservation) {
-        new AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.driver_passenger_requests_confirm_reject_title)
                 .setMessage(getString(R.string.driver_passenger_requests_confirm_reject_msg, reservation.getPassengerName()))
                 .setNegativeButton(R.string.dialog_button_cancel, null)
@@ -166,7 +167,7 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
     }
 
     private void confirmAccept(ReservationResponse reservation) {
-        new AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.driver_passenger_requests_accept_title)
                 .setMessage(getString(R.string.driver_passenger_requests_accept_msg, reservation.getPassengerName()))
                 .setPositiveButton(R.string.dialog_button_confirm, (d, w) -> viewModel.acceptReservation(tripId, reservation.id))
@@ -175,17 +176,20 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
     }
 
     private void executeBoard(ReservationResponse reservation) {
-        final EditText input = new EditText(this);
-        input.setHint("Código de abordaje del pasajero");
-        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_boarding_code_input, null);
+        TextView title = dialogView.findViewById(R.id.boardingTitle);
+        if (title != null) title.setText("Abordar a " + reservation.getPassengerName());
+        
+        final EditText input = dialogView.findViewById(R.id.boardingCodeEditText);
         setupErrorClearer(input);
 
-        final AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("Verificar código de abordaje")
-                .setView(input)
+        final com.google.android.material.dialog.MaterialAlertDialogBuilder builder = 
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setView(dialogView)
                 .setPositiveButton("Confirmar", null)
-                .setNegativeButton("Cancelar", null)
-                .create();
+                .setNegativeButton("Cancelar", null);
+
+        final AlertDialog dialog = builder.create();
 
         dialog.setOnShowListener(d -> {
             Button confirmBtn = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
@@ -261,21 +265,43 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
                 h.name.setText(r.getPassengerName());
                 h.meta.setText(getString(R.string.driver_passenger_requests_solicitado, formatRequestTime(r.createdAt)));
 
+                if (h.ratingText != null) {
+                    h.ratingText.setText(String.format(java.util.Locale.US, "★ %.1f", r.passengerRating));
+                }
+
+                if (h.avatarImage != null && h.avatarPlaceholder != null) {
+                    String initials = generateInitials(r.getPassengerName());
+                    h.avatarPlaceholder.setText(initials);
+                    loadBase64Image(r.passengerProfilePicture, h.avatarImage, h.avatarPlaceholder);
+                }
+
                 if (item.listType == 1) { // pending
+                    h.statusBadge.setText("Pendiente");
+                    h.statusBadge.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FFB67A52")));
                     h.accept.setVisibility(View.VISIBLE);
                     h.reject.setVisibility(View.VISIBLE);
                     h.board.setVisibility(View.GONE);
+                    h.divider.setVisibility(View.VISIBLE);
+                    h.buttonsContainer.setVisibility(View.VISIBLE);
                     h.reject.setOnClickListener(v -> confirmReject(r));
                     h.accept.setOnClickListener(v -> confirmAccept(r));
                 } else if (item.listType == 2) { // confirmed
+                    h.statusBadge.setText("Confirmado");
+                    h.statusBadge.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF82254B")));
                     h.accept.setVisibility(View.GONE);
                     h.reject.setVisibility(View.GONE);
                     h.board.setVisibility(View.VISIBLE);
+                    h.divider.setVisibility(View.VISIBLE);
+                    h.buttonsContainer.setVisibility(View.VISIBLE);
                     h.board.setOnClickListener(v -> executeBoard(r));
                 } else { // boarded
+                    h.statusBadge.setText("Abordado");
+                    h.statusBadge.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF2E7D32"))); // Green
                     h.accept.setVisibility(View.GONE);
                     h.reject.setVisibility(View.GONE);
-                    h.board.setVisibility(View.GONE); // Already boarded
+                    h.board.setVisibility(View.GONE);
+                    h.divider.setVisibility(View.GONE);
+                    h.buttonsContainer.setVisibility(View.GONE);
                 }
             }
         }
@@ -284,6 +310,16 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
         public int getItemCount() {
             return items.size();
         }
+    }
+
+    private static String generateInitials(String fullName) {
+        if (fullName == null || fullName.isEmpty()) return "U";
+        String[] parts = fullName.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+        for (int i = 0; i < Math.min(2, parts.length); i++) {
+            if (parts[i].length() > 0) initials.append(parts[i].charAt(0));
+        }
+        return initials.length() > 0 ? initials.toString().toUpperCase() : "U";
     }
 
     static class HeaderVH extends RecyclerView.ViewHolder {
@@ -296,16 +332,26 @@ public class DriverPassengerRequestsActivity extends BaseActivity {
     }
 
     static class ItemVH extends RecyclerView.ViewHolder {
-        final TextView name, meta;
+        final TextView name, meta, statusBadge;
         final Button reject, accept, board;
+        final View divider, buttonsContainer;
+        final ImageView avatarImage;
+        final TextView avatarPlaceholder;
+        final TextView ratingText;
 
         ItemVH(View itemView) {
             super(itemView);
             name = itemView.findViewById(R.id.passengerNameText);
             meta = itemView.findViewById(R.id.passengerMetaText);
+            statusBadge = itemView.findViewById(R.id.passengerStatusBadge);
             reject = itemView.findViewById(R.id.rejectRequestButton);
             accept = itemView.findViewById(R.id.acceptRequestButton);
             board = itemView.findViewById(R.id.boardRequestButton);
+            divider = itemView.findViewById(R.id.dividerLine);
+            buttonsContainer = itemView.findViewById(R.id.buttonsContainer);
+            avatarImage = itemView.findViewById(R.id.passengerAvatarImage);
+            avatarPlaceholder = itemView.findViewById(R.id.passengerAvatarPlaceholder);
+            ratingText = itemView.findViewById(R.id.passengerRatingText);
         }
     }
 }

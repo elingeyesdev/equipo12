@@ -7,7 +7,6 @@ public class Trip
 {
     public Guid Id { get; set; }
 
-    public TripKind Kind { get; set; } = TripKind.Regular;
 
     // --- Location references (reemplazan coordenadas directas) ---
     [Required]

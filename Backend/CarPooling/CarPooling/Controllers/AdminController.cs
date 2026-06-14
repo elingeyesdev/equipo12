@@ -29,7 +29,6 @@ public class AdminController(
         [FromQuery] string? email)
     {
         var usersQuery = _context.Users
-            .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -60,7 +59,6 @@ public class AdminController(
     public async Task<ActionResult<UserResponseDto>> UpdateUserAsync(Guid id, [FromBody] AdminUpdateUserDto dto)
     {
         var user = await _context.Users
-            .Include(u => u.DriverProfile)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                     .ThenInclude(r => r.RolePermissions)
@@ -107,6 +105,10 @@ public class AdminController(
         user.FullName = dto.FullName.Trim();
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
+        if (dto.ProfilePicture != null)
+        {
+            user.ProfilePicture = dto.ProfilePicture;
+        }
 
         if (!string.IsNullOrWhiteSpace(dto.Password))
         {
@@ -123,14 +125,9 @@ public class AdminController(
 
         if (targetRole.Name == "Driver")
         {
-            if (user.DriverProfile is null)
+            var hasVehicle = await _context.Vehicles.AnyAsync(v => v.OwnerUserId == user.Id);
+            if (!hasVehicle)
             {
-                user.DriverProfile = new DriverProfile
-                {
-                    UserId = user.Id,
-                    IsVerified = false
-                };
-
                 _context.Vehicles.Add(new Vehicle
                 {
                     OwnerUserId = user.Id,
@@ -141,11 +138,6 @@ public class AdminController(
                     IsActive = true
                 });
             }
-        }
-        else if (user.DriverProfile is not null)
-        {
-            _context.DriverProfiles.Remove(user.DriverProfile);
-            user.DriverProfile = null;
         }
 
         await _context.SaveChangesAsync();
@@ -161,7 +153,6 @@ public class AdminController(
     public async Task<IActionResult> DeleteUserAsync(Guid id)
     {
         var user = await _context.Users
-            .Include(u => u.DriverProfile)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null)
         {
@@ -212,12 +203,9 @@ public class AdminController(
             return BadRequest("No se puede eliminar el usuario porque tiene mensajes de chat o soporte asociados.");
         }
 
-        // Limpiar confirmaciones de lectura de chats y soporte
+        // Limpiar confirmaciones de lectura de chats
         var chatReads = await _context.TripChatMessageReads.Where(r => r.UserId == id).ToListAsync();
         _context.TripChatMessageReads.RemoveRange(chatReads);
-
-        var supportReads = await _context.SupportTicketMessageReads.Where(r => r.UserId == id).ToListAsync();
-        _context.SupportTicketMessageReads.RemoveRange(supportReads);
 
         // Limpiar roles explícitamente
         var userRoles = await _context.UserRoles.Where(ur => ur.UserId == id).ToListAsync();
@@ -235,12 +223,6 @@ public class AdminController(
         var vehicles = await _context.Vehicles.Where(v => v.OwnerUserId == id).ToListAsync();
         _context.Vehicles.RemoveRange(vehicles);
 
-        // Eliminar perfil de conductor si existe
-        if (user.DriverProfile != null)
-        {
-            _context.DriverProfiles.Remove(user.DriverProfile);
-        }
-
         _context.Users.Remove(user);
         await _context.SaveChangesAsync();
 
@@ -252,7 +234,6 @@ public class AdminController(
     public async Task<ActionResult<UserResponseDto>> ToggleUserStatusAsync(Guid id, [FromBody] ToggleUserStatusDto dto)
     {
         var user = await _context.Users
-            .Include(u => u.DriverProfile)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.Id == id);
@@ -535,7 +516,6 @@ public class AdminController(
     public async Task<ActionResult<object>> GetAllDataAsync()
     {
         var users = await _context.Users
-            .Include(u => u.DriverProfile)
             .Include(u => u.Vehicles)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -723,6 +703,7 @@ public class AdminController(
         public int RoleId { get; set; }
         public string? Password { get; set; }
         public Guid? CustomRoleId { get; set; }
+        public string? ProfilePicture { get; set; }
     }
 
     public sealed class AdminUpdateTripDto

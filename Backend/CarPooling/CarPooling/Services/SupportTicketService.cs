@@ -205,13 +205,12 @@ public class SupportTicketService(CarPoolingContext context)
 
         return SupportTicketResponseDto.FromEntity(ticket);
     }
-
     private async Task ValidateTripLinkAsync(Guid userId, Guid tripId)
     {
         var trip = await _context.Trips
             .AsNoTracking()
             .Include(t => t.Reservations)
-            .FirstOrDefaultAsync(t => t.Id == tripId && t.Kind == TripKind.Regular);
+            .FirstOrDefaultAsync(t => t.Id == tripId);
 
         if (trip is null)
         {
@@ -245,7 +244,7 @@ public class SupportTicketService(CarPoolingContext context)
             throw new InvalidOperationException("Solo puedes vincular reservas que te pertenecen como pasajero.");
         }
 
-        if (reservation.Trip is null || reservation.Trip.Kind != TripKind.Regular)
+        if (reservation.Trip is null)
         {
             throw new InvalidOperationException("La reserva no está asociada a un viaje válido.");
         }

@@ -25,7 +25,9 @@ public class UserResponseDto
         string mappedRole = "student";
         int mappedRoleId = 1;
 
-        if (user.DriverProfile is not null)
+        bool isDriver = user.UserRoles?.Any(ur => ur.Role != null && ur.Role.Name == "Driver") ?? false;
+
+        if (isDriver)
         {
             mappedRole = "driver";
             mappedRoleId = 2;
@@ -63,9 +65,9 @@ public class UserResponseDto
             RoleId = mappedRoleId,
             RawRoles = rawRoles,
             Permissions = permissions,
-            DriverProfile = user.DriverProfile is null
+            DriverProfile = activeVehicle is null
                 ? null
-                : DriverProfileDto.FromEntity(user.DriverProfile, activeVehicle),
+                : DriverProfileDto.FromEntity(activeVehicle),
             Vehicles = user.Vehicles?.Select(VehicleDto.FromEntity).ToList() ?? [],
             IsActive = user.IsActive,
             CreatedAt = user.CreatedAt

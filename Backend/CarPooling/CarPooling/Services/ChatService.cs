@@ -100,7 +100,12 @@ public class ChatService(CarPoolingContext context, INotificationService notific
                 SenderProfilePicture = m.SenderUser.ProfilePicture,
                 MessageText = m.MessageText,
                 CreatedAt = m.CreatedAt,
-                ReadByUserIds = m.Reads.Select(r => r.UserId).ToList()
+                ReadByUserIds = m.Reads.Select(r => r.UserId).ToList(),
+                Readers = m.Reads.Select(r => new ChatMessageReaderDto
+                {
+                    UserId = r.UserId,
+                    FullName = r.User.FullName
+                }).ToList()
             })
             .ToListAsync();
 
@@ -185,7 +190,15 @@ public class ChatService(CarPoolingContext context, INotificationService notific
             SenderProfilePicture = senderProfilePicture,
             MessageText = message.MessageText,
             CreatedAt = message.CreatedAt,
-            ReadByUserIds = [senderUserId]
+            ReadByUserIds = [senderUserId],
+            Readers = new List<ChatMessageReaderDto>
+            {
+                new ChatMessageReaderDto
+                {
+                    UserId = senderUserId,
+                    FullName = senderFullName
+                }
+            }
         };
     }
 

@@ -19,9 +19,6 @@ public static class DevelopmentDataSeeder
     private static readonly Guid PassengerFiveId = Guid.Parse("66666666-6666-6666-6666-666666666668");
     private static readonly Guid AnalystId = Guid.Parse("77777777-7777-7777-7777-777777777777");
 
-    private static readonly Guid DriverOneProfileId = Guid.Parse("88888888-8888-8888-8888-888888888888");
-    private static readonly Guid DriverTwoProfileId = Guid.Parse("88888888-8888-8888-8888-888888888889");
-    private static readonly Guid DriverThreeProfileId = Guid.Parse("88888888-8888-8888-8888-88888888888a");
 
     private static readonly Guid VehicleOneId = Guid.Parse("99999999-9999-9999-9999-999999999991");
     private static readonly Guid VehicleTwoId = Guid.Parse("99999999-9999-9999-9999-999999999992");
@@ -200,9 +197,7 @@ public static class DevelopmentDataSeeder
     {
         context.Refunds.RemoveRange(context.Refunds);
         context.PaymentTransactions.RemoveRange(context.PaymentTransactions);
-        context.PaymentReceipts.RemoveRange(context.PaymentReceipts);
         context.Payments.RemoveRange(context.Payments);
-        context.SupportTicketMessageReads.RemoveRange(context.SupportTicketMessageReads);
         context.SupportTicketMessages.RemoveRange(context.SupportTicketMessages);
         context.SupportTickets.RemoveRange(context.SupportTickets);
         context.TripRatings.RemoveRange(context.TripRatings);
@@ -214,11 +209,11 @@ public static class DevelopmentDataSeeder
         context.UserDevices.RemoveRange(context.UserDevices);
         context.UserPaymentMethods.RemoveRange(context.UserPaymentMethods);
         context.Vehicles.RemoveRange(context.Vehicles);
-        context.DriverProfiles.RemoveRange(context.DriverProfiles);
         context.UserRoles.RemoveRange(context.UserRoles);
         context.Users.RemoveRange(context.Users);
         context.SafeZones.RemoveRange(context.SafeZones);
         context.Locations.RemoveRange(context.Locations);
+        context.UserBookmarks.RemoveRange(context.UserBookmarks);
 
         await context.SaveChangesAsync();
     }
@@ -261,11 +256,6 @@ public static class DevelopmentDataSeeder
             new UserRole { UserId = PassengerFourId, RoleId = roleStudent.Id },
             new UserRole { UserId = PassengerFiveId, RoleId = roleStudent.Id },
             new UserRole { UserId = AnalystId, RoleId = roleAnalyst.Id });
-
-        context.DriverProfiles.AddRange(
-            DemoDriverProfile(DriverOneProfileId, DriverOneId, "LIC-54321-SCZ", now.AddDays(-80)),
-            DemoDriverProfile(DriverTwoProfileId, DriverTwoId, "LIC-09876-SCZ", now.AddDays(-65)),
-            DemoDriverProfile(DriverThreeProfileId, DriverThreeId, "LIC-11223-SCZ", now.AddDays(-30)));
 
         context.Vehicles.AddRange(
             new Vehicle
@@ -352,20 +342,6 @@ public static class DevelopmentDataSeeder
         };
     }
 
-    private static DriverProfile DemoDriverProfile(Guid id, Guid userId, string licenseNumber, DateTime verifiedAt)
-    {
-        return new DriverProfile
-        {
-            Id = id,
-            UserId = userId,
-            LicenseNumber = licenseNumber,
-            LicenseDocumentUrl = $"https://demo.univalle.edu.bo/licenses/{licenseNumber}.pdf",
-            IsVerified = true,
-            VerifiedAt = verifiedAt,
-            CreatedAt = verifiedAt.AddDays(-1),
-            UpdatedAt = verifiedAt
-        };
-    }
 
     private static void SeedLocationsAndSafeZones(CarPoolingContext context, DateTime now)
     {
@@ -427,7 +403,6 @@ public static class DevelopmentDataSeeder
                 OfferedSeats = 4,
                 AvailableSeats = 3,
                 FareAmount = 10m,
-                Kind = TripKind.Regular,
                 CreatedAt = now.AddMinutes(-75),
                 UpdatedAt = now.AddMinutes(-72)
             },
@@ -443,7 +418,6 @@ public static class DevelopmentDataSeeder
                 OfferedSeats = 4,
                 AvailableSeats = 3,
                 FareAmount = 8m,
-                Kind = TripKind.Regular,
                 CreatedAt = now.AddHours(-2),
                 UpdatedAt = now.AddHours(-1).AddMinutes(-50)
             },
@@ -459,7 +433,6 @@ public static class DevelopmentDataSeeder
                 OfferedSeats = 4,
                 AvailableSeats = 2,
                 FareAmount = 10m,
-                Kind = TripKind.Regular,
                 CreatedAt = now.AddMinutes(-55),
                 UpdatedAt = now.AddMinutes(-16),
                 StartedAt = now.AddMinutes(-15)
@@ -476,7 +449,6 @@ public static class DevelopmentDataSeeder
                 OfferedSeats = 4,
                 AvailableSeats = 2,
                 FareAmount = 12m,
-                Kind = TripKind.Regular,
                 CreatedAt = now.AddHours(-4),
                 UpdatedAt = now.AddHours(-2),
                 StartedAt = now.AddHours(-3),
@@ -494,7 +466,6 @@ public static class DevelopmentDataSeeder
                 OfferedSeats = 4,
                 AvailableSeats = 4,
                 FareAmount = 10m,
-                Kind = TripKind.Regular,
                 CreatedAt = now.AddHours(-6),
                 UpdatedAt = now.AddHours(-5),
                 CancelledAt = now.AddHours(-5)
@@ -511,7 +482,6 @@ public static class DevelopmentDataSeeder
                 OfferedSeats = 4,
                 AvailableSeats = 3,
                 FareAmount = 9m,
-                Kind = TripKind.Regular,
                 CreatedAt = now.AddMinutes(-35),
                 UpdatedAt = now.AddMinutes(-25)
             },
@@ -527,7 +497,6 @@ public static class DevelopmentDataSeeder
                 OfferedSeats = 4,
                 AvailableSeats = 0,
                 FareAmount = 11m,
-                Kind = TripKind.Regular,
                 CreatedAt = now.AddHours(-1).AddMinutes(-25),
                 UpdatedAt = now.AddHours(-1).AddMinutes(-10)
             },
@@ -543,37 +512,36 @@ public static class DevelopmentDataSeeder
                 OfferedSeats = 4,
                 AvailableSeats = 1,
                 FareAmount = 7m,
-                Kind = TripKind.Regular,
                 CreatedAt = now.AddDays(-1).AddHours(-8),
                 UpdatedAt = now.AddDays(-1).AddHours(-6),
                 StartedAt = now.AddDays(-1).AddHours(-7),
                 FinishedAt = now.AddDays(-1).AddHours(-6)
-            },
-            new Trip
+            });
+
+        context.UserBookmarks.AddRange(
+            new UserBookmark
             {
                 Id = BookmarkPlaceId,
-                Kind = TripKind.UserBookmark,
+                Kind = "place",
                 OriginLocationId = LocLibraryBookmarkId,
-                DestinationLocationId = LocLibraryBookmarkId,
-                StatusId = 4,
-                DriverName = "Biblioteca central",
-                DriverUserId = PassengerOneId,
+                DestinationLocationId = null,
+                Title = "Biblioteca central",
+                UserId = PassengerOneId,
                 CreatedAt = now.AddDays(-9),
-                BookmarkUseCount = 5,
-                BookmarkLastUsedAt = now.AddHours(-5)
+                UseCount = 5,
+                LastUsedAt = now.AddHours(-5)
             },
-            new Trip
+            new UserBookmark
             {
                 Id = BookmarkRouteId,
-                Kind = TripKind.UserBookmark,
+                Kind = "route",
                 OriginLocationId = LocHomeBookmarkId,
                 DestinationLocationId = LocUnivalleId,
-                StatusId = 4,
-                DriverName = "Casa - Campus",
-                DriverUserId = PassengerOneId,
+                Title = "Casa - Campus",
+                UserId = PassengerOneId,
                 CreatedAt = now.AddDays(-8),
-                BookmarkUseCount = 3,
-                BookmarkLastUsedAt = now.AddDays(-1)
+                UseCount = 3,
+                LastUsedAt = now.AddDays(-1)
             });
     }
 
@@ -782,14 +750,6 @@ public static class DevelopmentDataSeeder
             DemoTransaction(PaySixId, PaymentTransactionType.Payment, PaymentTransactionStatus.Success, 11m, "WALLET_SIM", "TX-WALLET-0006", "00", "Debito de billetera simulado", now.AddHours(-1)),
             DemoTransaction(PaySevenId, PaymentTransactionType.Refund, PaymentTransactionStatus.Success, 10m, "SIMULATED_GATEWAY", "TX-REFUND-CANCEL", "REFUNDED", "Devolucion completa por cancelacion", now.AddHours(-5)));
 
-        context.PaymentReceipts.AddRange(
-            DemoReceipt(PayOneId, "R-2026-00001", now.AddMinutes(-15)),
-            DemoReceipt(PayThreeId, "R-2026-00002", now.AddHours(-2).AddMinutes(-30)),
-            DemoReceipt(PayFourId, "R-2026-00003", now.AddHours(-2)),
-            DemoReceipt(PayFiveId, "R-2026-00004", now.AddMinutes(-24)),
-            DemoReceipt(PaySixId, "R-2026-00005", now.AddHours(-1)),
-            DemoReceipt(PaySevenId, "R-2026-00006", now.AddHours(-5)));
-
         context.Refunds.Add(new Refund
         {
             Id = RefundOneId,
@@ -832,19 +792,6 @@ public static class DevelopmentDataSeeder
             ResponseMessage = responseMessage,
             ProcessedAt = processedAt,
             CreatedAt = processedAt ?? DateTime.UtcNow
-        };
-    }
-
-    private static PaymentReceipt DemoReceipt(Guid paymentId, string receiptNumber, DateTime issuedAt)
-    {
-        return new PaymentReceipt
-        {
-            Id = Guid.NewGuid(),
-            PaymentId = paymentId,
-            ReceiptNumber = receiptNumber,
-            QrCodeValue = $"RECEIPT-{receiptNumber}",
-            IssuedAt = issuedAt,
-            CreatedAt = issuedAt
         };
     }
 
@@ -1002,10 +949,6 @@ public static class DevelopmentDataSeeder
         };
 
         context.SupportTicketMessages.AddRange(messages);
-        context.SupportTicketMessageReads.AddRange(
-            new SupportTicketMessageRead { MessageId = messages[0].Id, UserId = AdminId, ReadAt = now.AddHours(-2).AddMinutes(-45) },
-            new SupportTicketMessageRead { MessageId = messages[2].Id, UserId = PassengerTwoId, ReadAt = now.AddDays(-2).AddMinutes(5) },
-            new SupportTicketMessageRead { MessageId = messages[5].Id, UserId = PassengerFourId, ReadAt = now.AddMinutes(-10) });
     }
 
     private static void SeedDevices(CarPoolingContext context, DateTime now)

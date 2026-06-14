@@ -220,10 +220,6 @@ public class PaymentService(CarPoolingContext context)
             CreatedAt = DateTime.UtcNow
         });
 
-        if (!method.RequiresManualConfirmation)
-        {
-            await EnsureReceiptAsync(payment);
-        }
 
         _context.Payments.Add(payment);
         await _context.SaveChangesAsync();
@@ -315,10 +311,6 @@ public class PaymentService(CarPoolingContext context)
             dto.ResponseCode ?? (dto.Approve ? "APPROVED" : "REJECTED"),
             dto.ResponseMessage ?? (dto.Approve ? "Pago aprobado en ambiente simulado." : "Pago rechazado en ambiente simulado."));
 
-        if (dto.Approve)
-        {
-            await EnsureReceiptAsync(payment);
-        }
 
         await _context.SaveChangesAsync();
         return PaymentResponseDto.FromEntity(payment);
@@ -388,7 +380,6 @@ public class PaymentService(CarPoolingContext context)
             ProcessedAt = now,
             CreatedAt = now
         });
-        await EnsureReceiptAsync(payment);
 
         await _context.SaveChangesAsync();
         return await GetPaymentForUserAsync(userId, paymentId);
@@ -535,7 +526,6 @@ public class PaymentService(CarPoolingContext context)
             .Include(p => p.UserPaymentMethod)
             .Include(p => p.Reservation).ThenInclude(r => r.Trip)
             .Include(p => p.Transactions)
-            .Include(p => p.Receipt)
             .Include(p => p.Refunds);
     }
 
@@ -658,32 +648,6 @@ public class PaymentService(CarPoolingContext context)
         });
     }
 
-    private async Task EnsureReceiptAsync(Payment payment)
-    {
-        if (payment.Receipt is not null)
-        {
-            return;
-        }
-
-        var existingReceipt = await _context.PaymentReceipts.FirstOrDefaultAsync(r => r.PaymentId == payment.Id);
-        if (existingReceipt != null)
-        {
-            payment.Receipt = existingReceipt;
-            return;
-        }
-
-        var receipt = new PaymentReceipt
-        {
-            Id = Guid.NewGuid(),
-            PaymentId = payment.Id,
-            ReceiptNumber = $"RC-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6]}",
-            QrCodeValue = payment.ExternalReference,
-            IssuedAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
-        };
-        _context.PaymentReceipts.Add(receipt);
-        payment.Receipt = receipt;
-    }
 
     public async Task<List<PaymentResponseDto>> ListAllPaymentsAsync()
     {

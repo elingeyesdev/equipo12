@@ -15,7 +15,7 @@ public class ReservationsController(ReservationService reservationService) : Con
         try
         {
             var r = await reservationService.CreateAsync(tripId, dto);
-            return CreatedAtRoute("GetPendingReservations", new { tripId }, ReservationService.MapToDto(r));
+            return CreatedAtRoute("GetPendingReservations", new { tripId }, await reservationService.MapToDtoAsync(r));
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
@@ -26,7 +26,7 @@ public class ReservationsController(ReservationService reservationService) : Con
         try
         {
             var r = await reservationService.AcceptAsync(reservationId);
-            return Ok(ReservationService.MapToDto(r));
+            return Ok(await reservationService.MapToDtoAsync(r));
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
@@ -37,7 +37,7 @@ public class ReservationsController(ReservationService reservationService) : Con
         try
         {
             var r = await reservationService.RejectAsync(reservationId);
-            return Ok(ReservationService.MapToDto(r));
+            return Ok(await reservationService.MapToDtoAsync(r));
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
@@ -48,7 +48,7 @@ public class ReservationsController(ReservationService reservationService) : Con
         try
         {
             var r = await reservationService.BoardAsync(reservationId);
-            return Ok(ReservationService.MapToDto(r));
+            return Ok(await reservationService.MapToDtoAsync(r));
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
@@ -59,7 +59,7 @@ public class ReservationsController(ReservationService reservationService) : Con
         try
         {
             var r = await reservationService.CancelAsync(id);
-            return Ok(ReservationService.MapToDto(r));
+            return Ok(await reservationService.MapToDtoAsync(r));
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
@@ -68,21 +68,21 @@ public class ReservationsController(ReservationService reservationService) : Con
     public async Task<ActionResult<IEnumerable<ReservationDto>>> GetPending(Guid tripId)
     {
         var list = await reservationService.GetPendingForTripAsync(tripId);
-        return Ok(list.Select(ReservationService.MapToDto).ToList());
+        return Ok(await reservationService.MapToDtoListAsync(list));
     }
 
     [HttpGet("~/api/Trips/{tripId}/Reservations/confirmed")]
     public async Task<ActionResult<IEnumerable<ReservationDto>>> GetConfirmed(Guid tripId)
     {
         var list = await reservationService.GetConfirmedForTripAsync(tripId);
-        return Ok(list.Select(ReservationService.MapToDto).ToList());
+        return Ok(await reservationService.MapToDtoListAsync(list));
     }
 
     [HttpGet("~/api/Trips/{tripId}/Reservations/boarded")]
     public async Task<ActionResult<IEnumerable<ReservationDto>>> GetBoarded(Guid tripId)
     {
         var list = await reservationService.GetBoardedForTripAsync(tripId);
-        return Ok(list.Select(ReservationService.MapToDto).ToList());
+        return Ok(await reservationService.MapToDtoListAsync(list));
     }
 
     [HttpPost("~/api/Trips/{tripId}/Reservations/{reservationId}/verify-code")]

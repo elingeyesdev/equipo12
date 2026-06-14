@@ -26,20 +26,16 @@ public class DriverProfileDto
     [Range(1900, 2100)]
     public int? VehicleYear { get; set; }
 
-    [MaxLength(30)]
-    public string? LicenseNumber { get; set; }
-
-    public static DriverProfileDto FromEntity(DriverProfile profile, Vehicle? vehicle)
+    public static DriverProfileDto FromEntity(Vehicle vehicle)
     {
         return new DriverProfileDto
         {
-            LicenseNumber = profile.LicenseNumber,
-            AvailableSeats = vehicle?.TotalSeats ?? 4,
-            LicensePlate = vehicle?.LicensePlate ?? "",
-            VehicleBrand = vehicle?.Brand ?? "",
-            VehicleModel = vehicle?.Model,
-            VehicleColor = vehicle?.Color ?? "",
-            VehicleYear = vehicle?.VehicleYear
+            AvailableSeats = vehicle.TotalSeats,
+            LicensePlate = vehicle.LicensePlate,
+            VehicleBrand = vehicle.Brand,
+            VehicleModel = vehicle.Model,
+            VehicleColor = vehicle.Color,
+            VehicleYear = vehicle.VehicleYear
         };
     }
 }

@@ -2,15 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CarPooling.Models;
 
-/// <summary>Legacy enum - será reemplazado por <see cref="TripStatusEntity"/>.</summary>
-public enum TripStatus
-{
-    AwaitingDestination = 0,
-    Ready = 1,
-    Cancelled = 2,
-    InProgress = 3,
-    Finished = 4
-}
 
 /// <summary>
 /// Tabla de estados de viaje. Fuente de verdad para los estados del sistema.

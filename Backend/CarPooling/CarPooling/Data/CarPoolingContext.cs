@@ -8,7 +8,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<Trip> Trips => Set<Trip>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<User> Users => Set<User>();
-    public DbSet<DriverProfile> DriverProfiles => Set<DriverProfile>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<TripStatusEntity> TripStatuses => Set<TripStatusEntity>();
@@ -19,7 +18,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<TripRating> TripRatings => Set<TripRating>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
-    public DbSet<SupportTicketMessageRead> SupportTicketMessageReads => Set<SupportTicketMessageRead>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<SafeZone> SafeZones => Set<SafeZone>();
     public DbSet<Role> Roles => Set<Role>();
@@ -30,16 +28,15 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<UserPaymentMethod> UserPaymentMethods => Set<UserPaymentMethod>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
-    public DbSet<PaymentReceipt> PaymentReceipts => Set<PaymentReceipt>();
     public DbSet<Refund> Refunds => Set<Refund>();
     public DbSet<UserDevice> UserDevices => Set<UserDevice>();
+    public DbSet<UserBookmark> UserBookmarks => Set<UserBookmark>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureTrip(modelBuilder);
         ConfigureReservation(modelBuilder);
         ConfigureUser(modelBuilder);
-        ConfigureDriverProfile(modelBuilder);
         ConfigureVehicle(modelBuilder);
         ConfigureLocation(modelBuilder);
         ConfigureTripStatus(modelBuilder);
@@ -50,7 +47,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureTripRating(modelBuilder);
         ConfigureSupportTicket(modelBuilder);
         ConfigureSupportTicketMessage(modelBuilder);
-        ConfigureSupportTicketMessageRead(modelBuilder);
         ConfigureAppSetting(modelBuilder);
         ConfigureSafeZone(modelBuilder);
         ConfigureRole(modelBuilder);
@@ -61,9 +57,9 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureUserPaymentMethod(modelBuilder);
         ConfigurePayment(modelBuilder);
         ConfigurePaymentTransaction(modelBuilder);
-        ConfigurePaymentReceipt(modelBuilder);
         ConfigureRefund(modelBuilder);
         ConfigureUserDevice(modelBuilder);
+        ConfigureUserBookmark(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -114,7 +110,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(t => t.AvailableSeats).IsRequired().HasDefaultValue(4);
             entity.Property(t => t.FareAmount).HasColumnType("decimal(10,2)").HasDefaultValue(10m).IsRequired();
             entity.Property(t => t.DriverName).HasMaxLength(100).IsRequired();
-            entity.Property(t => t.Kind).HasConversion<int>().HasDefaultValue(TripKind.Regular).IsRequired();
             entity.Property(t => t.BookmarkUseCount).HasDefaultValue(0);
             entity.Property(t => t.BookmarkLastUsedAt);
             entity.Property(t => t.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
@@ -168,10 +163,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .HasForeignKey(ur => ur.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(u => u.DriverProfile)
-                .WithOne(p => p.User)
-                .HasForeignKey<DriverProfile>(p => p.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(u => u.Vehicles)
                 .WithOne(v => v.OwnerUser)
@@ -180,21 +171,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         });
     }
 
-    private static void ConfigureDriverProfile(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<DriverProfile>(entity =>
-        {
-            entity.ToTable("DriverProfiles");
-            entity.HasKey(p => p.Id);
-            entity.HasIndex(p => p.UserId).IsUnique();
-            entity.Property(p => p.IsVerified).IsRequired();
-            entity.Property(p => p.LicenseNumber).HasMaxLength(30);
-            entity.Property(p => p.LicenseDocumentUrl).HasMaxLength(300);
-            entity.Property(p => p.VerifiedAt);
-            entity.Property(p => p.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-            entity.Property(p => p.UpdatedAt);
-        });
-    }
 
     private static void ConfigureVehicle(ModelBuilder modelBuilder)
     {
@@ -450,30 +426,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         });
     }
 
-    private static void ConfigureSupportTicketMessageRead(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<SupportTicketMessageRead>(entity =>
-        {
-            entity.ToTable("SupportTicketMessageReads");
-            entity.HasKey(r => new { r.MessageId, r.UserId });
-
-            entity.HasOne(r => r.Message)
-                .WithMany(m => m.Reads)
-                .HasForeignKey(r => r.MessageId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .IsRequired();
-
-            entity.HasOne(r => r.User)
-                .WithMany()
-                .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired();
-
-            entity.Property(r => r.ReadAt).HasDefaultValueSql("GETUTCDATE()");
-
-            entity.HasIndex(r => r.UserId);
-        });
-    }
 
     private static void ConfigureAppSetting(ModelBuilder modelBuilder)
     {
@@ -705,28 +657,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         });
     }
 
-    private static void ConfigurePaymentReceipt(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<PaymentReceipt>(entity =>
-        {
-            entity.ToTable("PaymentReceipts");
-            entity.HasKey(r => r.Id);
-            entity.HasIndex(r => r.PaymentId).IsUnique();
-            entity.HasIndex(r => r.ReceiptNumber).IsUnique();
-
-            entity.HasOne(r => r.Payment)
-                .WithOne(p => p.Receipt)
-                .HasForeignKey<PaymentReceipt>(r => r.PaymentId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .IsRequired();
-
-            entity.Property(r => r.ReceiptNumber).IsRequired().HasMaxLength(40);
-            entity.Property(r => r.ReceiptUrl).HasMaxLength(300);
-            entity.Property(r => r.QrCodeValue).HasMaxLength(300);
-            entity.Property(r => r.IssuedAt).HasDefaultValueSql("GETUTCDATE()");
-            entity.Property(r => r.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-        });
-    }
 
     private static void ConfigureRefund(ModelBuilder modelBuilder)
     {
@@ -838,6 +768,37 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(d => d.FcmToken).IsRequired().HasMaxLength(500);
             entity.Property(d => d.DeviceName).HasMaxLength(100);
             entity.Property(d => d.LastUsedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private static void ConfigureUserBookmark(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserBookmark>(entity =>
+        {
+            entity.ToTable("UserBookmarks");
+            entity.HasKey(b => b.Id);
+
+            entity.HasOne(b => b.User)
+                .WithMany()
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            entity.HasOne(b => b.OriginLocation)
+                .WithMany()
+                .HasForeignKey(b => b.OriginLocationId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.HasOne(b => b.DestinationLocation)
+                .WithMany()
+                .HasForeignKey(b => b.DestinationLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(b => b.Title).IsRequired().HasMaxLength(100);
+            entity.Property(b => b.Kind).IsRequired().HasMaxLength(20).HasDefaultValue("place");
+            entity.Property(b => b.UseCount).HasDefaultValue(0);
+            entity.Property(b => b.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
         });
     }
 }

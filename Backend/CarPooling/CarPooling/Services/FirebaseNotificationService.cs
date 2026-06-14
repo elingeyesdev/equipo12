@@ -10,6 +10,12 @@ public class FirebaseNotificationService(CarPoolingContext context) : INotificat
 
     public async Task SendNotificationAsync(Guid userId, string title, string body, Dictionary<string, string>? data = null)
     {
+        if (FirebaseMessaging.DefaultInstance == null)
+        {
+            Console.WriteLine("FirebaseMessaging no está inicializado. Omitiendo envío de notificación.");
+            return;
+        }
+
         var tokens = await _context.UserDevices
             .Where(d => d.UserId == userId)
             .Select(d => d.FcmToken)
@@ -56,9 +62,14 @@ public class FirebaseNotificationService(CarPoolingContext context) : INotificat
             await _context.SaveChangesAsync();
         }
     }
-
     public async Task SendNotificationToMultipleAsync(IEnumerable<Guid> userIds, string title, string body, Dictionary<string, string>? data = null)
     {
+        if (FirebaseMessaging.DefaultInstance == null)
+        {
+            Console.WriteLine("FirebaseMessaging no está inicializado. Omitiendo envío de notificación masiva.");
+            return;
+        }
+
         var tokens = await _context.UserDevices
             .Where(d => userIds.Contains(d.UserId))
             .Select(d => d.FcmToken)
