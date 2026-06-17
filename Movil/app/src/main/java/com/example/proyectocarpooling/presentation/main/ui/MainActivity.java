@@ -68,6 +68,7 @@ import com.example.proyectocarpooling.presentation.payment.ui.PaymentActivity;
 import com.example.proyectocarpooling.data.remote.search.MapboxGeocodingRemoteDataSource;
 // MainViewModel now in same package
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
+import com.example.proyectocarpooling.presentation.schedules.ui.TripSchedulesActivity;
 
 import com.mapbox.geojson.Point;
 import com.mapbox.maps.CameraOptions;
@@ -322,6 +323,7 @@ public class MainActivity extends BaseActivity {
         isDriverUser = sessionManager.isDriver();
 
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        observeViewModel();
         restoreStateFromViewModel();
 
         bindViews();
@@ -351,14 +353,45 @@ public class MainActivity extends BaseActivity {
     }
 
     private void restoreStateFromViewModel() {
-        selectedOrigin = mainViewModel.getSelectedOrigin();
-        selectedDestination = mainViewModel.getSelectedDestination();
-        selectedOriginAddress = mainViewModel.getSelectedOriginAddress();
-        selectedDestinationAddress = mainViewModel.getSelectedDestinationAddress();
-        activeTripId = mainViewModel.getActiveTripId();
-        lastTripStatusLabel = mainViewModel.getLastTripStatusLabel();
-        activeTripAvailableSeats = mainViewModel.getActiveTripAvailableSeats();
-        lastRouteTimeLabel = mainViewModel.getLastRouteTimeLabel();
+        selectedOrigin = mainViewModel.getSelectedOrigin().getValue();
+        selectedDestination = mainViewModel.getSelectedDestination().getValue();
+        selectedOriginAddress = mainViewModel.getSelectedOriginAddress().getValue();
+        selectedDestinationAddress = mainViewModel.getSelectedDestinationAddress().getValue();
+        activeTripId = mainViewModel.getActiveTripId().getValue();
+        lastTripStatusLabel = mainViewModel.getLastTripStatusLabel().getValue();
+        activeTripAvailableSeats = mainViewModel.getActiveTripAvailableSeats().getValue() != null ? mainViewModel.getActiveTripAvailableSeats().getValue() : 0;
+        lastRouteTimeLabel = mainViewModel.getLastRouteTimeLabel().getValue();
+    }
+
+    private void observeViewModel() {
+        mainViewModel.getSelectedOrigin().observe(this, point -> {
+            selectedOrigin = point;
+            updateCoordinateLabels();
+        });
+        mainViewModel.getSelectedDestination().observe(this, point -> {
+            selectedDestination = point;
+            updateCoordinateLabels();
+        });
+        mainViewModel.getSelectedOriginAddress().observe(this, address -> {
+            selectedOriginAddress = address;
+            updateCoordinateLabels();
+        });
+        mainViewModel.getSelectedDestinationAddress().observe(this, address -> {
+            selectedDestinationAddress = address;
+            updateCoordinateLabels();
+        });
+        mainViewModel.getActiveTripId().observe(this, tripId -> {
+            activeTripId = tripId;
+        });
+        mainViewModel.getLastTripStatusLabel().observe(this, status -> {
+            lastTripStatusLabel = status;
+        });
+        mainViewModel.getActiveTripAvailableSeats().observe(this, seats -> {
+            activeTripAvailableSeats = seats != null ? seats : 0;
+        });
+        mainViewModel.getLastRouteTimeLabel().observe(this, label -> {
+            lastRouteTimeLabel = label;
+        });
     }
 
     private void syncSelectionStateToViewModel() {
@@ -1036,6 +1069,8 @@ public class MainActivity extends BaseActivity {
                     startActivity(new Intent(this, TripHistoryActivity.class));
                 } else if (id == R.id.nav_search_trip) {
                     startActivity(new Intent(this, SearchTripActivity.class));
+                } else if (id == R.id.nav_trip_schedules) {
+                    startActivity(new Intent(this, TripSchedulesActivity.class));
                 } else if (id == R.id.nav_help) {
                     startActivity(new Intent(this, HelpActivity.class));
                 } else if (id == R.id.nav_support) {
@@ -2067,31 +2102,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void reverseGeocodePoint(final Point point, final boolean isOrigin) {
-        if (point == null) return;
-        final String token = getString(R.string.mapbox_access_token);
-        backgroundExecutor.execute(() -> {
-            try {
-                MapboxGeocodingRemoteDataSource geocoder = new MapboxGeocodingRemoteDataSource(token);
-                final String address = geocoder.reverseGeocode(point.latitude(), point.longitude());
-                runOnUiThread(() -> {
-                    if (isOrigin) {
-                        if (point.equals(selectedOrigin)) {
-                            selectedOriginAddress = address;
-                            updateCoordinateLabels();
-                            syncSelectionStateToViewModel();
-                        }
-                    } else {
-                        if (point.equals(selectedDestination)) {
-                            selectedDestinationAddress = address;
-                            updateCoordinateLabels();
-                            syncSelectionStateToViewModel();
-                        }
-                    }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        mainViewModel.reverseGeocodePoint(point, isOrigin, getString(R.string.mapbox_access_token));
     }
 
     private void updateCoordinateLabels() {

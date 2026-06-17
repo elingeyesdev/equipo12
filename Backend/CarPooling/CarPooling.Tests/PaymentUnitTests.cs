@@ -68,7 +68,6 @@ public class PaymentUnitTests
         {
             Id = paymentId,
             ReservationId = reservationId,
-            PassengerUserId = passengerId,
             PaymentMethodId = 1,
             Amount = 10m,
             Currency = "BOB",

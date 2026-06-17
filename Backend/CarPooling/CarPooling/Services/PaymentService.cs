@@ -190,7 +190,6 @@ public class PaymentService(CarPoolingContext context)
         {
             Id = Guid.NewGuid(),
             ReservationId = dto.ReservationId,
-            PassengerUserId = userId,
             PaymentMethodId = dto.PaymentMethodId,
             UserPaymentMethodId = dto.UserPaymentMethodId,
             Amount = reservation.Trip.FareAmount * reservation.SeatsReserved,
@@ -232,7 +231,7 @@ public class PaymentService(CarPoolingContext context)
         await EnsureUserExistsAsync(userId);
 
         var payments = await PaymentDetailsQuery()
-            .Where(p => p.PassengerUserId == userId ||
+            .Where(p => p.Reservation.PassengerUserId == userId ||
                         p.Reservation.Trip.DriverUserId == userId ||
                         p.ConfirmedByUserId == userId)
             .OrderByDescending(p => p.CreatedAt)
@@ -283,7 +282,7 @@ public class PaymentService(CarPoolingContext context)
         var payment = await PaymentDetailsQuery().FirstOrDefaultAsync(p => p.Id == paymentId)
             ?? throw new KeyNotFoundException("Pago no encontrado.");
 
-        if (payment.PassengerUserId != userId)
+        if (payment.Reservation.PassengerUserId != userId)
         {
             throw new InvalidOperationException("Solo el pasajero puede simular este pago.");
         }
@@ -390,7 +389,7 @@ public class PaymentService(CarPoolingContext context)
         var payment = await PaymentDetailsQuery().FirstOrDefaultAsync(p => p.Id == paymentId)
             ?? throw new KeyNotFoundException("Pago no encontrado.");
 
-        if (payment.PassengerUserId != userId && payment.Reservation.Trip.DriverUserId != userId)
+        if (payment.Reservation.PassengerUserId != userId && payment.Reservation.Trip.DriverUserId != userId)
         {
             throw new InvalidOperationException("No tienes permisos para cancelar este pago.");
         }
@@ -414,7 +413,7 @@ public class PaymentService(CarPoolingContext context)
         var payment = await PaymentDetailsQuery().FirstOrDefaultAsync(p => p.Id == paymentId)
             ?? throw new KeyNotFoundException("Pago no encontrado.");
 
-        if (payment.PassengerUserId != userId)
+        if (payment.Reservation.PassengerUserId != userId)
         {
             throw new InvalidOperationException("Solo el pasajero puede solicitar devolucion.");
         }
@@ -520,11 +519,11 @@ public class PaymentService(CarPoolingContext context)
     private IQueryable<Payment> PaymentDetailsQuery()
     {
         return _context.Payments
-            .Include(p => p.PassengerUser)
             .Include(p => p.ConfirmedByUser)
             .Include(p => p.PaymentMethod)
             .Include(p => p.UserPaymentMethod)
             .Include(p => p.Reservation).ThenInclude(r => r.Trip)
+            .Include(p => p.Reservation).ThenInclude(r => r.PassengerUser)
             .Include(p => p.Transactions)
             .Include(p => p.Refunds);
     }
@@ -592,7 +591,7 @@ public class PaymentService(CarPoolingContext context)
 
     private static void EnsureCanAccessPayment(Guid userId, Payment payment)
     {
-        if (payment.PassengerUserId == userId ||
+        if (payment.Reservation.PassengerUserId == userId ||
             payment.Reservation.Trip.DriverUserId == userId ||
             payment.ConfirmedByUserId == userId)
         {

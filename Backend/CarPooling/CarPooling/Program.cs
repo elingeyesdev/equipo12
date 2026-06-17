@@ -52,6 +52,7 @@ builder.Services.AddScoped<SafeZoneService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<INotificationService, FirebaseNotificationService>();
 builder.Services.AddHttpClient<GeocodingService>();
+builder.Services.AddHostedService<TripSchedulerService>();
 
 // Initialize Firebase
 var pathToFirebaseKey = builder.Configuration["Firebase:CredentialsPath"] ?? "firebase-adminsdk.json";

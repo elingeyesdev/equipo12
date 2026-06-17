@@ -14,12 +14,6 @@ public class Payment
     public Reservation Reservation { get; set; } = null!;
 
     [Required]
-    public Guid PassengerUserId { get; set; }
-
-    [ForeignKey(nameof(PassengerUserId))]
-    public User PassengerUser { get; set; } = null!;
-
-    [Required]
     public int PaymentMethodId { get; set; }
 
     public PaymentMethod PaymentMethod { get; set; } = null!;

@@ -629,7 +629,6 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayOneId,
                 ReservationId = ResFourId,
-                PassengerUserId = PassengerTwoId,
                 PaymentMethodId = 2,
                 Amount = 10m,
                 Currency = "BOB",
@@ -644,7 +643,6 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayTwoId,
                 ReservationId = ResFiveId,
-                PassengerUserId = PassengerOneId,
                 PaymentMethodId = 1,
                 Amount = 10m,
                 Currency = "BOB",
@@ -658,7 +656,6 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayThreeId,
                 ReservationId = ResSixId,
-                PassengerUserId = PassengerOneId,
                 PaymentMethodId = 3,
                 UserPaymentMethodId = DriverTwoQrMethodId,
                 Amount = 12m,
@@ -677,7 +674,6 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayFourId,
                 ReservationId = ResSevenId,
-                PassengerUserId = PassengerThreeId,
                 PaymentMethodId = 1,
                 Amount = 12m,
                 Currency = "BOB",
@@ -694,7 +690,6 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayFiveId,
                 ReservationId = ResNineId,
-                PassengerUserId = PassengerFourId,
                 PaymentMethodId = 2,
                 UserPaymentMethodId = PassengerCardMethodId,
                 Amount = 9m,
@@ -711,7 +706,6 @@ public static class DevelopmentDataSeeder
             {
                 Id = PaySixId,
                 ReservationId = ResTenId,
-                PassengerUserId = PassengerOneId,
                 PaymentMethodId = 4,
                 UserPaymentMethodId = PassengerWalletMethodId,
                 Amount = 11m,
@@ -727,7 +721,6 @@ public static class DevelopmentDataSeeder
             {
                 Id = PaySevenId,
                 ReservationId = ResFifteenId,
-                PassengerUserId = PassengerFiveId,
                 PaymentMethodId = 2,
                 Amount = 10m,
                 Currency = "BOB",

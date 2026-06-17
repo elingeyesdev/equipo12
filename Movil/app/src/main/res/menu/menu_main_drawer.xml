@@ -20,6 +20,11 @@
             android:id="@+id/nav_search_trip"
             android:icon="@android:drawable/ic_menu_search"
             android:title="@string/drawer_search_trip" />
+
+        <item
+            android:id="@+id/nav_trip_schedules"
+            android:icon="@android:drawable/ic_menu_today"
+            android:title="Viajes Programados" />
     </group>
 
     <group android:id="@+id/group_reservation">

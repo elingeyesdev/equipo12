@@ -31,6 +31,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<Refund> Refunds => Set<Refund>();
     public DbSet<UserDevice> UserDevices => Set<UserDevice>();
     public DbSet<UserBookmark> UserBookmarks => Set<UserBookmark>();
+    public DbSet<TripSchedule> TripSchedules => Set<TripSchedule>();
+    public DbSet<RecurringReservation> RecurringReservations => Set<RecurringReservation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -60,6 +62,8 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureRefund(modelBuilder);
         ConfigureUserDevice(modelBuilder);
         ConfigureUserBookmark(modelBuilder);
+        ConfigureTripSchedule(modelBuilder);
+        ConfigureRecurringReservation(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -587,12 +591,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired();
 
-            entity.HasOne(p => p.PassengerUser)
-                .WithMany()
-                .HasForeignKey(p => p.PassengerUserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired();
-
             entity.HasOne(p => p.PaymentMethod)
                 .WithMany(m => m.Payments)
                 .HasForeignKey(p => p.PaymentMethodId)
@@ -622,7 +620,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(p => p.UpdatedAt);
 
             entity.HasIndex(p => p.ReservationId);
-            entity.HasIndex(p => p.PassengerUserId);
             entity.HasIndex(p => p.Status);
             entity.HasIndex(p => p.CreatedAt);
         });
@@ -799,6 +796,74 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(b => b.Kind).IsRequired().HasMaxLength(20).HasDefaultValue("place");
             entity.Property(b => b.UseCount).HasDefaultValue(0);
             entity.Property(b => b.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private static void ConfigureTripSchedule(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TripSchedule>(entity =>
+        {
+            entity.ToTable("TripSchedules");
+            entity.HasKey(ts => ts.Id);
+
+            entity.HasOne(ts => ts.DriverUser)
+                .WithMany()
+                .HasForeignKey(ts => ts.DriverUserId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired();
+
+            entity.HasOne(ts => ts.OriginLocation)
+                .WithMany()
+                .HasForeignKey(ts => ts.OriginLocationId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired();
+
+            entity.HasOne(ts => ts.DestinationLocation)
+                .WithMany()
+                .HasForeignKey(ts => ts.DestinationLocationId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired();
+
+            entity.HasOne(ts => ts.Vehicle)
+                .WithMany()
+                .HasForeignKey(ts => ts.VehicleId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasMany(ts => ts.Trips)
+                .WithOne(t => t.TripSchedule)
+                .HasForeignKey(t => t.TripScheduleId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasMany(ts => ts.RecurringReservations)
+                .WithOne(r => r.TripSchedule)
+                .HasForeignKey(r => r.TripScheduleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
+
+    private static void ConfigureRecurringReservation(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RecurringReservation>(entity =>
+        {
+            entity.ToTable("RecurringReservations");
+            entity.HasKey(rr => rr.Id);
+
+            entity.HasOne(rr => rr.TripSchedule)
+                .WithMany(ts => ts.RecurringReservations)
+                .HasForeignKey(rr => rr.TripScheduleId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            entity.HasOne(rr => rr.PassengerUser)
+                .WithMany()
+                .HasForeignKey(rr => rr.PassengerUserId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired();
+
+            entity.HasMany(rr => rr.Reservations)
+                .WithOne(r => r.RecurringReservation)
+                .HasForeignKey(r => r.RecurringReservationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

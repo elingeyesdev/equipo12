@@ -19,6 +19,9 @@ import com.example.proyectocarpooling.domain.repository.trip.TripRepository;
 import com.example.proyectocarpooling.domain.repository.favorites.FavoritesRepository;
 import com.example.proyectocarpooling.domain.repository.history.TripHistoryRepository;
 import com.example.proyectocarpooling.domain.repository.user.UserRepository;
+import com.example.proyectocarpooling.data.remote.trip.TripScheduleRemoteDataSource;
+import com.example.proyectocarpooling.data.repository.trip.TripScheduleRepositoryImpl;
+import com.example.proyectocarpooling.domain.repository.trip.TripScheduleRepository;
 
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +37,7 @@ public class CarPoolingApplication extends Application {
     private FavoritesRepository favoritesRepository;
     private TripHistoryRepository tripHistoryRepository;
     private SupportRepository supportRepository;
+    private TripScheduleRepository tripScheduleRepository;
 
     @Override
     public void onCreate() {
@@ -154,5 +158,16 @@ public class CarPoolingApplication extends Application {
             paymentRemoteDataSource = new com.example.proyectocarpooling.data.remote.payment.PaymentRemoteDataSource(ApiBaseUrlProvider.get(this));
         }
         return paymentRemoteDataSource;
+    }
+
+    public synchronized TripScheduleRepository getTripScheduleRepository() {
+        if (tripScheduleRepository == null) {
+            tripScheduleRepository = new TripScheduleRepositoryImpl(createTripScheduleDataSource());
+        }
+        return tripScheduleRepository;
+    }
+
+    private TripScheduleRemoteDataSource createTripScheduleDataSource() {
+        return new TripScheduleRemoteDataSource(ApiBaseUrlProvider.get(this));
     }
 }

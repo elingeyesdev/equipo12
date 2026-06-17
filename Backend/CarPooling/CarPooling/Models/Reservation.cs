@@ -27,6 +27,11 @@ public class Reservation
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public Guid? RecurringReservationId { get; set; }
+
+    [ForeignKey(nameof(RecurringReservationId))]
+    public RecurringReservation? RecurringReservation { get; set; }
+
     [ForeignKey(nameof(TripId))]
     public Trip Trip { get; set; } = null!;
 }

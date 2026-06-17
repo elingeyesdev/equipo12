@@ -4,6 +4,8 @@ import android.app.Application;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.example.proyectocarpooling.BackgroundTaskRunner;
 import com.example.proyectocarpooling.CarPoolingApplication;
@@ -11,6 +13,7 @@ import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.trip.ReservationResponse;
 import com.example.proyectocarpooling.data.model.trip.TripResponse;
 import com.example.proyectocarpooling.data.model.user.VehicleResponse;
+import com.example.proyectocarpooling.data.remote.search.MapboxGeocodingRemoteDataSource;
 import com.example.proyectocarpooling.domain.model.trip.CreateTripResult;
 import com.example.proyectocarpooling.domain.repository.trip.TripRepository;
 import com.example.proyectocarpooling.domain.repository.user.UserRepository;
@@ -42,14 +45,14 @@ public class MainViewModel extends AndroidViewModel {
     private final BackgroundTaskRunner taskRunner;
     private final SessionManager sessionManager;
 
-    private Point selectedOrigin;
-    private Point selectedDestination;
-    private String selectedOriginAddress;
-    private String selectedDestinationAddress;
-    private String activeTripId;
-    private String lastTripStatusLabel;
-    private int activeTripAvailableSeats;
-    private String lastRouteTimeLabel;
+    private final MutableLiveData<Point> selectedOrigin = new MutableLiveData<>();
+    private final MutableLiveData<Point> selectedDestination = new MutableLiveData<>();
+    private final MutableLiveData<String> selectedOriginAddress = new MutableLiveData<>();
+    private final MutableLiveData<String> selectedDestinationAddress = new MutableLiveData<>();
+    private final MutableLiveData<String> activeTripId = new MutableLiveData<>();
+    private final MutableLiveData<String> lastTripStatusLabel = new MutableLiveData<>();
+    private final MutableLiveData<Integer> activeTripAvailableSeats = new MutableLiveData<>(0);
+    private final MutableLiveData<String> lastRouteTimeLabel = new MutableLiveData<>();
 
     public MainViewModel(@NonNull Application application) {
         super(application);
@@ -66,22 +69,51 @@ public class MainViewModel extends AndroidViewModel {
 
     public SessionManager getSessionManager() { return sessionManager; }
 
-    public Point getSelectedOrigin() { return selectedOrigin; }
-    public void setSelectedOrigin(Point p) { this.selectedOrigin = p; }
-    public String getSelectedOriginAddress() { return selectedOriginAddress; }
-    public void setSelectedOriginAddress(String s) { this.selectedOriginAddress = s; }
-    public Point getSelectedDestination() { return selectedDestination; }
-    public void setSelectedDestination(Point p) { this.selectedDestination = p; }
-    public String getSelectedDestinationAddress() { return selectedDestinationAddress; }
-    public void setSelectedDestinationAddress(String s) { this.selectedDestinationAddress = s; }
-    public String getActiveTripId() { return activeTripId; }
-    public void setActiveTripId(String id) { this.activeTripId = id; }
-    public String getLastTripStatusLabel() { return lastTripStatusLabel; }
-    public void setLastTripStatusLabel(String s) { this.lastTripStatusLabel = s; }
-    public int getActiveTripAvailableSeats() { return activeTripAvailableSeats; }
-    public void setActiveTripAvailableSeats(int n) { this.activeTripAvailableSeats = n; }
-    public String getLastRouteTimeLabel() { return lastRouteTimeLabel; }
-    public void setLastRouteTimeLabel(String s) { this.lastRouteTimeLabel = s; }
+    public LiveData<Point> getSelectedOrigin() { return selectedOrigin; }
+    public void setSelectedOrigin(Point p) { this.selectedOrigin.setValue(p); }
+
+    public LiveData<String> getSelectedOriginAddress() { return selectedOriginAddress; }
+    public void setSelectedOriginAddress(String s) { this.selectedOriginAddress.setValue(s); }
+
+    public LiveData<Point> getSelectedDestination() { return selectedDestination; }
+    public void setSelectedDestination(Point p) { this.selectedDestination.setValue(p); }
+
+    public LiveData<String> getSelectedDestinationAddress() { return selectedDestinationAddress; }
+    public void setSelectedDestinationAddress(String s) { this.selectedDestinationAddress.setValue(s); }
+
+    public LiveData<String> getActiveTripId() { return activeTripId; }
+    public void setActiveTripId(String id) { this.activeTripId.setValue(id); }
+
+    public LiveData<String> getLastTripStatusLabel() { return lastTripStatusLabel; }
+    public void setLastTripStatusLabel(String s) { this.lastTripStatusLabel.setValue(s); }
+
+    public LiveData<Integer> getActiveTripAvailableSeats() { return activeTripAvailableSeats; }
+    public void setActiveTripAvailableSeats(int n) { this.activeTripAvailableSeats.setValue(n); }
+
+    public LiveData<String> getLastRouteTimeLabel() { return lastRouteTimeLabel; }
+    public void setLastRouteTimeLabel(String s) { this.lastRouteTimeLabel.setValue(s); }
+
+    public void reverseGeocodePoint(final Point point, final boolean isOrigin, String token) {
+        if (point == null) return;
+        taskRunner.runWithResult(() -> {
+            MapboxGeocodingRemoteDataSource geocoder = new MapboxGeocodingRemoteDataSource(token);
+            return geocoder.reverseGeocode(point.latitude(), point.longitude());
+        }, adapt(new ResultCallback<String>() {
+            @Override
+            public void onSuccess(String address) {
+                if (isOrigin) {
+                    selectedOriginAddress.postValue(address);
+                } else {
+                    selectedDestinationAddress.postValue(address);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                // Ignore or log error
+            }
+        }));
+    }
 
     public void createTrip(Point origin, Point destination, ResultCallback<CreateTripResult> callback) {
         createTrip(origin, destination, null, callback);

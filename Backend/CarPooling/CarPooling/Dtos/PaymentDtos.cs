@@ -139,8 +139,8 @@ public class PaymentResponseDto
     {
         Id = payment.Id,
         ReservationId = payment.ReservationId,
-        PassengerUserId = payment.PassengerUserId,
-        PassengerName = payment.PassengerUser?.FullName ?? "",
+        PassengerUserId = payment.Reservation?.PassengerUserId ?? Guid.Empty,
+        PassengerName = payment.Reservation?.PassengerUser?.FullName ?? "",
         TripId = payment.Reservation?.TripId ?? Guid.Empty,
         DriverUserId = payment.Reservation?.Trip?.DriverUserId,
         DriverName = payment.Reservation?.Trip?.DriverName ?? "",

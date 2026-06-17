@@ -4,6 +4,7 @@ using CarPooling.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarPooling.Migrations
 {
     [DbContext(typeof(CarPoolingContext))]
-    partial class CarPoolingContextModelSnapshot : ModelSnapshot
+    [Migration("20260617035725_AddTripSchedules")]
+    partial class AddTripSchedules
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -117,6 +120,9 @@ namespace CarPooling.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid>("PassengerUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("PaymentMethodId")
                         .HasColumnType("int");
 
@@ -144,6 +150,8 @@ namespace CarPooling.Migrations
                     b.HasIndex("ConfirmedByUserId");
 
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("PassengerUserId");
 
                     b.HasIndex("PaymentMethodId");
 
@@ -1356,6 +1364,12 @@ namespace CarPooling.Migrations
                         .HasForeignKey("ConfirmedByUserId")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("CarPooling.Models.User", "PassengerUser")
+                        .WithMany()
+                        .HasForeignKey("PassengerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarPooling.Models.PaymentMethod", "PaymentMethod")
                         .WithMany("Payments")
                         .HasForeignKey("PaymentMethodId")
@@ -1374,6 +1388,8 @@ namespace CarPooling.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("ConfirmedByUser");
+
+                    b.Navigation("PassengerUser");
 
                     b.Navigation("PaymentMethod");
 

@@ -188,7 +188,7 @@ public class AdminController(
         }
 
         // Comprobar si tiene pagos o reembolsos asociados
-        var hasPayments = await _context.Payments.AnyAsync(p => p.PassengerUserId == id || p.ConfirmedByUserId == id) ||
+        var hasPayments = await _context.Payments.AnyAsync(p => p.Reservation.PassengerUserId == id || p.ConfirmedByUserId == id) ||
                           await _context.Refunds.AnyAsync(r => r.RequestedByUserId == id || r.ProcessedByUserId == id);
         if (hasPayments)
         {

@@ -48,6 +48,13 @@ public class Trip
 
     public ICollection<Reservation> Reservations { get; set; } = [];
 
+    public Guid? TripScheduleId { get; set; }
+
+    [ForeignKey(nameof(TripScheduleId))]
+    public TripSchedule? TripSchedule { get; set; }
+
+    public DateTime? ScheduledDate { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public DateTime? CancelledAt { get; set; }
