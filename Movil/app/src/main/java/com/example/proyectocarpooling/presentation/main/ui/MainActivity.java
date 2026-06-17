@@ -69,6 +69,7 @@ import com.example.proyectocarpooling.data.remote.search.MapboxGeocodingRemoteDa
 // MainViewModel now in same package
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
 import com.example.proyectocarpooling.presentation.schedules.ui.TripSchedulesActivity;
+import com.example.proyectocarpooling.presentation.schedules.ui.CreateTripScheduleActivity;
 
 import com.mapbox.geojson.Point;
 import com.mapbox.maps.CameraOptions;
@@ -134,6 +135,7 @@ public class MainActivity extends BaseActivity {
     private EditText fareAmountInput;
     private View menuToggleButton;
     private Button createTripButton;
+    private TextView btnScheduleTripOption;
     private Button cancelTripButton;
     private Button findDriverButton;
     private Button markBoardedButton;
@@ -183,6 +185,13 @@ public class MainActivity extends BaseActivity {
     private List<Point> cachedRoutePreviewPoints;
     private Point cachedRouteOrigin;
     private Point cachedRouteDestination;
+    private Button btnSimulateTrip;
+    private PointAnnotation carSimulationAnnotation;
+    private PointAnnotation passengerCarMarkerAnnotation;
+    private Bitmap carMarkerBitmap;
+    private final android.os.Handler simulationHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable simulationRunnable;
+    private int simulationIndex = 0;
     private SafeZoneItem activeSafeZoneRouteStop;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
@@ -422,7 +431,9 @@ public class MainActivity extends BaseActivity {
         fareAmountInput = findViewById(R.id.fareAmountInput);
         menuToggleButton = findViewById(R.id.menuToggleButton);
         createTripButton = findViewById(R.id.createTripButton);
+        btnScheduleTripOption = findViewById(R.id.btnScheduleTripOption);
         cancelTripButton = findViewById(R.id.cancelTripButton);
+        btnSimulateTrip = findViewById(R.id.btnSimulateTrip);
         findDriverButton = findViewById(R.id.findDriverButton);
         markBoardedButton = findViewById(R.id.markBoardedButton);
         startTripButton = findViewById(R.id.startTripButton);
@@ -543,6 +554,9 @@ public class MainActivity extends BaseActivity {
         markBoardedButton.setOnClickListener(v -> markPassengerBoardedByName());
         startTripButton.setOnClickListener(v -> startTrip());
         finishTripButton.setOnClickListener(v -> finishTrip());
+        if (btnSimulateTrip != null) {
+            btnSimulateTrip.setOnClickListener(v -> startCarSimulation());
+        }
         createTripButton.setOnClickListener(v -> {
             if (activeTripId != null) {
                 Toast.makeText(this, R.string.toast_trip_exists, Toast.LENGTH_SHORT).show();
@@ -558,6 +572,26 @@ public class MainActivity extends BaseActivity {
             }
             createTrip();
         });
+        if (btnScheduleTripOption != null) {
+            btnScheduleTripOption.setOnClickListener(v -> {
+                if (activeTripId != null) {
+                    Toast.makeText(this, R.string.toast_trip_exists, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (selectedOrigin == null) {
+                    Toast.makeText(this, R.string.toast_origin_required, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (selectedDestination == null) {
+                    Toast.makeText(this, R.string.toast_destination_required, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Intent intent = new Intent(MainActivity.this, CreateTripScheduleActivity.class);
+                intent.putExtra("EXTRA_ORIGIN", selectedOriginAddress != null ? selectedOriginAddress : "");
+                intent.putExtra("EXTRA_DESTINATION", selectedDestinationAddress != null ? selectedDestinationAddress : "");
+                startActivity(intent);
+            });
+        }
         cancelTripButton.setOnClickListener(v -> {
             if (activeTripId == null) {
                 Toast.makeText(this, R.string.toast_no_trip, Toast.LENGTH_SHORT).show();
@@ -1376,6 +1410,7 @@ public class MainActivity extends BaseActivity {
         originMarkerBitmap = createMarkerBitmap(Color.parseColor("#1E88E5"));
         destinationMarkerBitmap = createMarkerBitmap(Color.parseColor("#E53935"));
         safeZoneMarkerBitmap = createSafeZoneMarkerBitmap();
+        carMarkerBitmap = createCarMarkerBitmap();
         registerSafeZoneClickListenerIfNeeded();
         loadSafeZonesOnMap();
         updateMapMarkers();
@@ -1733,10 +1768,10 @@ public class MainActivity extends BaseActivity {
                 String[] items = new String[vehicles.size()];
                 for (int i = 0; i < vehicles.size(); i++) {
                     com.example.proyectocarpooling.data.model.user.VehicleResponse v = vehicles.get(i);
-                    items[i] = v.brand + " " + v.model + " (" + v.licensePlate + ")";
+                    items[i] = v.brand + " " + v.model + " (" + v.color + ")  ·  " + v.licensePlate.toUpperCase();
                 }
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Seleccionar vehiculo")
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(MainActivity.this)
+                        .setTitle("Seleccionar vehículo")
                         .setItems(items, (dialog, which) -> checkSafeZoneSuggestionAndCreateTrip(vehicles.get(which).id))
                         .setNegativeButton("Cancelar", null)
                         .show();
@@ -1950,6 +1985,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void cancelTrip() {
+        stopSimulation();
         setProgressVisible(true);
         cancelTripButton.setEnabled(false);
         final String tripId = activeTripId;
@@ -2492,6 +2528,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void finishTrip() {
+        stopSimulation();
         if (!isTripInProgress()) {
             Toast.makeText(this, R.string.toast_trip_finish_failed, Toast.LENGTH_SHORT).show();
             return;
@@ -2576,6 +2613,8 @@ public class MainActivity extends BaseActivity {
         if (!isDriverUser) {
             // Modo Pasajero
             if (createTripButton != null) createTripButton.setVisibility(View.GONE);
+            if (btnScheduleTripOption != null) btnScheduleTripOption.setVisibility(View.GONE);
+            if (btnSimulateTrip != null) btnSimulateTrip.setVisibility(View.GONE);
             if (cancelTripButton != null) cancelTripButton.setVisibility(View.GONE);
             if (tripButtonsRow != null) tripButtonsRow.setVisibility(View.GONE);
             if (fareAmountInput != null) fareAmountInput.setVisibility(View.GONE);
@@ -2603,6 +2642,7 @@ public class MainActivity extends BaseActivity {
             if (hasActiveTrip) {
                 // Viaje activo
                 if (createTripButton != null) createTripButton.setVisibility(View.GONE);
+                if (btnScheduleTripOption != null) btnScheduleTripOption.setVisibility(View.GONE);
                 if (tripButtonsRow != null) tripButtonsRow.setVisibility(View.GONE);
                 if (fareAmountInput != null) fareAmountInput.setVisibility(View.GONE);
                 
@@ -2623,6 +2663,10 @@ public class MainActivity extends BaseActivity {
                     finishTripButton.setVisibility(inProgress ? View.VISIBLE : View.GONE);
                     finishTripButton.setEnabled(inProgress);
                 }
+                if (btnSimulateTrip != null) {
+                    btnSimulateTrip.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+                    btnSimulateTrip.setEnabled(inProgress);
+                }
                 
                 int boardingVis = inProgress ? View.VISIBLE : View.GONE;
                 if (markBoardedButton != null) {
@@ -2632,10 +2676,14 @@ public class MainActivity extends BaseActivity {
             } else {
                 // Sin viaje activo
                 if (tripButtonsRow != null) tripButtonsRow.setVisibility(View.VISIBLE);
+                boolean canCreate = selectedOrigin != null && selectedDestination != null;
                 if (createTripButton != null) {
-                    boolean canCreate = selectedOrigin != null && selectedDestination != null;
                     createTripButton.setVisibility(View.VISIBLE);
                     createTripButton.setEnabled(canCreate);
+                }
+                if (btnScheduleTripOption != null) {
+                    btnScheduleTripOption.setVisibility(View.VISIBLE);
+                    btnScheduleTripOption.setEnabled(canCreate);
                 }
                 if (fareAmountInput != null) {
                     fareAmountInput.setVisibility(View.VISIBLE);
@@ -2646,6 +2694,7 @@ public class MainActivity extends BaseActivity {
                 if (cancelTripButton != null) cancelTripButton.setVisibility(View.GONE);
                 if (startTripButton != null) startTripButton.setVisibility(View.GONE);
                 if (finishTripButton != null) finishTripButton.setVisibility(View.GONE);
+                if (btnSimulateTrip != null) btnSimulateTrip.setVisibility(View.GONE);
                 if (markBoardedButton != null) markBoardedButton.setVisibility(View.GONE);
             }
             
@@ -3185,11 +3234,31 @@ public class MainActivity extends BaseActivity {
                                 statusText.setText(sb.toString());
                             }
                         }
+
+                        // Parse and update live driver car position on map for passenger
+                        if (reservation.has("currentLatitude") && !reservation.isNull("currentLatitude") &&
+                            reservation.has("currentLongitude") && !reservation.isNull("currentLongitude")) {
+                            double curLat = reservation.optDouble("currentLatitude", Double.NaN);
+                            double curLng = reservation.optDouble("currentLongitude", Double.NaN);
+                            if (!Double.isNaN(curLat) && !Double.isNaN(curLng)) {
+                                updatePassengerCarMarker(curLat, curLng);
+                            }
+                        } else {
+                            if (pointAnnotationManager != null && passengerCarMarkerAnnotation != null) {
+                                pointAnnotationManager.delete(passengerCarMarkerAnnotation);
+                                passengerCarMarkerAnnotation = null;
+                            }
+                        }
+
                         updateDrawerReservationMenu();
                         refreshPassengerPaymentStateAsync();
                         refreshDrawerUserInfo();
                     } else {
                         // El servidor retornó 404/null (la reserva ya no está activa, ej: el viaje finalizó)
+                        if (pointAnnotationManager != null && passengerCarMarkerAnnotation != null) {
+                            pointAnnotationManager.delete(passengerCarMarkerAnnotation);
+                            passengerCarMarkerAnnotation = null;
+                        }
                         final String finishedTripId = passengerReservedTripId;
                         sessionManager.clearPassengerBookedTrip();
                         hasActivePassengerReservation = false;
@@ -3215,7 +3284,8 @@ public class MainActivity extends BaseActivity {
             public void run() {
                 pollPassengerReservationStatus();
                 if (hasActivePassengerReservation && !isDriverUser) {
-                    pollingHandler.postDelayed(this, 15_000);
+                    long delay = (passengerReservationStatusId == 3) ? 3_000 : 15_000;
+                    pollingHandler.postDelayed(this, delay);
                 }
             }
         };
@@ -3226,6 +3296,10 @@ public class MainActivity extends BaseActivity {
         if (passengerPollingRunnable != null) {
             pollingHandler.removeCallbacks(passengerPollingRunnable);
             passengerPollingRunnable = null;
+        }
+        if (pointAnnotationManager != null && passengerCarMarkerAnnotation != null) {
+            pointAnnotationManager.delete(passengerCarMarkerAnnotation);
+            passengerCarMarkerAnnotation = null;
         }
     }
 
@@ -3406,7 +3480,14 @@ public class MainActivity extends BaseActivity {
                     String status = trip.statusLabel != null ? trip.statusLabel.trim().toLowerCase(Locale.US) : "";
                     if (status.contains("finalizado") || status.contains("finished") || trip.statusId == 4) {
                         runOnUiThread(() -> {
-                            promptPassengerToRateDriver(tripId, trip.driverUserId != null ? trip.driverUserId : "", trip.driverName);
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("¡Viaje Completado! 🏁")
+                                    .setMessage("Has llegado a tu destino de forma segura. Gracias por usar nuestro servicio de Carpooling.")
+                                    .setCancelable(false)
+                                    .setPositiveButton("Aceptar", (dialog, which) -> {
+                                        promptPassengerToRateDriver(tripId, trip.driverUserId != null ? trip.driverUserId : "", trip.driverName);
+                                    })
+                                    .show();
                         });
                     }
                 }
@@ -3616,5 +3697,135 @@ public class MainActivity extends BaseActivity {
         // Clear extras so they are not consumed multiple times
         intent.removeExtra("tripId");
         intent.removeExtra("type");
+    }
+
+    private void startCarSimulation() {
+        if (activeTripId == null || activeTripId.isEmpty()) {
+            Toast.makeText(this, "No hay ningún viaje activo para simular", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (cachedRoutePreviewPoints == null || cachedRoutePreviewPoints.isEmpty()) {
+            Toast.makeText(this, "Esperando a cargar la ruta del viaje...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (btnSimulateTrip != null) {
+            btnSimulateTrip.setEnabled(false);
+            btnSimulateTrip.setText("Simulando...");
+        }
+
+        stopSimulation();
+
+        simulationIndex = 0;
+        simulationRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (cachedRoutePreviewPoints == null || cachedRoutePreviewPoints.isEmpty()) {
+                    stopSimulation();
+                    return;
+                }
+
+                if (simulationIndex < cachedRoutePreviewPoints.size()) {
+                    Point currentPoint = cachedRoutePreviewPoints.get(simulationIndex);
+
+                    if (pointAnnotationManager != null) {
+                        if (carSimulationAnnotation == null) {
+                            PointAnnotationOptions options = new PointAnnotationOptions()
+                                    .withPoint(currentPoint)
+                                    .withIconImage(carMarkerBitmap);
+                            carSimulationAnnotation = pointAnnotationManager.create(options);
+                        } else {
+                            carSimulationAnnotation.setPoint(currentPoint);
+                            pointAnnotationManager.update(carSimulationAnnotation);
+                        }
+                    }
+
+                    if (mapView != null) {
+                        mapView.getMapboxMap().setCamera(
+                                new CameraOptions.Builder()
+                                        .center(currentPoint)
+                                        .zoom(16.0)
+                                        .build()
+                        );
+                    }
+
+                    mainViewModel.updateTripLocation(activeTripId, currentPoint.latitude(), currentPoint.longitude(), new MainViewModel.ResultCallback<TripResponse>() {
+                        @Override
+                        public void onSuccess(TripResponse result) {}
+
+                        @Override
+                        public void onError(String message) {}
+                    });
+
+                    simulationIndex++;
+                    simulationHandler.postDelayed(this, 2000);
+                } else {
+                    stopSimulation();
+                    Toast.makeText(MainActivity.this, "¡Simulación completada! Destino alcanzado.", Toast.LENGTH_LONG).show();
+                    finishTrip();
+                }
+            }
+        };
+
+        simulationHandler.post(simulationRunnable);
+    }
+
+    private void stopSimulation() {
+        if (simulationRunnable != null) {
+            simulationHandler.removeCallbacks(simulationRunnable);
+            simulationRunnable = null;
+        }
+        if (pointAnnotationManager != null && carSimulationAnnotation != null) {
+            pointAnnotationManager.delete(carSimulationAnnotation);
+            carSimulationAnnotation = null;
+        }
+        simulationIndex = 0;
+        if (btnSimulateTrip != null) {
+            btnSimulateTrip.setEnabled(true);
+            btnSimulateTrip.setText("Simular");
+        }
+    }
+
+    private Bitmap createCarMarkerBitmap() {
+        int size = 96;
+        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        shadowPaint.setColor(Color.parseColor("#44000000"));
+        canvas.drawCircle(size / 2f, size / 2f + 4f, size * 0.4f, shadowPaint);
+
+        Paint outerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        outerPaint.setColor(Color.WHITE);
+        canvas.drawCircle(size / 2f, size / 2f, size * 0.4f, outerPaint);
+
+        Paint innerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        innerPaint.setColor(Color.parseColor("#FF82254B"));
+        canvas.drawCircle(size / 2f, size / 2f, size * 0.35f, innerPaint);
+
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setTextSize(40f);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        Paint.FontMetrics fm = textPaint.getFontMetrics();
+        float y = (size / 2f) - (fm.ascent + fm.descent) / 2f;
+        canvas.drawText("🚗", size / 2f, y, textPaint);
+
+        return bitmap;
+    }
+
+    private void updatePassengerCarMarker(double lat, double lng) {
+        if (pointAnnotationManager == null || carMarkerBitmap == null) {
+            return;
+        }
+        Point position = Point.fromLngLat(lng, lat);
+        if (passengerCarMarkerAnnotation == null) {
+            PointAnnotationOptions options = new PointAnnotationOptions()
+                    .withPoint(position)
+                    .withIconImage(carMarkerBitmap);
+            passengerCarMarkerAnnotation = pointAnnotationManager.create(options);
+        } else {
+            passengerCarMarkerAnnotation.setPoint(position);
+            pointAnnotationManager.update(passengerCarMarkerAnnotation);
+        }
     }
 }

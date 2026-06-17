@@ -184,6 +184,24 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         return trip;
     }
 
+    public async Task<Trip> UpdateTripLocationAsync(Guid tripId, double latitude, double longitude)
+    {
+        var trip = await _context.Trips
+            .Include(t => t.OriginLocation)
+            .Include(t => t.DestinationLocation)
+            .Include(t => t.StatusEntity)
+            .Include(t => t.DriverUser)
+            .FirstOrDefaultAsync(t => t.Id == tripId);
+        if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
+        
+        trip.CurrentLatitude = latitude;
+        trip.CurrentLongitude = longitude;
+        trip.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return trip;
+    }
+
     public async Task<Trip?> GetByIdAsync(Guid tripId)
     {
         return await _context.Trips.AsNoTracking()
@@ -331,6 +349,8 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
             DriverName = trip.DriverName,
             DriverUserId = trip.DriverUserId,
             DriverProfilePicture = trip.DriverUser?.ProfilePicture,
+            CurrentLatitude = trip.CurrentLatitude,
+            CurrentLongitude = trip.CurrentLongitude,
             CreatedAt = trip.CreatedAt,
             UpdatedAt = trip.UpdatedAt,
             CancelledAt = trip.CancelledAt

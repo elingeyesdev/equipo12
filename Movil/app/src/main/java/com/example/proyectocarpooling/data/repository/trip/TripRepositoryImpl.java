@@ -44,6 +44,9 @@ public class TripRepositoryImpl implements TripRepository {
     }
     @Override public TripResponse startTrip(String id, Point p) throws IOException { return remoteDataSource.startTrip(id, p); }
     @Override public TripResponse finishTrip(String id) throws IOException { return remoteDataSource.finishTrip(id); }
+    @Override public TripResponse updateTripLocation(String id, double lat, double lng) throws IOException {
+        return remoteDataSource.updateTripLocation(id, lat, lng);
+    }
     @Override public void createReservation(String tripId, String passengerUserId, int seats) throws IOException {
         remoteDataSource.createReservation(tripId, passengerUserId, seats);
     }

@@ -143,6 +143,10 @@ public class MainViewModel extends AndroidViewModel {
         taskRunner.runWithResult(() -> tripLifecycleUseCase.finishTrip(tripId), adapt(callback));
     }
 
+    public void updateTripLocation(String tripId, double latitude, double longitude, ResultCallback<TripResponse> callback) {
+        taskRunner.runWithResult(() -> tripLifecycleUseCase.updateTripLocation(tripId, latitude, longitude), adapt(callback));
+    }
+
     public void createReservation(String tripId, String passengerUserId, int seats, SimpleCallback callback) {
         taskRunner.run(() -> reservationUseCase.createReservation(tripId, passengerUserId, seats), adapt(callback));
     }

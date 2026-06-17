@@ -263,6 +263,16 @@ public class TripsRemoteDataSource {
         return executeTripRequest(request);
     }
 
+    public TripResponse updateTripLocation(String tripId, double latitude, double longitude) throws IOException {
+        String url = String.format(Locale.US, "%s/api/Trips/%s/location?latitude=%.7f&longitude=%.7f",
+                apiBaseUrl, tripId, latitude, longitude);
+        Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
+                .build();
+        return executeTripRequest(request);
+    }
+
     public void createReservation(String tripId, String passengerUserId, int seatsReserved) throws IOException {
         JSONObject body = new JSONObject();
         try {

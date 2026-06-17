@@ -305,6 +305,22 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/btnScheduleTripOption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_gravity="center_horizontal"
+                android:text="Programar como viaje recurrente"
+                android:textColor="@color/carpool_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackground"
+                android:padding="8dp"
+                android:visibility="gone" />
+
             <EditText
                 android:id="@+id/fareAmountInput"
                 android:layout_width="match_parent"
@@ -399,6 +415,19 @@
                     android:textColor="@color/button_text_color"
                     android:textSize="14sp"
                     android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnSimulateTrip"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_secondary_action"
+                    android:backgroundTint="@null"
+                    android:text="Iniciar Simulación de Recorrido"
+                    android:textColor="@color/button_secondary_text_color"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <Button

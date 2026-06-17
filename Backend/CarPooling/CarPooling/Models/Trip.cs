@@ -61,6 +61,9 @@ public class Trip
     public DateTime? StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }
 
+    public double? CurrentLatitude { get; set; }
+    public double? CurrentLongitude { get; set; }
+
     public int BookmarkUseCount { get; set; }
     public DateTime? BookmarkLastUsedAt { get; set; }
 }

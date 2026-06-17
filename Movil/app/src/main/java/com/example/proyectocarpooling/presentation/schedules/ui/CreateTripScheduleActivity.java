@@ -1,6 +1,7 @@
 package com.example.proyectocarpooling.presentation.schedules.ui;
 
 import android.app.TimePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.CheckBox;
@@ -17,6 +18,7 @@ import com.example.proyectocarpooling.data.model.user.VehicleResponse;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,6 +33,8 @@ public class CreateTripScheduleActivity extends AppCompatActivity {
     private CreateTripScheduleViewModel viewModel;
 
     private MaterialToolbar toolbar;
+    private TextInputLayout tilOriginAddress;
+    private TextInputLayout tilDestinationAddress;
     private TextInputEditText etOriginAddress;
     private TextInputEditText etDestinationAddress;
     private CheckBox cbMon, cbTue, cbWed, cbThu, cbFri, cbSat, cbSun;
@@ -56,10 +60,23 @@ public class CreateTripScheduleActivity extends AppCompatActivity {
 
         bindViews();
         setupToolbar();
+        setupMapPickers();
         setupTimePicker();
         setupVehiclePicker();
         setupSaveButton();
         observeViewModel();
+
+        // Retrieve and pre-fill origin/destination from intent if present
+        if (getIntent() != null) {
+            String extraOrigin = getIntent().getStringExtra("EXTRA_ORIGIN");
+            String extraDestination = getIntent().getStringExtra("EXTRA_DESTINATION");
+            if (extraOrigin != null && !extraOrigin.isEmpty()) {
+                etOriginAddress.setText(extraOrigin);
+            }
+            if (extraDestination != null && !extraDestination.isEmpty()) {
+                etDestinationAddress.setText(extraDestination);
+            }
+        }
 
         // Load vehicles
         viewModel.loadVehicles(sessionManager.getUserId());
@@ -67,6 +84,8 @@ public class CreateTripScheduleActivity extends AppCompatActivity {
 
     private void bindViews() {
         toolbar = findViewById(R.id.createScheduleToolbar);
+        tilOriginAddress = findViewById(R.id.tilOriginAddress);
+        tilDestinationAddress = findViewById(R.id.tilDestinationAddress);
         etOriginAddress = findViewById(R.id.etOriginAddress);
         etDestinationAddress = findViewById(R.id.etDestinationAddress);
         cbMon = findViewById(R.id.cbMon);
@@ -119,10 +138,10 @@ public class CreateTripScheduleActivity extends AppCompatActivity {
             String[] items = new String[userVehicles.size()];
             for (int i = 0; i < userVehicles.size(); i++) {
                 VehicleResponse vehicle = userVehicles.get(i);
-                items[i] = vehicle.brand + " " + vehicle.model + " (" + vehicle.licensePlate + ")";
+                items[i] = vehicle.brand + " " + vehicle.model + " (" + vehicle.color + ")  ·  " + vehicle.licensePlate.toUpperCase();
             }
 
-            new AlertDialog.Builder(this)
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle("Seleccionar vehículo")
                     .setItems(items, (dialog, which) -> {
                         VehicleResponse selectedVehicle = userVehicles.get(which);
@@ -213,5 +232,29 @@ public class CreateTripScheduleActivity extends AppCompatActivity {
                 finish();
             }
         });
+    }
+
+    private void setupMapPickers() {
+        tilOriginAddress.setEndIconOnClickListener(v -> {
+            Intent intent = new Intent(this, MapPickerActivity.class);
+            startActivityForResult(intent, 1001);
+        });
+        tilDestinationAddress.setEndIconOnClickListener(v -> {
+            Intent intent = new Intent(this, MapPickerActivity.class);
+            startActivityForResult(intent, 1002);
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK && data != null) {
+            String address = data.getStringExtra(MapPickerActivity.EXTRA_RESULT_ADDRESS);
+            if (requestCode == 1001) {
+                etOriginAddress.setText(address);
+            } else if (requestCode == 1002) {
+                etDestinationAddress.setText(address);
+            }
+        }
     }
 }

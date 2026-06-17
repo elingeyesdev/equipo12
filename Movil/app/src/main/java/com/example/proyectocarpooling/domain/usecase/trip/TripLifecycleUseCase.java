@@ -25,4 +25,8 @@ public class TripLifecycleUseCase {
     public TripResponse finishTrip(String tripId) throws IOException {
         return repository.finishTrip(tripId);
     }
+
+    public TripResponse updateTripLocation(String tripId, double latitude, double longitude) throws IOException {
+        return repository.updateTripLocation(tripId, latitude, longitude);
+    }
 }

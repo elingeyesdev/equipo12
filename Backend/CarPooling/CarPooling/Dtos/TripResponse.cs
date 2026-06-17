@@ -16,6 +16,8 @@ public class TripResponse
     public string DriverName { get; init; } = "";
     public Guid? DriverUserId { get; init; }
     public string? DriverProfilePicture { get; init; }
+    public double? CurrentLatitude { get; init; }
+    public double? CurrentLongitude { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public DateTime? CancelledAt { get; init; }

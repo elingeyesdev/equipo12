@@ -129,6 +129,8 @@ public class ActiveReservationDto
     public string VehicleBrand { get; set; } = "";
     public string VehicleColor { get; set; } = "";
     public string VehiclePlate { get; set; } = "";
+    public double? CurrentLatitude { get; set; }
+    public double? CurrentLongitude { get; set; }
 
     public static ActiveReservationDto FromReservation(Reservation r)
     {
@@ -148,7 +150,9 @@ public class ActiveReservationDto
             DestinationLongitude = r.Trip.DestinationLocation?.Longitude ?? 0,
             VehicleBrand = r.Trip.Vehicle?.Brand ?? "",
             VehicleColor = r.Trip.Vehicle?.Color ?? "",
-            VehiclePlate = r.Trip.Vehicle?.LicensePlate ?? ""
+            VehiclePlate = r.Trip.Vehicle?.LicensePlate ?? "",
+            CurrentLatitude = r.Trip.CurrentLatitude,
+            CurrentLongitude = r.Trip.CurrentLongitude
         };
     }
 }

@@ -39,11 +39,14 @@
 
             <!-- Origin -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilOriginAddress"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="Dirección de Origen">
+                android:hint="Dirección de Origen"
+                app:endIconMode="custom"
+                app:endIconDrawable="@android:drawable/ic_menu_mapmode">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etOriginAddress"
@@ -54,11 +57,14 @@
 
             <!-- Destination -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilDestinationAddress"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Dirección de Destino">
+                android:hint="Dirección de Destino"
+                app:endIconMode="custom"
+                app:endIconDrawable="@android:drawable/ic_menu_mapmode">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etDestinationAddress"

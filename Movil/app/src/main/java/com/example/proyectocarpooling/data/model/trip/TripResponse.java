@@ -20,11 +20,14 @@ public class TripResponse {
     public final String vehicleId;
     public final String driverName;
     public final String driverUserId;
+    public final Double currentLatitude;
+    public final Double currentLongitude;
 
     public TripResponse(String id, double originLatitude, double originLongitude, String originAddress,
                         double destinationLatitude, double destinationLongitude, String destinationAddress,
                         String statusLabel, int statusId, int offeredSeats, int availableSeats,
-                        double fareAmount, String vehicleId, String driverName, String driverUserId) {
+                        double fareAmount, String vehicleId, String driverName, String driverUserId,
+                        Double currentLatitude, Double currentLongitude) {
         this.id = id;
         this.originLatitude = originLatitude;
         this.originLongitude = originLongitude;
@@ -40,12 +43,17 @@ public class TripResponse {
         this.vehicleId = vehicleId;
         this.driverName = driverName;
         this.driverUserId = driverUserId;
+        this.currentLatitude = currentLatitude;
+        this.currentLongitude = currentLongitude;
     }
 
     public static TripResponse fromJson(String json) throws JSONException {
         JSONObject obj = new JSONObject(json);
         JSONObject origin = obj.getJSONObject("origin");
         JSONObject destination = obj.getJSONObject("destination");
+
+        Double currentLat = obj.isNull("currentLatitude") ? null : obj.optDouble("currentLatitude");
+        Double currentLng = obj.isNull("currentLongitude") ? null : obj.optDouble("currentLongitude");
 
         return new TripResponse(
                 obj.getString("id"),
@@ -62,7 +70,9 @@ public class TripResponse {
                 obj.optDouble("fareAmount", 10.0),
                 obj.optString("vehicleId", null),
                 obj.optString("driverName", ""),
-                obj.optString("driverUserId", null)
+                obj.optString("driverUserId", null),
+                currentLat,
+                currentLng
         );
     }
 }

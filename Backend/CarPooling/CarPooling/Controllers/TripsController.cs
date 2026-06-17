@@ -85,6 +85,17 @@ public class TripsController(TripService tripService) : ControllerBase
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
+    [HttpPost("{id:guid}/location")]
+    public async Task<ActionResult<TripResponse>> UpdateTripLocationAsync(Guid id, [FromQuery] double latitude, [FromQuery] double longitude)
+    {
+        try
+        {
+            var trip = await tripService.UpdateTripLocationAsync(id, latitude, longitude);
+            return Ok(TripService.MapToDto(trip));
+        }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
+
     [HttpGet("{id:guid}", Name = "GetTripById")]
     public async Task<ActionResult<TripResponse>> GetTripByIdAsync(Guid id)
     {
