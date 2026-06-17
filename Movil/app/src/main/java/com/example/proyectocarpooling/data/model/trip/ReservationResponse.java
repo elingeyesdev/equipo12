@@ -1,4 +1,4 @@
-package com.example.proyectocarpooling.data.model;
+package com.example.proyectocarpooling.data.model.trip;
 
 import org.json.JSONException;
 import org.json.JSONObject;

@@ -1,4 +1,4 @@
-package com.example.proyectocarpooling.data.model;
+package com.example.proyectocarpooling.data.model.safezones;
 
 public class SafeZoneItem {
     public final String id;

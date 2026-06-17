@@ -1,6 +1,6 @@
-package com.example.proyectocarpooling.data.remote;
+package com.example.proyectocarpooling.data.remote.safezones;
 
-import com.example.proyectocarpooling.data.model.SafeZoneItem;
+import com.example.proyectocarpooling.data.model.safezones.SafeZoneItem;
 
 import org.json.JSONException;
 import org.json.JSONArray;

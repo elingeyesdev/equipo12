@@ -9,7 +9,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.example.proyectocarpooling.BackgroundTaskRunner;
 import com.example.proyectocarpooling.CarPoolingApplication;
-import com.example.proyectocarpooling.domain.repository.TripRepository;
+import com.example.proyectocarpooling.domain.repository.trip.TripRepository;
 
 import java.io.IOException;
 import java.util.ArrayList;

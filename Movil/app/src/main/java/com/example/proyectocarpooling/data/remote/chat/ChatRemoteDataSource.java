@@ -1,6 +1,6 @@
-package com.example.proyectocarpooling.data.remote;
+package com.example.proyectocarpooling.data.remote.chat;
 
-import com.example.proyectocarpooling.data.model.ChatMessage;
+import com.example.proyectocarpooling.data.model.chat.ChatMessage;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,15 +19,15 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
 
-public class SupportChatRemoteDataSource {
+public class ChatRemoteDataSource {
 
     private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
-    private static final String TAG = "SupportChatApi";
+    private static final String TAG = "ChatRemoteApi";
 
     private final OkHttpClient httpClient;
     private final String apiBaseUrl;
 
-    public SupportChatRemoteDataSource(String apiBaseUrl) {
+    public ChatRemoteDataSource(String apiBaseUrl) {
         String sanitized = apiBaseUrl;
         if (sanitized.endsWith("/")) {
             sanitized = sanitized.substring(0, sanitized.length() - 1);
@@ -45,18 +45,14 @@ public class SupportChatRemoteDataSource {
         this.apiBaseUrl = sanitized;
     }
 
-    private String messagesPath(String userId, String ticketId) {
-        return String.format(
-                Locale.US,
-                "%s/api/users/%s/support-tickets/%s/messages",
-                apiBaseUrl,
-                userId.trim(),
-                ticketId.trim());
+    private String chatPath(String tripId) {
+        return String.format(Locale.US, "%s/api/Trips/%s/chat", apiBaseUrl, tripId.trim());
     }
 
-    public List<ChatMessage> getMessages(String userId, String ticketId) throws IOException, JSONException {
+    public List<ChatMessage> getMessages(String tripId, String userId) throws IOException, JSONException {
+        String url = chatPath(tripId) + "/messages";
         Request request = new Request.Builder()
-                .url(messagesPath(userId, ticketId))
+                .url(url)
                 .header("X-User-Id", userId.trim())
                 .get()
                 .build();
@@ -79,13 +75,14 @@ public class SupportChatRemoteDataSource {
         }
     }
 
-    public ChatMessage sendMessage(String userId, String ticketId, String messageText)
-            throws IOException, JSONException {
+    public ChatMessage sendMessage(String tripId, String userId, String messageText) throws IOException, JSONException {
+        String url = chatPath(tripId) + "/messages";
+        
         JSONObject body = new JSONObject();
         body.put("messageText", messageText);
 
         Request request = new Request.Builder()
-                .url(messagesPath(userId, ticketId))
+                .url(url)
                 .header("X-User-Id", userId.trim())
                 .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
                 .build();
@@ -99,7 +96,24 @@ public class SupportChatRemoteDataSource {
                 throw new IOException("Respuesta vacía");
             }
 
-            return ChatMessage.fromJson(new JSONObject(response.body().string()));
+            JSONObject obj = new JSONObject(response.body().string());
+            return ChatMessage.fromJson(obj);
+        }
+    }
+
+    public void markAsRead(String tripId, String userId) throws IOException {
+        String url = chatPath(tripId) + "/read";
+        Request request = new Request.Builder()
+                .url(url)
+                .header("X-User-Id", userId.trim())
+                .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String err = response.body() != null ? response.body().string() : "";
+                throw new IOException("HTTP " + response.code() + " " + err);
+            }
         }
     }
 }

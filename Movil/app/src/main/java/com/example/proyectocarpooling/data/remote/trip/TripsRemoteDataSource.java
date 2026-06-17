@@ -1,9 +1,9 @@
-package com.example.proyectocarpooling.data.remote;
+package com.example.proyectocarpooling.data.remote.trip;
 
-import com.example.proyectocarpooling.data.model.DriverTripMatch;
-import com.example.proyectocarpooling.data.model.ReservationResponse;
-import com.example.proyectocarpooling.data.model.RouteData;
-import com.example.proyectocarpooling.data.model.TripResponse;
+import com.example.proyectocarpooling.data.model.trip.DriverTripMatch;
+import com.example.proyectocarpooling.data.model.trip.ReservationResponse;
+import com.example.proyectocarpooling.data.model.trip.RouteData;
+import com.example.proyectocarpooling.data.model.trip.TripResponse;
 import com.mapbox.geojson.Point;
 
 import org.json.JSONArray;

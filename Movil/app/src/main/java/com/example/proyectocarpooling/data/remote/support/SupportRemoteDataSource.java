@@ -1,4 +1,4 @@
-package com.example.proyectocarpooling.data.remote;
+package com.example.proyectocarpooling.data.remote.support;
 
 import com.example.proyectocarpooling.data.model.support.SupportTicketItem;
 

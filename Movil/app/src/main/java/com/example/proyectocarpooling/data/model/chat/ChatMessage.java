@@ -1,4 +1,4 @@
-package com.example.proyectocarpooling.data.model;
+package com.example.proyectocarpooling.data.model.chat;
 
 import org.json.JSONArray;
 import org.json.JSONException;

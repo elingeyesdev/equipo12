@@ -1,4 +1,4 @@
-package com.example.proyectocarpooling.data.remote;
+package com.example.proyectocarpooling.data.remote.payment;
 
 import com.example.proyectocarpooling.data.model.payment.PaymentItem;
 import com.example.proyectocarpooling.data.model.payment.PaymentMethodItem;

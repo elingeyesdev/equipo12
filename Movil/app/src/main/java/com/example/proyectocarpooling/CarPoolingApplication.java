@@ -4,18 +4,18 @@ import android.app.Application;
 
 import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.local.SessionManager;
-import com.example.proyectocarpooling.data.remote.TripsRemoteDataSource;
+import com.example.proyectocarpooling.data.remote.trip.TripsRemoteDataSource;
 import com.example.proyectocarpooling.data.remote.user.FavoritesRemoteDataSource;
 import com.example.proyectocarpooling.data.remote.user.TripHistoryRemoteDataSource;
 import com.example.proyectocarpooling.data.remote.user.UsersRemoteDataSource;
-import com.example.proyectocarpooling.data.repository.TripRepositoryImpl;
+import com.example.proyectocarpooling.data.repository.trip.TripRepositoryImpl;
 import com.example.proyectocarpooling.data.repository.favorites.FavoritesRepositoryImpl;
 import com.example.proyectocarpooling.data.repository.history.TripHistoryRepositoryImpl;
 import com.example.proyectocarpooling.data.repository.support.SupportRepositoryImpl;
 import com.example.proyectocarpooling.data.repository.user.UserRepositoryImpl;
-import com.example.proyectocarpooling.data.remote.SupportRemoteDataSource;
+import com.example.proyectocarpooling.data.remote.support.SupportRemoteDataSource;
 import com.example.proyectocarpooling.domain.repository.support.SupportRepository;
-import com.example.proyectocarpooling.domain.repository.TripRepository;
+import com.example.proyectocarpooling.domain.repository.trip.TripRepository;
 import com.example.proyectocarpooling.domain.repository.favorites.FavoritesRepository;
 import com.example.proyectocarpooling.domain.repository.history.TripHistoryRepository;
 import com.example.proyectocarpooling.domain.repository.user.UserRepository;
@@ -109,49 +109,49 @@ public class CarPoolingApplication extends Application {
         return new TripHistoryRemoteDataSource(ApiBaseUrlProvider.get(this));
     }
 
-    private com.example.proyectocarpooling.data.remote.ChatRemoteDataSource chatRemoteDataSource;
+    private com.example.proyectocarpooling.data.remote.chat.ChatRemoteDataSource chatRemoteDataSource;
 
-    public synchronized com.example.proyectocarpooling.data.remote.ChatRemoteDataSource getChatRemoteDataSource() {
+    public synchronized com.example.proyectocarpooling.data.remote.chat.ChatRemoteDataSource getChatRemoteDataSource() {
         if (chatRemoteDataSource == null) {
-            chatRemoteDataSource = new com.example.proyectocarpooling.data.remote.ChatRemoteDataSource(ApiBaseUrlProvider.get(this));
+            chatRemoteDataSource = new com.example.proyectocarpooling.data.remote.chat.ChatRemoteDataSource(ApiBaseUrlProvider.get(this));
         }
         return chatRemoteDataSource;
     }
 
-    private com.example.proyectocarpooling.data.remote.SupportChatRemoteDataSource supportChatRemoteDataSource;
+    private com.example.proyectocarpooling.data.remote.support.SupportChatRemoteDataSource supportChatRemoteDataSource;
 
-    public synchronized com.example.proyectocarpooling.data.remote.SupportChatRemoteDataSource getSupportChatRemoteDataSource() {
+    public synchronized com.example.proyectocarpooling.data.remote.support.SupportChatRemoteDataSource getSupportChatRemoteDataSource() {
         if (supportChatRemoteDataSource == null) {
-            supportChatRemoteDataSource = new com.example.proyectocarpooling.data.remote.SupportChatRemoteDataSource(
+            supportChatRemoteDataSource = new com.example.proyectocarpooling.data.remote.support.SupportChatRemoteDataSource(
                     ApiBaseUrlProvider.get(this));
         }
         return supportChatRemoteDataSource;
     }
 
-    private com.example.proyectocarpooling.data.remote.SafeZonesRemoteDataSource safeZonesRemoteDataSource;
+    private com.example.proyectocarpooling.data.remote.safezones.SafeZonesRemoteDataSource safeZonesRemoteDataSource;
 
-    public synchronized com.example.proyectocarpooling.data.remote.SafeZonesRemoteDataSource getSafeZonesRemoteDataSource() {
+    public synchronized com.example.proyectocarpooling.data.remote.safezones.SafeZonesRemoteDataSource getSafeZonesRemoteDataSource() {
         if (safeZonesRemoteDataSource == null) {
-            safeZonesRemoteDataSource = new com.example.proyectocarpooling.data.remote.SafeZonesRemoteDataSource(
+            safeZonesRemoteDataSource = new com.example.proyectocarpooling.data.remote.safezones.SafeZonesRemoteDataSource(
                     ApiBaseUrlProvider.get(this));
         }
         return safeZonesRemoteDataSource;
     }
 
-    private com.example.proyectocarpooling.data.remote.RatingRemoteDataSource ratingRemoteDataSource;
+    private com.example.proyectocarpooling.data.remote.rating.RatingRemoteDataSource ratingRemoteDataSource;
 
-    public synchronized com.example.proyectocarpooling.data.remote.RatingRemoteDataSource getRatingRemoteDataSource() {
+    public synchronized com.example.proyectocarpooling.data.remote.rating.RatingRemoteDataSource getRatingRemoteDataSource() {
         if (ratingRemoteDataSource == null) {
-            ratingRemoteDataSource = new com.example.proyectocarpooling.data.remote.RatingRemoteDataSource(ApiBaseUrlProvider.get(this));
+            ratingRemoteDataSource = new com.example.proyectocarpooling.data.remote.rating.RatingRemoteDataSource(ApiBaseUrlProvider.get(this));
         }
         return ratingRemoteDataSource;
     }
 
-    private com.example.proyectocarpooling.data.remote.PaymentRemoteDataSource paymentRemoteDataSource;
+    private com.example.proyectocarpooling.data.remote.payment.PaymentRemoteDataSource paymentRemoteDataSource;
 
-    public synchronized com.example.proyectocarpooling.data.remote.PaymentRemoteDataSource getPaymentRemoteDataSource() {
+    public synchronized com.example.proyectocarpooling.data.remote.payment.PaymentRemoteDataSource getPaymentRemoteDataSource() {
         if (paymentRemoteDataSource == null) {
-            paymentRemoteDataSource = new com.example.proyectocarpooling.data.remote.PaymentRemoteDataSource(ApiBaseUrlProvider.get(this));
+            paymentRemoteDataSource = new com.example.proyectocarpooling.data.remote.payment.PaymentRemoteDataSource(ApiBaseUrlProvider.get(this));
         }
         return paymentRemoteDataSource;
     }

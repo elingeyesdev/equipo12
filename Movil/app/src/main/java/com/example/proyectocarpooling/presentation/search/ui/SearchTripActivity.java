@@ -24,12 +24,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.proyectocarpooling.CarPoolingApplication;
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
-import com.example.proyectocarpooling.data.model.DriverTripMatch;
-import com.example.proyectocarpooling.data.model.TripResponse;
-import com.example.proyectocarpooling.data.model.ReservationResponse;
+import com.example.proyectocarpooling.data.model.trip.DriverTripMatch;
+import com.example.proyectocarpooling.data.model.trip.TripResponse;
+import com.example.proyectocarpooling.data.model.trip.ReservationResponse;
 import com.example.proyectocarpooling.data.remote.search.MapboxGeocodingRemoteDataSource;
 import com.example.proyectocarpooling.data.remote.search.MapboxGeocodingRemoteDataSource.SearchSuggestion;
-import com.example.proyectocarpooling.domain.repository.TripRepository;
+import com.example.proyectocarpooling.domain.repository.trip.TripRepository;
 import com.example.proyectocarpooling.presentation.main.ui.MainActivity;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -136,7 +136,7 @@ public class SearchTripActivity extends BaseActivity implements SearchTripAdapte
 
     private TripRepository tripRepository;
     private SessionManager sessionManager;
-    private com.example.proyectocarpooling.data.remote.RatingRemoteDataSource ratingRemoteDataSource;
+    private com.example.proyectocarpooling.data.remote.rating.RatingRemoteDataSource ratingRemoteDataSource;
     private ExecutorService backgroundExecutor;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 

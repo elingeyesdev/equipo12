@@ -20,7 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.proyectocarpooling.R;
-import com.example.proyectocarpooling.data.model.ReservationResponse;
+import com.example.proyectocarpooling.data.model.trip.ReservationResponse;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;

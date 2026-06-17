@@ -1,4 +1,4 @@
-package com.example.proyectocarpooling.data.model;
+package com.example.proyectocarpooling.data.model.trip;
 
 import com.mapbox.geojson.Point;
 

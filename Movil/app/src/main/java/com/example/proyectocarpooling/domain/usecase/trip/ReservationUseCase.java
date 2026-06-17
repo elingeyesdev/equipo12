@@ -1,7 +1,7 @@
-package com.example.proyectocarpooling.domain.usecase;
+package com.example.proyectocarpooling.domain.usecase.trip;
 
-import com.example.proyectocarpooling.data.model.ReservationResponse;
-import com.example.proyectocarpooling.domain.repository.TripRepository;
+import com.example.proyectocarpooling.data.model.trip.ReservationResponse;
+import com.example.proyectocarpooling.domain.repository.trip.TripRepository;
 
 import java.io.IOException;
 import java.util.List;

@@ -1,6 +1,6 @@
 package com.example.proyectocarpooling.presentation.main;
 
-import com.example.proyectocarpooling.data.model.SafeZoneItem;
+import com.example.proyectocarpooling.data.model.safezones.SafeZoneItem;
 import com.mapbox.geojson.Point;
 
 import java.util.List;

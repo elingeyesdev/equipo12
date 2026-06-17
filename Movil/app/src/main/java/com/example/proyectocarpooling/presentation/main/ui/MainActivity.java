@@ -45,13 +45,13 @@ import com.example.proyectocarpooling.CarPoolingApplication;
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.ApiBaseUrlProvider;
 import com.example.proyectocarpooling.data.local.SessionManager;
-import com.example.proyectocarpooling.data.model.ReservationResponse;
-import com.example.proyectocarpooling.data.model.RouteData;
-import com.example.proyectocarpooling.data.model.SafeZoneItem;
-import com.example.proyectocarpooling.data.model.TripResponse;
+import com.example.proyectocarpooling.data.model.trip.ReservationResponse;
+import com.example.proyectocarpooling.data.model.trip.RouteData;
+import com.example.proyectocarpooling.data.model.safezones.SafeZoneItem;
+import com.example.proyectocarpooling.data.model.trip.TripResponse;
 import com.example.proyectocarpooling.data.model.payment.PaymentItem;
-import com.example.proyectocarpooling.domain.model.CreateTripResult;
-import com.example.proyectocarpooling.domain.repository.TripRepository;
+import com.example.proyectocarpooling.domain.model.trip.CreateTripResult;
+import com.example.proyectocarpooling.domain.repository.trip.TripRepository;
 import com.example.proyectocarpooling.domain.usecase.user.UserAccessUseCase;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 import com.example.proyectocarpooling.presentation.main.SafeZoneRouteMatcher;
@@ -2366,7 +2366,7 @@ public class MainActivity extends BaseActivity {
         backgroundExecutor.execute(() -> {
             try {
                 CarPoolingApplication app = (CarPoolingApplication) getApplication();
-                com.example.proyectocarpooling.data.model.RouteData route = app.getTripRepository().fetchRoute(origin, destination);
+                com.example.proyectocarpooling.data.model.trip.RouteData route = app.getTripRepository().fetchRoute(origin, destination);
                 runOnUiThread(() -> {
                     if (isFinishing() || isDestroyed()) {
                         return;

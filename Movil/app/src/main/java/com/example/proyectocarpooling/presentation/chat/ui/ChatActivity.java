@@ -17,8 +17,8 @@ import com.example.proyectocarpooling.BackgroundTaskRunner;
 import com.example.proyectocarpooling.CarPoolingApplication;
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
-import com.example.proyectocarpooling.data.model.ChatMessage;
-import com.example.proyectocarpooling.data.remote.ChatRemoteDataSource;
+import com.example.proyectocarpooling.data.model.chat.ChatMessage;
+import com.example.proyectocarpooling.data.remote.chat.ChatRemoteDataSource;
 
 import java.util.ArrayList;
 import java.util.Collections;

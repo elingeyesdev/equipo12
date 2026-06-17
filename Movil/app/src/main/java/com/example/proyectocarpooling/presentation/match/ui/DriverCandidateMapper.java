@@ -1,6 +1,6 @@
 package com.example.proyectocarpooling.presentation.match.ui;
 
-import com.example.proyectocarpooling.data.model.DriverTripMatch;
+import com.example.proyectocarpooling.data.model.trip.DriverTripMatch;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -3,7 +3,7 @@ package com.example.proyectocarpooling.data.local;
 import android.content.Context;
 import android.util.Log;
 
-import com.example.proyectocarpooling.data.model.ChatMessage;
+import com.example.proyectocarpooling.data.model.chat.ChatMessage;
 
 import org.json.JSONArray;
 import org.json.JSONObject;

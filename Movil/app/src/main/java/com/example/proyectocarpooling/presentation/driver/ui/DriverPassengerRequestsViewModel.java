@@ -9,8 +9,8 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.example.proyectocarpooling.BackgroundTaskRunner;
 import com.example.proyectocarpooling.CarPoolingApplication;
-import com.example.proyectocarpooling.data.model.ReservationResponse;
-import com.example.proyectocarpooling.domain.repository.TripRepository;
+import com.example.proyectocarpooling.data.model.trip.ReservationResponse;
+import com.example.proyectocarpooling.domain.repository.trip.TripRepository;
 
 import java.util.List;
 

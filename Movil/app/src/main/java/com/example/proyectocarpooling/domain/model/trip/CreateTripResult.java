@@ -1,7 +1,7 @@
-package com.example.proyectocarpooling.domain.model;
+package com.example.proyectocarpooling.domain.model.trip;
 
-import com.example.proyectocarpooling.data.model.RouteData;
-import com.example.proyectocarpooling.data.model.TripResponse;
+import com.example.proyectocarpooling.data.model.trip.RouteData;
+import com.example.proyectocarpooling.data.model.trip.TripResponse;
 
 public class CreateTripResult {
 

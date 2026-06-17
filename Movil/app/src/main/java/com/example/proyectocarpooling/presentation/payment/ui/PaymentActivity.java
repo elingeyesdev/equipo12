@@ -26,8 +26,8 @@ import com.example.proyectocarpooling.data.model.payment.PaymentItem;
 import com.example.proyectocarpooling.data.model.payment.PaymentMethodItem;
 import com.example.proyectocarpooling.data.model.payment.UserPaymentMethodItem;
 import com.example.proyectocarpooling.data.model.payment.RefundItem;
-import com.example.proyectocarpooling.data.remote.PaymentRemoteDataSource;
-import com.example.proyectocarpooling.data.model.TripResponse;
+import com.example.proyectocarpooling.data.remote.payment.PaymentRemoteDataSource;
+import com.example.proyectocarpooling.data.model.trip.TripResponse;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
 
 import org.json.JSONObject;

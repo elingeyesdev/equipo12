@@ -148,6 +148,121 @@ public class UnitTests
     }
 
     [Fact]
+    public async Task VehicleService_DeleteAsync_RemovesVehicleWhenNotUsedInTrips()
+    {
+        // Arrange
+        using var context = GetInMemoryContext("DeleteUnusedVehicleDb");
+        var service = new VehicleService(context);
+        var ownerId = Guid.NewGuid();
+        var vehicleId = Guid.NewGuid();
+
+        context.Vehicles.Add(new Vehicle
+        {
+            Id = vehicleId,
+            OwnerUserId = ownerId,
+            LicensePlate = "DEL001",
+            Brand = "Suzuki",
+            Model = "Swift",
+            Color = "Blanco",
+            TotalSeats = 4,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        // Act
+        await service.DeleteAsync(vehicleId, ownerId);
+
+        // Assert
+        Assert.False(await context.Vehicles.AnyAsync(v => v.Id == vehicleId));
+    }
+
+    [Fact]
+    public async Task VehicleService_UpdateAsync_ThrowsWhenVehicleBelongsToAnotherDriver()
+    {
+        // Arrange
+        using var context = GetInMemoryContext("UpdateOtherDriverVehicleDb");
+        var service = new VehicleService(context);
+        var ownerId = Guid.NewGuid();
+        var otherDriverId = Guid.NewGuid();
+        var vehicleId = Guid.NewGuid();
+
+        context.Vehicles.Add(new Vehicle
+        {
+            Id = vehicleId,
+            OwnerUserId = ownerId,
+            LicensePlate = "OWN123",
+            Brand = "Kia",
+            Model = "Rio",
+            Color = "Rojo",
+            TotalSeats = 4,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.UpdateAsync(vehicleId, otherDriverId, "NEW123", "Kia", "Soluto", "Azul", 2022, 4)
+        );
+        Assert.Contains("no encontrado", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task VehicleService_GetAllForDriverAsync_ReturnsOnlyRequestedDriverVehiclesActiveFirst()
+    {
+        // Arrange
+        using var context = GetInMemoryContext("ListDriverVehiclesDb");
+        var service = new VehicleService(context);
+        var ownerId = Guid.NewGuid();
+        var anotherOwnerId = Guid.NewGuid();
+        var inactiveVehicleId = Guid.NewGuid();
+        var activeVehicleId = Guid.NewGuid();
+
+        context.Vehicles.AddRange(
+            new Vehicle
+            {
+                Id = inactiveVehicleId,
+                OwnerUserId = ownerId,
+                LicensePlate = "OLD111",
+                Brand = "Toyota",
+                Color = "Gris",
+                TotalSeats = 4,
+                IsActive = false,
+                CreatedAt = DateTime.UtcNow.AddDays(-1)
+            },
+            new Vehicle
+            {
+                Id = activeVehicleId,
+                OwnerUserId = ownerId,
+                LicensePlate = "ACT222",
+                Brand = "Honda",
+                Color = "Negro",
+                TotalSeats = 5,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-2)
+            },
+            new Vehicle
+            {
+                Id = Guid.NewGuid(),
+                OwnerUserId = anotherOwnerId,
+                LicensePlate = "EXT333",
+                Brand = "Nissan",
+                Color = "Plata",
+                TotalSeats = 4,
+                IsActive = true
+            });
+        await context.SaveChangesAsync();
+
+        // Act
+        var vehicles = await service.GetAllForDriverAsync(ownerId);
+
+        // Assert
+        Assert.Equal(2, vehicles.Count);
+        Assert.Equal(activeVehicleId, vehicles[0].Id);
+        Assert.Equal(inactiveVehicleId, vehicles[1].Id);
+        Assert.All(vehicles, vehicle => Assert.Equal(ownerId, vehicle.OwnerUserId));
+    }
+
+    [Fact]
     public async Task RatingService_CreateRatingAsync_ThrowsWhenTripNotFinished()
     {
         // Arrange
@@ -186,5 +301,110 @@ public class UnitTests
             () => service.CreateRatingAsync(tripId, passengerId, dto)
         );
         Assert.Contains("completados/finalizados", exception.Message);
+    }
+
+    [Fact]
+    public async Task RatingService_GetAverageRatingForUserAsync_ReturnsRoundedAveragesAndDistributions()
+    {
+        // Arrange
+        using var context = GetInMemoryContext("RatingSummaryDb");
+        var service = new RatingService(context);
+        var userId = Guid.NewGuid();
+        var evaluatorOneId = Guid.NewGuid();
+        var evaluatorTwoId = Guid.NewGuid();
+        var tripId = Guid.NewGuid();
+
+        context.Users.AddRange(
+            new User { Id = userId, FullName = "Usuario Evaluado", Email = "evaluado@test.com" },
+            new User { Id = evaluatorOneId, FullName = "Evaluador Uno", Email = "uno@test.com" },
+            new User { Id = evaluatorTwoId, FullName = "Evaluador Dos", Email = "dos@test.com" });
+        context.TripRatings.AddRange(
+            new TripRating
+            {
+                Id = Guid.NewGuid(),
+                TripId = tripId,
+                EvaluatorUserId = evaluatorOneId,
+                EvaluatedUserId = userId,
+                RatingRole = RatingRole.PassengerToDriver,
+                Score = 5,
+                CreatedAt = DateTime.UtcNow
+            },
+            new TripRating
+            {
+                Id = Guid.NewGuid(),
+                TripId = tripId,
+                EvaluatorUserId = evaluatorTwoId,
+                EvaluatedUserId = userId,
+                RatingRole = RatingRole.PassengerToDriver,
+                Score = 4,
+                CreatedAt = DateTime.UtcNow
+            },
+            new TripRating
+            {
+                Id = Guid.NewGuid(),
+                TripId = tripId,
+                EvaluatorUserId = evaluatorTwoId,
+                EvaluatedUserId = userId,
+                RatingRole = RatingRole.DriverToPassenger,
+                Score = 3,
+                CreatedAt = DateTime.UtcNow
+            });
+        await context.SaveChangesAsync();
+
+        // Act
+        var summary = await service.GetAverageRatingForUserAsync(userId);
+
+        // Assert
+        Assert.Equal("Usuario Evaluado", summary.UserFullName);
+        Assert.Equal(4.0, summary.AverageScore);
+        Assert.Equal(3, summary.TotalRatingsCount);
+        Assert.Equal(4.5, summary.AverageDriverScore);
+        Assert.Equal(2, summary.TotalDriverRatingsCount);
+        Assert.Equal(1, summary.DriverStarsDistribution[3]);
+        Assert.Equal(1, summary.DriverStarsDistribution[4]);
+        Assert.Equal(3.0, summary.AveragePassengerScore);
+        Assert.Equal(1, summary.TotalPassengerRatingsCount);
+        Assert.Equal(1, summary.PassengerStarsDistribution[2]);
+    }
+
+    [Fact]
+    public async Task PaymentService_CreateUserPaymentMethodAsync_RejectsBankQrWithoutBase64Image()
+    {
+        // Arrange
+        using var context = GetInMemoryContext("BankQrValidationDb");
+        var service = new PaymentService(context);
+        var userId = Guid.NewGuid();
+
+        context.Users.Add(new User
+        {
+            Id = userId,
+            FullName = "Conductor QR",
+            Email = "qr@test.com",
+            PasswordHash = "hash"
+        });
+        context.PaymentMethods.Add(new PaymentMethod
+        {
+            Id = 10,
+            Code = "BANK_QR",
+            Name = "QR Bancario",
+            Type = PaymentMethodType.BankQr,
+            RequiresManualConfirmation = true,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var dto = new CreateUserPaymentMethodDto
+        {
+            PaymentMethodId = 10,
+            Alias = "QR personal",
+            QrImageUrl = "https://example.com/qr.png",
+            IsDefault = true
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateUserPaymentMethodAsync(userId, dto)
+        );
+        Assert.Contains("base64", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

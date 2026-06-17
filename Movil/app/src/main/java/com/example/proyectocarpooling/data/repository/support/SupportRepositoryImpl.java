@@ -1,7 +1,7 @@
 package com.example.proyectocarpooling.data.repository.support;
 
 import com.example.proyectocarpooling.data.model.support.SupportTicketItem;
-import com.example.proyectocarpooling.data.remote.SupportRemoteDataSource;
+import com.example.proyectocarpooling.data.remote.support.SupportRemoteDataSource;
 import com.example.proyectocarpooling.domain.repository.support.SupportRepository;
 
 import org.json.JSONException;

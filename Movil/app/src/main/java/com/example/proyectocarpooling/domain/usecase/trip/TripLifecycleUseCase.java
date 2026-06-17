@@ -1,7 +1,7 @@
-package com.example.proyectocarpooling.domain.usecase;
+package com.example.proyectocarpooling.domain.usecase.trip;
 
-import com.example.proyectocarpooling.data.model.TripResponse;
-import com.example.proyectocarpooling.domain.repository.TripRepository;
+import com.example.proyectocarpooling.data.model.trip.TripResponse;
+import com.example.proyectocarpooling.domain.repository.trip.TripRepository;
 import com.mapbox.geojson.Point;
 
 import java.io.IOException;

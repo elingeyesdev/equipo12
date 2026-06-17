@@ -11,7 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.proyectocarpooling.R;
-import com.example.proyectocarpooling.data.model.ChatMessage;
+import com.example.proyectocarpooling.data.model.chat.ChatMessage;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -97,7 +97,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
                 return;
             }
             java.util.List<String> names = new java.util.ArrayList<>();
-            for (com.example.proyectocarpooling.data.model.ChatMessage.Reader reader : message.readers) {
+            for (com.example.proyectocarpooling.data.model.chat.ChatMessage.Reader reader : message.readers) {
                 names.add(reader.fullName);
             }
             if (names.isEmpty()) return;
