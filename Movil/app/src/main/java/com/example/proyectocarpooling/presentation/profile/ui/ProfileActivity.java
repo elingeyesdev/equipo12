@@ -244,12 +244,13 @@ public class ProfileActivity extends BaseActivity {
 
         viewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
+                String safeError = sanitizeError(error);
                 if (error.toLowerCase().contains("email") || error.toLowerCase().contains("correo")) {
-                    setErrorState(emailInput, true, error);
+                    setErrorState(emailInput, true, safeError);
                 } else {
                     new androidx.appcompat.app.AlertDialog.Builder(this)
                             .setTitle("Error de perfil")
-                            .setMessage(error)
+                            .setMessage(safeError)
                             .setPositiveButton("Aceptar", null)
                             .show();
                 }
@@ -428,6 +429,11 @@ public class ProfileActivity extends BaseActivity {
         }
         if (!newPassword.isEmpty() && newPassword.length() < 6) {
             setErrorState(newPasswordInput, true, getString(R.string.validation_password_min));
+            return false;
+        }
+        if (!newPassword.isEmpty()
+                && (!newPassword.matches(".*[A-Za-z].*") || !newPassword.matches(".*\\d.*"))) {
+            setErrorState(newPasswordInput, true, getString(R.string.validation_password_strength));
             return false;
         }
         if (hasVehicle) {

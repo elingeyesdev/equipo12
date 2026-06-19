@@ -1,6 +1,7 @@
 package com.example.proyectocarpooling.presentation;
 
 import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -11,7 +12,6 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        // Apply programmatic custom theme styling recursively after views are fully inflated!
         DynamicThemeManager.applyTheme(this);
     }
 
@@ -72,14 +72,37 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     public String sanitizeError(String rawError) {
         if (rawError == null || rawError.trim().isEmpty()) {
-            return "Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.";
+            return "No pudimos completar la accion. Intentalo de nuevo.";
         }
-        String lower = rawError.toLowerCase();
-        if (lower.contains("fetch") || lower.contains("connect") || lower.contains("network") || 
-            lower.contains("timeout") || lower.contains("socket") || lower.contains("unable to resolve host") ||
-            lower.contains("http") || lower.contains("connection")) {
-            return "No se pudo establecer conexión con el servidor. Por favor, verifica tu conexión a internet.";
+        String trimmed = rawError.trim();
+        String lower = trimmed.toLowerCase(java.util.Locale.US);
+
+        if (lower.contains("401") || lower.contains("unauthorized")) {
+            return "Tu sesion expiro. Vuelve a iniciar sesion.";
         }
-        return rawError;
+        if (lower.contains("403") || lower.contains("forbidden")) {
+            return "No tienes permiso para realizar esta accion.";
+        }
+        if (lower.contains("400") || lower.contains("bad request") || lower.contains("unexpected response")) {
+            return "Revisa los datos ingresados e intentalo nuevamente.";
+        }
+        if (lower.contains("404") || lower.contains("not found")) {
+            return "No encontramos la informacion solicitada. Actualiza e intentalo de nuevo.";
+        }
+        if (lower.contains("500") || lower.contains("internal server") || lower.contains("server returned")) {
+            return "El servidor no pudo procesar la solicitud. Intentalo mas tarde.";
+        }
+        if (lower.contains("fetch") || lower.contains("connect") || lower.contains("network")
+                || lower.contains("timeout") || lower.contains("socket") || lower.contains("unable to resolve host")
+                || lower.contains("http ") || lower.startsWith("http") || lower.contains("connection")) {
+            return "No se pudo conectar con el servidor. Verifica tu conexion e intentalo de nuevo.";
+        }
+        if (lower.contains("json") || lower.contains("respuesta invalida") || lower.contains("respuesta vacia")) {
+            return "Recibimos una respuesta inesperada. Intentalo nuevamente.";
+        }
+        if (trimmed.length() > 160) {
+            return "No pudimos completar la accion. Intentalo de nuevo.";
+        }
+        return trimmed;
     }
 }

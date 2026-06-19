@@ -52,6 +52,8 @@ public class MainViewModel extends AndroidViewModel {
     private final MutableLiveData<String> activeTripId = new MutableLiveData<>();
     private final MutableLiveData<String> lastTripStatusLabel = new MutableLiveData<>();
     private final MutableLiveData<Integer> activeTripAvailableSeats = new MutableLiveData<>(0);
+    private final MutableLiveData<Integer> activeTripOfferedSeats = new MutableLiveData<>(0);
+    private final MutableLiveData<Double> activeTripDistanceMeters = new MutableLiveData<>(0.0);
     private final MutableLiveData<String> lastRouteTimeLabel = new MutableLiveData<>();
 
     public MainViewModel(@NonNull Application application) {
@@ -89,6 +91,12 @@ public class MainViewModel extends AndroidViewModel {
 
     public LiveData<Integer> getActiveTripAvailableSeats() { return activeTripAvailableSeats; }
     public void setActiveTripAvailableSeats(int n) { this.activeTripAvailableSeats.setValue(n); }
+
+    public LiveData<Integer> getActiveTripOfferedSeats() { return activeTripOfferedSeats; }
+    public void setActiveTripOfferedSeats(int n) { this.activeTripOfferedSeats.setValue(n); }
+
+    public LiveData<Double> getActiveTripDistanceMeters() { return activeTripDistanceMeters; }
+    public void setActiveTripDistanceMeters(double n) { this.activeTripDistanceMeters.setValue(n); }
 
     public LiveData<String> getLastRouteTimeLabel() { return lastRouteTimeLabel; }
     public void setLastRouteTimeLabel(String s) { this.lastRouteTimeLabel.setValue(s); }
@@ -135,8 +143,8 @@ public class MainViewModel extends AndroidViewModel {
         taskRunner.runWithResult(() -> tripLifecycleUseCase.cancelTrip(tripId), adapt(callback));
     }
 
-    public void startTrip(String tripId, Point driverPosition, ResultCallback<TripResponse> callback) {
-        taskRunner.runWithResult(() -> tripLifecycleUseCase.startTrip(tripId, driverPosition), adapt(callback));
+    public void startTrip(String tripId, Point driverPosition, double fareAmount, ResultCallback<TripResponse> callback) {
+        taskRunner.runWithResult(() -> tripLifecycleUseCase.startTrip(tripId, driverPosition, fareAmount), adapt(callback));
     }
 
     public void finishTrip(String tripId, ResultCallback<TripResponse> callback) {

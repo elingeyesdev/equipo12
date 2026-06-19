@@ -64,11 +64,11 @@ public class TripsController(TripService tripService) : ControllerBase
     }
 
     [HttpPost("{id:guid}/start")]
-    public async Task<ActionResult<TripResponse>> StartTripAsync(Guid id)
+    public async Task<ActionResult<TripResponse>> StartTripAsync(Guid id, [FromBody] StartTripRequestDto? request)
     {
         try
         {
-            var trip = await tripService.StartTripAsync(id);
+            var trip = await tripService.StartTripAsync(id, request);
             return Ok(TripService.MapToDto(trip));
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }

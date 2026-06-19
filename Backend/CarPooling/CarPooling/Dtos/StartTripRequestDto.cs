@@ -9,5 +9,8 @@ public class StartTripRequestDto
 
     [Range(-180, 180)]
     public double? Longitude { get; set; }
+
+    [Range(0, 1000)]
+    public decimal? FareAmount { get; set; }
 }
 

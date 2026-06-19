@@ -14,6 +14,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.InputFilter;
+import android.text.TextWatcher;
 import android.view.View;
 import android.util.Log;
 import android.widget.Button;
@@ -91,6 +94,8 @@ import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -102,6 +107,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends BaseActivity {
+
+    private static final double DRAFT_FARE_AMOUNT_BS = 10.0;
+    private static final double FARE_MIN_AMOUNT_BS = 0.0;
+    private static final double FARE_MAX_OVER_SUGGESTED_BS = 10.0;
+    private static final double FARE_BASE_ROUTE_BS = 6.0;
+    private static final double FARE_PER_KM_BS = 4.0;
 
     public static boolean sReservationCompletedFromBanner = false;
     public static Intent sReservationResultData = null;
@@ -163,6 +174,8 @@ public class MainActivity extends BaseActivity {
     private int lastTripStatusId;
     private String lastRouteTimeLabel;
     private int activeTripAvailableSeats = 0;
+    private int activeTripOfferedSeats = 0;
+    private double activeTripDistanceMeters = 0.0;
     private Point currentDriverPosition;
 
     private LocationComponentPlugin locationComponentPlugin;
@@ -369,6 +382,8 @@ public class MainActivity extends BaseActivity {
         activeTripId = mainViewModel.getActiveTripId().getValue();
         lastTripStatusLabel = mainViewModel.getLastTripStatusLabel().getValue();
         activeTripAvailableSeats = mainViewModel.getActiveTripAvailableSeats().getValue() != null ? mainViewModel.getActiveTripAvailableSeats().getValue() : 0;
+        activeTripOfferedSeats = mainViewModel.getActiveTripOfferedSeats().getValue() != null ? mainViewModel.getActiveTripOfferedSeats().getValue() : 0;
+        activeTripDistanceMeters = mainViewModel.getActiveTripDistanceMeters().getValue() != null ? mainViewModel.getActiveTripDistanceMeters().getValue() : 0.0;
         lastRouteTimeLabel = mainViewModel.getLastRouteTimeLabel().getValue();
     }
 
@@ -398,6 +413,12 @@ public class MainActivity extends BaseActivity {
         mainViewModel.getActiveTripAvailableSeats().observe(this, seats -> {
             activeTripAvailableSeats = seats != null ? seats : 0;
         });
+        mainViewModel.getActiveTripOfferedSeats().observe(this, seats -> {
+            activeTripOfferedSeats = seats != null ? seats : 0;
+        });
+        mainViewModel.getActiveTripDistanceMeters().observe(this, distanceMeters -> {
+            activeTripDistanceMeters = distanceMeters != null ? distanceMeters : 0.0;
+        });
         mainViewModel.getLastRouteTimeLabel().observe(this, label -> {
             lastRouteTimeLabel = label;
         });
@@ -414,6 +435,8 @@ public class MainActivity extends BaseActivity {
         mainViewModel.setActiveTripId(activeTripId);
         mainViewModel.setLastTripStatusLabel(lastTripStatusLabel);
         mainViewModel.setActiveTripAvailableSeats(activeTripAvailableSeats);
+        mainViewModel.setActiveTripOfferedSeats(activeTripOfferedSeats);
+        mainViewModel.setActiveTripDistanceMeters(activeTripDistanceMeters);
         mainViewModel.setLastRouteTimeLabel(lastRouteTimeLabel);
     }
 
@@ -991,6 +1014,8 @@ public class MainActivity extends BaseActivity {
                         lastTripStatusLabel = null;
                         lastTripStatusId = 0;
                         activeTripAvailableSeats = 0;
+                        activeTripOfferedSeats = 0;
+                        activeTripDistanceMeters = 0.0;
                         lastRouteTimeLabel = null;
                         syncTripStateToViewModel();
                         setSelectedOrigin(null, null);
@@ -1029,6 +1054,10 @@ public class MainActivity extends BaseActivity {
         lastTripStatusLabel = trip.statusLabel;
         lastTripStatusId = trip.statusId;
         activeTripAvailableSeats = trip.availableSeats;
+        activeTripOfferedSeats = trip.offeredSeats;
+        activeTripDistanceMeters = estimateDirectDistanceMeters(
+                Point.fromLngLat(trip.originLongitude, trip.originLatitude),
+                Point.fromLngLat(trip.destinationLongitude, trip.destinationLatitude));
         if (fareAmountInput != null) {
             fareAmountInput.setText(String.format(Locale.US, "%.2f", trip.fareAmount));
             fareAmountInput.setEnabled(false);
@@ -1830,20 +1859,26 @@ public class MainActivity extends BaseActivity {
         }
 
         RouteData route = ((CarPoolingApplication) getApplication()).getTripRepository().fetchRoute(origin, destination);
-        cacheRoutePreview(origin, destination, route.points);
+        cacheRoutePreview(origin, destination, route.points, route.distanceMeters);
         return route.points;
     }
 
-    private void cacheRoutePreview(Point origin, Point destination, List<Point> routePoints) {
+    private void cacheRoutePreview(Point origin, Point destination, List<Point> routePoints, double distanceMeters) {
         cachedRouteOrigin = origin;
         cachedRouteDestination = destination;
         cachedRoutePreviewPoints = routePoints;
+        if (distanceMeters > 0.0) {
+            activeTripDistanceMeters = distanceMeters;
+            syncTripStateToViewModel();
+        }
     }
 
     private void invalidateRoutePreviewCache() {
         cachedRouteOrigin = null;
         cachedRouteDestination = null;
         cachedRoutePreviewPoints = null;
+        activeTripDistanceMeters = 0.0;
+        syncTripStateToViewModel();
     }
 
     private static boolean pointsNearlyEqual(Point a, Point b) {
@@ -1893,7 +1928,7 @@ public class MainActivity extends BaseActivity {
         final Point origin = selectedOrigin;
         final Point destination = selectedDestination;
         final SafeZoneItem routeStop = activeSafeZoneRouteStop;
-        final double fareAmount = readFareAmount();
+        final double fareAmount = DRAFT_FARE_AMOUNT_BS;
         mainViewModel.createTrip(origin, destination, vehicleId, fareAmount, new MainViewModel.ResultCallback<>() {
             @Override
             public void onSuccess(CreateTripResult result) {
@@ -1902,6 +1937,8 @@ public class MainActivity extends BaseActivity {
                 lastTripStatusLabel = response.statusLabel;
                 lastTripStatusId = response.statusId;
                 activeTripAvailableSeats = response.availableSeats;
+                activeTripOfferedSeats = response.offeredSeats;
+                activeTripDistanceMeters = result.route != null ? result.route.distanceMeters : estimateDirectDistanceMeters(origin, destination);
                 if (fareAmountInput != null) {
                     fareAmountInput.setText(String.format(Locale.US, "%.2f", response.fareAmount));
                     fareAmountInput.setEnabled(false);
@@ -1971,19 +2008,6 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    private double readFareAmount() {
-        if (fareAmountInput == null || fareAmountInput.getText() == null) {
-            return 10.0;
-        }
-        try {
-            double value = Double.parseDouble(fareAmountInput.getText().toString().trim());
-            if (value < 0.5) return 10.0;
-            return value;
-        } catch (Exception e) {
-            return 10.0;
-        }
-    }
-
     private void cancelTrip() {
         stopSimulation();
         setProgressVisible(true);
@@ -1997,6 +2021,8 @@ public class MainActivity extends BaseActivity {
                 lastTripStatusLabel = response.statusLabel;
                 lastTripStatusId = response.statusId;
                 activeTripAvailableSeats = 0;
+                activeTripOfferedSeats = 0;
+                activeTripDistanceMeters = 0.0;
                 activeTripPendingCount = 0;
                 lastRouteTimeLabel = null;
                 sessionManager.clearDriverActiveTripId();
@@ -2418,7 +2444,7 @@ public class MainActivity extends BaseActivity {
                     if (isFinishing() || isDestroyed()) {
                         return;
                     }
-                    cacheRoutePreview(origin, destination, route.points);
+                    cacheRoutePreview(origin, destination, route.points, route.distanceMeters);
                     drawRoute(route.points);
                     lastRouteTimeLabel = buildEstimatedTimeLabel(route.distanceMeters);
                     updateRouteTimeText();
@@ -2501,13 +2527,87 @@ public class MainActivity extends BaseActivity {
             return;
         }
 
+        showStartTripFareDialog();
+    }
+
+    private void showStartTripFareDialog() {
+        final double suggestedFare = calculateSuggestedFareAmount();
+        final double maxFare = suggestedFare + FARE_MAX_OVER_SUGGESTED_BS;
+        final View dialogView = getLayoutInflater().inflate(R.layout.dialog_start_trip_fare, null);
+        final TextView suggestedFareText = dialogView.findViewById(R.id.startTripSuggestedFare);
+        final TextView formulaText = dialogView.findViewById(R.id.startTripFareFormula);
+        final TextView freeFareWarning = dialogView.findViewById(R.id.startTripFreeFareWarning);
+        final TextInputLayout fareLayout = dialogView.findViewById(R.id.startTripFareLayout);
+        final TextInputEditText fareInput = dialogView.findViewById(R.id.startTripFareInput);
+        final int offeredSeats = getFareCalculationSeats();
+        final double distanceKm = getFareCalculationDistanceKm();
+
+        if (suggestedFareText != null) {
+            suggestedFareText.setText(formatBolivianos(suggestedFare));
+        }
+        if (formulaText != null) {
+            formulaText.setText(String.format(Locale.US,
+                    "Ruta estimada: %.1f km. Calculo: Bs %.0f base + Bs %.0f/km, dividido entre %d asientos.",
+                    distanceKm,
+                    FARE_BASE_ROUTE_BS,
+                    FARE_PER_KM_BS,
+                    offeredSeats));
+        }
+        if (fareInput != null) {
+            fareInput.setFilters(new InputFilter[]{buildFareInputFilter()});
+            fareInput.setText(String.format(Locale.US, "%.2f", suggestedFare));
+            fareInput.setSelectAllOnFocus(true);
+            fareInput.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    validateFareInput(fareLayout, fareInput, suggestedFare, maxFare, false);
+                    updateFreeFareWarning(freeFareWarning, fareInput);
+                }
+                @Override public void afterTextChanged(Editable s) {}
+            });
+        }
+
+        androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("Precio del viaje")
+                .setView(dialogView)
+                .setNegativeButton(R.string.dialog_button_cancel, null)
+                .setPositiveButton("Iniciar viaje", null)
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button positive = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE);
+            if (positive != null) {
+                positive.setOnClickListener(v -> {
+                    Double fareAmount = validateFareInput(fareLayout, fareInput, suggestedFare, maxFare, true);
+                    if (fareAmount == null) {
+                        return;
+                    }
+                    dialog.dismiss();
+                    startTripWithFare(fareAmount);
+                });
+            }
+            if (fareInput != null) {
+                fareInput.requestFocus();
+                updateFreeFareWarning(freeFareWarning, fareInput);
+            }
+        });
+        dialog.show();
+    }
+
+    private void startTripWithFare(double fareAmount) {
+        if (!isTripReadyToStart()) {
+            Toast.makeText(this, R.string.toast_trip_start_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         setProgressVisible(true);
-        mainViewModel.startTrip(activeTripId, currentDriverPosition, new MainViewModel.ResultCallback<>() {
+        mainViewModel.startTrip(activeTripId, currentDriverPosition, fareAmount, new MainViewModel.ResultCallback<>() {
             @Override
             public void onSuccess(TripResponse response) {
                 lastTripStatusLabel = response.statusLabel;
                 lastTripStatusId = response.statusId;
                 activeTripAvailableSeats = response.availableSeats;
+                activeTripOfferedSeats = response.offeredSeats;
                 syncTripStateToViewModel();
                 updateStatusText();
                 updateRouteTimeText();
@@ -2527,6 +2627,116 @@ public class MainActivity extends BaseActivity {
         });
     }
 
+    private InputFilter buildFareInputFilter() {
+        return (source, start, end, dest, dstart, dend) -> {
+            String replacement = source == null ? "" : source.subSequence(start, end).toString();
+            if (replacement.isEmpty()) {
+                return null;
+            }
+            String next = new StringBuilder(dest == null ? "" : dest.toString())
+                    .replace(dstart, dend, replacement)
+                    .toString();
+            if (next.matches("\\d{0,4}(\\.\\d{0,2})?")) {
+                return null;
+            }
+            return "";
+        };
+    }
+
+    private Double validateFareInput(
+            TextInputLayout fareLayout,
+            TextInputEditText fareInput,
+            double suggestedFare,
+            double maxFare,
+            boolean showErrors) {
+        String raw = fareInput != null && fareInput.getText() != null
+                ? fareInput.getText().toString().trim()
+                : "";
+        String error = null;
+        Double value = null;
+
+        if (raw.isEmpty()) {
+            error = "Ingresa el precio por pasajero.";
+        } else if (!raw.matches("\\d+(\\.\\d{1,2})?")) {
+            error = "Usa solo numeros, sin letras ni simbolos.";
+        } else {
+            try {
+                value = Double.parseDouble(raw);
+                if (value < FARE_MIN_AMOUNT_BS) {
+                    error = "El precio no puede ser negativo.";
+                } else if (value > maxFare) {
+                    error = String.format(Locale.US,
+                            "El maximo permitido es %s, solo Bs %.0f sobre el recomendado.",
+                            formatBolivianos(maxFare),
+                            FARE_MAX_OVER_SUGGESTED_BS);
+                }
+            } catch (NumberFormatException exception) {
+                error = "Ingresa un precio valido en bolivianos.";
+            }
+        }
+
+        if (fareLayout != null) {
+            fareLayout.setError(showErrors ? error : null);
+        }
+        return error == null ? value : null;
+    }
+
+    private void updateFreeFareWarning(TextView warningView, TextInputEditText fareInput) {
+        if (warningView == null || fareInput == null || fareInput.getText() == null) {
+            return;
+        }
+        try {
+            double value = Double.parseDouble(fareInput.getText().toString().trim());
+            warningView.setVisibility(value == 0.0 ? View.VISIBLE : View.GONE);
+        } catch (NumberFormatException exception) {
+            warningView.setVisibility(View.GONE);
+        }
+    }
+
+    private double calculateSuggestedFareAmount() {
+        int seats = getFareCalculationSeats();
+        double distanceKm = getFareCalculationDistanceKm();
+        double routeTotal = FARE_BASE_ROUTE_BS + (distanceKm * FARE_PER_KM_BS);
+        double perSeat = routeTotal / seats;
+        return Math.max(FARE_MIN_AMOUNT_BS, Math.ceil(perSeat));
+    }
+
+    private int getFareCalculationSeats() {
+        if (activeTripOfferedSeats > 0) {
+            return activeTripOfferedSeats;
+        }
+        if (activeTripAvailableSeats > 0) {
+            return activeTripAvailableSeats;
+        }
+        return 1;
+    }
+
+    private double getFareCalculationDistanceKm() {
+        double meters = activeTripDistanceMeters > 0.0
+                ? activeTripDistanceMeters
+                : estimateDirectDistanceMeters(selectedOrigin, selectedDestination);
+        return Math.max(0.1, meters / 1000.0);
+    }
+
+    private double estimateDirectDistanceMeters(Point origin, Point destination) {
+        if (origin == null || destination == null) {
+            return 0.0;
+        }
+        double lat1 = Math.toRadians(origin.latitude());
+        double lat2 = Math.toRadians(destination.latitude());
+        double deltaLat = Math.toRadians(destination.latitude() - origin.latitude());
+        double deltaLng = Math.toRadians(destination.longitude() - origin.longitude());
+        double a = Math.sin(deltaLat / 2.0) * Math.sin(deltaLat / 2.0)
+                + Math.cos(lat1) * Math.cos(lat2)
+                * Math.sin(deltaLng / 2.0) * Math.sin(deltaLng / 2.0);
+        double c = 2.0 * Math.atan2(Math.sqrt(a), Math.sqrt(1.0 - a));
+        return 6371000.0 * c;
+    }
+
+    private String formatBolivianos(double amount) {
+        return String.format(Locale.US, "Bs %.2f", amount);
+    }
+
     private void finishTrip() {
         stopSimulation();
         if (!isTripInProgress()) {
@@ -2543,6 +2753,8 @@ public class MainActivity extends BaseActivity {
                 lastTripStatusLabel = response.statusLabel;
                 lastTripStatusId = response.statusId;
                 activeTripAvailableSeats = response.availableSeats;
+                activeTripOfferedSeats = 0;
+                activeTripDistanceMeters = 0.0;
                 activeTripPendingCount = 0;
                 lastRouteTimeLabel = null;
                 sessionManager.clearDriverActiveTripId();
@@ -2686,8 +2898,8 @@ public class MainActivity extends BaseActivity {
                     btnScheduleTripOption.setEnabled(canCreate);
                 }
                 if (fareAmountInput != null) {
-                    fareAmountInput.setVisibility(View.VISIBLE);
-                    fareAmountInput.setEnabled(true);
+                    fareAmountInput.setVisibility(View.GONE);
+                    fareAmountInput.setEnabled(false);
                 }
                 
                 if (driverActionsRow != null) driverActionsRow.setVisibility(View.GONE);

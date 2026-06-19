@@ -149,12 +149,13 @@ public class RegisterActivity extends BaseActivity {
 
         authViewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
+                String safeError = sanitizeError(error);
                 if (error.toLowerCase().contains("email") || error.toLowerCase().contains("correo")) {
-                    setErrorState(emailInput, true, error);
+                    setErrorState(emailInput, true, safeError);
                 } else {
                     new androidx.appcompat.app.AlertDialog.Builder(this)
                             .setTitle("Error de registro")
-                            .setMessage(error)
+                            .setMessage(safeError)
                             .setPositiveButton("Aceptar", null)
                             .show();
                 }
@@ -230,6 +231,11 @@ public class RegisterActivity extends BaseActivity {
 
         if (password.length() < 6) {
             setErrorState(passwordInput, true, getString(R.string.validation_password_min));
+            return false;
+        }
+
+        if (!password.matches(".*[A-Za-z].*") || !password.matches(".*\\d.*")) {
+            setErrorState(passwordInput, true, getString(R.string.validation_password_strength));
             return false;
         }
 

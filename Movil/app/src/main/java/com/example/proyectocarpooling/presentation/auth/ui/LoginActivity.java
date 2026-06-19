@@ -75,8 +75,9 @@ public class LoginActivity extends BaseActivity {
 
         authViewModel.getErrorEvent().observe(this, error -> {
             if (error != null) {
+                String safeError = sanitizeError(error);
                 setErrorState(emailInput, true, null);
-                setErrorState(passwordInput, true, error);
+                setErrorState(passwordInput, true, safeError);
             }
         });
     }

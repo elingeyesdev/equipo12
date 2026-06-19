@@ -9,7 +9,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,6 +17,7 @@ import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.trip.RecurringReservation;
 import com.example.proyectocarpooling.data.model.trip.TripSchedule;
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
@@ -25,7 +25,7 @@ import com.google.android.material.floatingactionbutton.ExtendedFloatingActionBu
 import java.util.ArrayList;
 import java.util.List;
 
-public class TripSchedulesActivity extends AppCompatActivity implements TripSchedulesAdapter.Listener {
+public class TripSchedulesActivity extends BaseActivity implements TripSchedulesAdapter.Listener {
 
     private SessionManager sessionManager;
     private TripSchedulesViewModel viewModel;
@@ -151,7 +151,7 @@ public class TripSchedulesActivity extends AppCompatActivity implements TripSche
 
         viewModel.getErrorMessage().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, sanitizeError(error), Toast.LENGTH_LONG).show();
             }
         });
 

@@ -9,7 +9,6 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -183,7 +182,7 @@ public class ChatActivity extends BaseActivity {
                     @Override
                     public void onError(String message) {
                         if (showLoadingToast) {
-                            Toast.makeText(ChatActivity.this, "Error al cargar mensajes: " + message, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ChatActivity.this, sanitizeError(message), Toast.LENGTH_SHORT).show();
                         }
                     }
                 }
@@ -221,7 +220,7 @@ public class ChatActivity extends BaseActivity {
                     public void onError(String message) {
                         chatSendButton.setEnabled(true);
                         chatInputText.setText(text); // Restaurar texto si falló
-                        Toast.makeText(ChatActivity.this, "Error al enviar: " + message, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ChatActivity.this, sanitizeError(message), Toast.LENGTH_SHORT).show();
                     }
                 }
         );

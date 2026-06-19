@@ -9,12 +9,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.user.VehicleResponse;
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -27,7 +27,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class CreateTripScheduleActivity extends AppCompatActivity {
+public class CreateTripScheduleActivity extends BaseActivity {
 
     private SessionManager sessionManager;
     private CreateTripScheduleViewModel viewModel;
@@ -160,11 +160,12 @@ public class CreateTripScheduleActivity extends AppCompatActivity {
             String seatsStr = etOfferedSeats.getText() != null ? etOfferedSeats.getText().toString() : "0";
             String fareStr = etFareAmount.getText() != null ? etFareAmount.getText().toString() : "0";
 
-            int seats = 4;
-            try { seats = Integer.parseInt(seatsStr); } catch (NumberFormatException ignored) {}
+            if (!validateScheduleInput(origin, destination, seatsStr, fareStr)) {
+                return;
+            }
 
-            double fare = 15.0;
-            try { fare = Double.parseDouble(fareStr); } catch (NumberFormatException ignored) {}
+            int seats = Integer.parseInt(seatsStr.trim());
+            double fare = Double.parseDouble(fareStr.trim());
 
             // Build daysOfWeek bitmask/string
             List<String> selectedDays = new ArrayList<>();
@@ -200,6 +201,52 @@ public class CreateTripScheduleActivity extends AppCompatActivity {
         });
     }
 
+    private boolean validateScheduleInput(String origin, String destination, String seatsStr, String fareStr) {
+        tilOriginAddress.setError(null);
+        tilDestinationAddress.setError(null);
+
+        if (origin == null || origin.trim().length() < 5) {
+            tilOriginAddress.setError("Selecciona un origen valido.");
+            return false;
+        }
+        if (destination == null || destination.trim().length() < 5) {
+            tilDestinationAddress.setError("Selecciona un destino valido.");
+            return false;
+        }
+        if (selectedTime == null || selectedTime.isEmpty()) {
+            Toast.makeText(this, "Selecciona la hora de salida.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (!cbMon.isChecked() && !cbTue.isChecked() && !cbWed.isChecked() && !cbThu.isChecked()
+                && !cbFri.isChecked() && !cbSat.isChecked() && !cbSun.isChecked()) {
+            Toast.makeText(this, "Selecciona al menos un dia de la semana.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (seatsStr == null || !seatsStr.trim().matches("\\d+")) {
+            etOfferedSeats.setError(getString(R.string.validation_seats_number));
+            return false;
+        }
+        int seats = Integer.parseInt(seatsStr.trim());
+        if (seats < 1 || seats > 12) {
+            etOfferedSeats.setError(getString(R.string.validation_seats_range));
+            return false;
+        }
+        if (fareStr == null || !fareStr.trim().matches("\\d+(\\.\\d{1,2})?")) {
+            etFareAmount.setError("Ingresa un precio valido en Bs.");
+            return false;
+        }
+        double fare = Double.parseDouble(fareStr.trim());
+        if (fare < 0.0 || fare > 1000.0) {
+            etFareAmount.setError("El precio debe estar entre Bs 0.00 y Bs 1000.00.");
+            return false;
+        }
+        if (selectedVehicleId == null || selectedVehicleId.trim().isEmpty()) {
+            Toast.makeText(this, "Selecciona un vehiculo para el horario.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return true;
+    }
+
     private void observeViewModel() {
         viewModel.getLoading().observe(this, loading -> {
             btnSaveSchedule.setEnabled(!loading);
@@ -222,7 +269,7 @@ public class CreateTripScheduleActivity extends AppCompatActivity {
 
         viewModel.getErrorMessage().observe(this, error -> {
             if (error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, sanitizeError(error), Toast.LENGTH_LONG).show();
             }
         });
 

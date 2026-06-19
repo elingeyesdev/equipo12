@@ -10,7 +10,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.widget.NestedScrollView;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -110,7 +109,7 @@ public class SupportTicketDetailActivity extends BaseActivity {
 
         viewModel.getDetailErrorEvent().observe(this, msg -> {
             if (msg != null && !msg.isEmpty()) {
-                Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, sanitizeError(msg), Toast.LENGTH_LONG).show();
                 finish();
             }
         });

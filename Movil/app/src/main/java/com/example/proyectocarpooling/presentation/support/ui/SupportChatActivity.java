@@ -8,7 +8,6 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -18,12 +17,13 @@ import com.example.proyectocarpooling.R;
 import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.chat.ChatMessage;
 import com.example.proyectocarpooling.data.remote.support.SupportChatRemoteDataSource;
+import com.example.proyectocarpooling.presentation.BaseActivity;
 import com.example.proyectocarpooling.presentation.chat.ui.ChatAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SupportChatActivity extends AppCompatActivity {
+public class SupportChatActivity extends BaseActivity {
 
     public static final String EXTRA_TICKET_ID = "extra_support_chat_ticket_id";
     public static final String EXTRA_CHAT_TITLE = "extra_support_chat_title";
@@ -140,7 +140,7 @@ public class SupportChatActivity extends AppCompatActivity {
                         if (showLoadingToast) {
                             Toast.makeText(
                                     SupportChatActivity.this,
-                                    getString(R.string.support_chat_load_error, message),
+                                    getString(R.string.support_chat_load_error, sanitizeError(message)),
                                     Toast.LENGTH_LONG).show();
                         }
                     }
@@ -182,7 +182,7 @@ public class SupportChatActivity extends AppCompatActivity {
                         }
                         Toast.makeText(
                                 SupportChatActivity.this,
-                                getString(R.string.support_chat_send_error, message),
+                                getString(R.string.support_chat_send_error, sanitizeError(message)),
                                 Toast.LENGTH_LONG).show();
                     }
                 }

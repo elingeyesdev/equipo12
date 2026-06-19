@@ -42,7 +42,9 @@ public class TripRepositoryImpl implements TripRepository {
     @Override public RouteData fetchRouteWithWaypoint(Point o, Point w, Point d) throws IOException {
         return remoteDataSource.fetchRouteWithWaypoint(o, w, d);
     }
-    @Override public TripResponse startTrip(String id, Point p) throws IOException { return remoteDataSource.startTrip(id, p); }
+    @Override public TripResponse startTrip(String id, Point p, double fareAmount) throws IOException {
+        return remoteDataSource.startTrip(id, p, fareAmount);
+    }
     @Override public TripResponse finishTrip(String id) throws IOException { return remoteDataSource.finishTrip(id); }
     @Override public TripResponse updateTripLocation(String id, double lat, double lng) throws IOException {
         return remoteDataSource.updateTripLocation(id, lat, lng);

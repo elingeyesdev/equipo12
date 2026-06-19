@@ -153,7 +153,7 @@ public class TripService(
         return trip;
     }
 
-    public async Task<Trip> StartTripAsync(Guid tripId)
+    public async Task<Trip> StartTripAsync(Guid tripId, StartTripRequestDto? request = null)
     {
         var trip = await _context.Trips
             .Include(t => t.OriginLocation)
@@ -168,6 +168,14 @@ public class TripService(
         var oldValues = AuditService.SnapshotTrip(trip);
 
         trip.StatusId = 3; // in_progress
+        if (request?.FareAmount is decimal fareAmount)
+        {
+            if (fareAmount < 0m)
+            {
+                throw new InvalidOperationException("La tarifa no puede ser negativa.");
+            }
+            trip.FareAmount = decimal.Round(fareAmount, 2, MidpointRounding.AwayFromZero);
+        }
         trip.StartedAt ??= DateTime.UtcNow;
         trip.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();

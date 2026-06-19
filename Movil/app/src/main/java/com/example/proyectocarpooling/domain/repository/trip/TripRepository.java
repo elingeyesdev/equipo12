@@ -19,7 +19,7 @@ public interface TripRepository {
     TripResponse cancelTrip(String tripId) throws IOException;
     RouteData fetchRoute(Point origin, Point destination) throws IOException;
     RouteData fetchRouteWithWaypoint(Point origin, Point waypoint, Point destination) throws IOException;
-    TripResponse startTrip(String tripId, Point driverPosition) throws IOException;
+    TripResponse startTrip(String tripId, Point driverPosition, double fareAmount) throws IOException;
     TripResponse finishTrip(String tripId) throws IOException;
     TripResponse updateTripLocation(String tripId, double latitude, double longitude) throws IOException;
     void createReservation(String tripId, String passengerUserId, int seatsReserved) throws IOException;

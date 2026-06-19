@@ -18,8 +18,8 @@ public class TripLifecycleUseCase {
         return repository.cancelTrip(tripId);
     }
 
-    public TripResponse startTrip(String tripId, Point driverPosition) throws IOException {
-        return repository.startTrip(tripId, driverPosition);
+    public TripResponse startTrip(String tripId, Point driverPosition, double fareAmount) throws IOException {
+        return repository.startTrip(tripId, driverPosition, fareAmount);
     }
 
     public TripResponse finishTrip(String tripId) throws IOException {

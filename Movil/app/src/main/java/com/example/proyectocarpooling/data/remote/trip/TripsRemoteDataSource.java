@@ -235,9 +235,10 @@ public class TripsRemoteDataSource {
         }
     }
 
-    public TripResponse startTrip(String tripId, Point driverPosition) throws IOException {
+    public TripResponse startTrip(String tripId, Point driverPosition, double fareAmount) throws IOException {
         JSONObject body = new JSONObject();
         try {
+            body.put("fareAmount", fareAmount);
             if (driverPosition != null) {
                 body.put("latitude", driverPosition.latitude());
                 body.put("longitude", driverPosition.longitude());
