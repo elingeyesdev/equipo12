@@ -5,6 +5,10 @@ public static class AppPermissions
     // Category: Metrics
     public const string ViewMetrics = "metrics:view";
 
+    // Category: Audit
+    public const string ReadAudit = "audit:read";
+    public const string ExportAudit = "audit:export";
+
     // Category: Users
     public const string ReadUsers = "users:read";
     public const string WriteUsers = "users:write";
@@ -31,6 +35,9 @@ public static class AppPermissions
     {
         (ViewMetrics, "Visualizar Métricas y Dashboard", "Métricas"),
         
+        (ReadAudit, "Consultar Auditoria", "Auditoria"),
+        (ExportAudit, "Exportar Auditoria", "Auditoria"),
+
         (ReadUsers, "Ver Usuarios", "Usuarios"),
         (WriteUsers, "Modificar Usuarios", "Usuarios"),
         (DeleteUsers, "Eliminar Usuarios", "Usuarios"),

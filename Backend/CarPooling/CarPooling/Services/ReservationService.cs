@@ -5,10 +5,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Services;
 
-public class ReservationService(CarPoolingContext context, INotificationService notificationService)
+public class ReservationService(
+    CarPoolingContext context,
+    INotificationService notificationService,
+    AuditService auditService)
 {
     private readonly CarPoolingContext _context = context;
     private readonly INotificationService _notificationService = notificationService;
+    private readonly AuditService _auditService = auditService;
 
     /// <summary>Crea reserva en estado "pending". Genera código de abordaje.</summary>
     public async Task<Reservation> CreateAsync(Guid tripId, CreateReservationDto dto)
@@ -45,6 +49,16 @@ public class ReservationService(CarPoolingContext context, INotificationService 
         _context.Reservations.Add(reservation);
         await _context.SaveChangesAsync();
 
+        await _auditService.RecordAsync(
+            "UserReservedSeat",
+            "Reservations",
+            "Reservation",
+            reservation.Id.ToString(),
+            null,
+            AuditService.SnapshotReservation(reservation),
+            actorUserId: reservation.PassengerUserId,
+            description: $"Pasajero reservo {reservation.SeatsReserved} asiento(s) en el viaje {tripId}.");
+
         var passenger = await _context.Users.FindAsync(dto.PassengerUserId);
         if (passenger != null && trip.DriverUserId.HasValue)
         {
@@ -73,10 +87,22 @@ public class ReservationService(CarPoolingContext context, INotificationService 
         if (reservation.Trip.AvailableSeats < reservation.SeatsReserved)
             throw new InvalidOperationException("No hay suficientes cupos disponibles.");
 
+        var oldValues = AuditService.SnapshotReservation(reservation);
+
         reservation.StatusId = 2; // confirmed
         reservation.Trip.AvailableSeats -= reservation.SeatsReserved;
 
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "DriverAcceptedReservation",
+            "Reservations",
+            "Reservation",
+            reservation.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotReservation(reservation),
+            actorUserId: reservation.Trip.DriverUserId,
+            description: $"Conductor acepto la reserva {reservation.Id}.");
 
         await _notificationService.SendNotificationAsync(
             reservation.PassengerUserId,
@@ -99,8 +125,20 @@ public class ReservationService(CarPoolingContext context, INotificationService 
         if (reservation.StatusId != 1) // no está pending
             throw new InvalidOperationException("Solo se pueden rechazar reservas pendientes.");
 
+        var oldValues = AuditService.SnapshotReservation(reservation);
+
         reservation.StatusId = 4; // cancelled
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "DriverRejectedReservation",
+            "Reservations",
+            "Reservation",
+            reservation.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotReservation(reservation),
+            actorUserId: reservation.Trip.DriverUserId,
+            description: $"Conductor rechazo la reserva {reservation.Id}.");
 
         await _notificationService.SendNotificationAsync(
             reservation.PassengerUserId,
@@ -123,8 +161,21 @@ public class ReservationService(CarPoolingContext context, INotificationService 
         if (reservation.StatusId != 2) // no está confirmed
             throw new InvalidOperationException("Solo se pueden abordar reservas confirmadas.");
 
+        var oldValues = AuditService.SnapshotReservation(reservation);
+
         reservation.StatusId = 3; // boarded
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "UserBoardedTrip",
+            "Reservations",
+            "Reservation",
+            reservation.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotReservation(reservation),
+            actorUserId: reservation.PassengerUserId,
+            description: $"Pasajero abordo el viaje {reservation.TripId}.");
+
         return reservation;
     }
 
@@ -147,8 +198,20 @@ public class ReservationService(CarPoolingContext context, INotificationService 
             reservation.Trip.AvailableSeats += reservation.SeatsReserved;
         }
 
+        var oldValues = AuditService.SnapshotReservation(reservation);
+
         reservation.StatusId = 4; // cancelled
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "UserCancelledReservation",
+            "Reservations",
+            "Reservation",
+            reservation.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotReservation(reservation),
+            actorUserId: reservation.PassengerUserId,
+            description: $"Pasajero cancelo la reserva {reservation.Id}.");
 
         var passenger = await _context.Users.FindAsync(reservation.PassengerUserId);
         if (passenger != null && reservation.Trip.DriverUserId.HasValue)

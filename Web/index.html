@@ -51,6 +51,7 @@
 
       <nav class="menu" id="menuNav">
         <button class="menu-item active" data-section="overview">Resumen</button>
+        <button class="menu-item" data-section="audit">Auditoria</button>
         <button class="menu-item" data-section="users">Usuarios</button>
         <button class="menu-item" data-section="trips">Viajes</button>
         <button class="menu-item" data-section="reservations">Reservas</button>
@@ -80,6 +81,7 @@
           <h3>Reportes y Estadísticas</h3>
           <p class="card-help">Consulta las métricas administrativas en un rango de fechas determinado.</p>
           <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-bottom: 16px;">
+            <button type="button" class="btn secondary" id="resetAllFiltersBtn">Reiniciar</button>
             <div class="dropdown">
               <button type="button" class="btn secondary dropdown-toggle" id="dateFilterBtn_analytics">Fechas</button>
               <div class="dropdown-menu" style="padding: 10px; width: 200px; padding-bottom: 5px;">
@@ -91,15 +93,6 @@
                   <span>Hasta</span>
                   <input type="date" id="analyticsEndDate" style="width: 100%;" />
                 </label>
-              </div>
-            </div>
-            <button type="button" class="btn secondary" id="resetAllFiltersBtn">Reiniciar Filtros</button>
-            <div class="dropdown">
-              <button type="button" class="btn secondary dropdown-toggle" id="exportMetricsBtn">Exportar</button>
-              <div class="dropdown-menu">
-                <button type="button" class="dropdown-item" id="exportMetricsExcel">Excel</button>
-                <button type="button" class="dropdown-item" id="exportMetricsCsv">CSV</button>
-                <button type="button" class="dropdown-item" id="exportMetricsPdf">PDF</button>
               </div>
             </div>
             <button type="button" class="btn primary" id="analyticsConsultBtn">Consultar</button>
@@ -133,6 +126,200 @@
               <canvas id="reservationsChart"></canvas>
             </div>
           </div>
+        </article>
+      </section>
+
+      <section class="content-grid hidden" id="section-audit">
+        <article class="card span-3 panel-header-card">
+          <div>
+            <p class="eyebrow">Auditoria del sistema</p>
+            <h3>Centro de investigacion</h3>
+            <p class="card-help">Actividad reciente, patrones de riesgo, expedientes y exportaciones en una sola vista.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button type="button" class="btn secondary" id="auditResetBtn">Limpiar</button>
+            <button type="button" class="btn secondary" id="auditReloadBtn">Actualizar</button>
+          </div>
+        </article>
+
+        <article class="card span-3 audit-workspace">
+          <div class="audit-tabs" role="tablist" aria-label="Vistas de auditoria">
+            <button type="button" class="audit-tab active" data-audit-tab="summary">Resumen</button>
+            <button type="button" class="audit-tab" data-audit-tab="investigate">Investigar</button>
+            <button type="button" class="audit-tab" data-audit-tab="logs">Logs avanzados</button>
+          </div>
+
+          <div class="audit-panel" id="audit-panel-summary">
+            <div class="audit-section-head">
+              <div>
+                <p class="eyebrow">Vista rapida</p>
+                <h3>Que necesita atencion</h3>
+              </div>
+              <div class="audit-period-actions" aria-label="Periodos rapidos de auditoria">
+                <button type="button" class="btn tiny secondary" data-audit-period="today">Hoy</button>
+                <button type="button" class="btn tiny secondary" data-audit-period="7d">7 dias</button>
+                <button type="button" class="btn tiny secondary" data-audit-period="month">Este mes</button>
+              </div>
+            </div>
+
+            <div class="audit-kpi-grid">
+              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="all"><span>Logs</span><strong id="auditLogsCount">0</strong></button>
+              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="users"><span>Usuarios activos</span><strong id="auditActiveUsersCount">0</strong></button>
+              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="drivers"><span>Conductores activos</span><strong id="auditActiveDriversCount">0</strong></button>
+              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="reports"><span>Reportes resueltos</span><strong id="auditReportsResolvedCount">0</strong></button>
+              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="users"><span>Usuarios inactivos</span><strong id="auditBlockedUsersCount">0</strong></button>
+            </div>
+
+            <div class="audit-question-grid">
+              <button type="button" class="audit-question" data-audit-preset="user-focus">
+                <strong>Auditar un usuario</strong>
+                <span>Busca por nombre, correo o ID y revisa su actividad.</span>
+              </button>
+              <button type="button" class="audit-question" data-audit-preset="admin-changes">
+                <strong>Ver cambios administrativos</strong>
+                <span>Bloqueos, cambios de rol, eliminaciones y soporte.</span>
+              </button>
+              <button type="button" class="audit-question" data-audit-preset="incidents">
+                <strong>Revisar incidentes</strong>
+                <span>Reportes, cancelaciones y viajes con problemas.</span>
+              </button>
+              <button type="button" class="audit-question" data-audit-preset="trip-flow">
+                <strong>Seguir un viaje o reserva</strong>
+                <span>Filtra viajes, reservas y acciones de abordaje.</span>
+              </button>
+            </div>
+
+            <div class="audit-analysis-grid">
+              <div class="audit-analysis-card">
+                <h4>Usuarios con muchas cancelaciones</h4>
+                <div class="audit-analysis-list" id="auditUsersCancellationsList"></div>
+              </div>
+              <div class="audit-analysis-card">
+                <h4>Conductores con muchos reportes</h4>
+                <div class="audit-analysis-list" id="auditDriversReportsList"></div>
+              </div>
+              <div class="audit-analysis-card">
+                <h4>Pasajeros que reservan y no abordan</h4>
+                <div class="audit-analysis-list" id="auditPassengersNoShowList"></div>
+              </div>
+              <div class="audit-analysis-card">
+                <h4>Viajes cancelados repetidamente</h4>
+                <div class="audit-analysis-list" id="auditRepeatedCancelledTripsList"></div>
+              </div>
+              <div class="audit-analysis-card">
+                <h4>Cambios administrativos recientes</h4>
+                <div class="audit-analysis-list" id="auditRecentAdminChangesList"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="audit-panel hidden" id="audit-panel-investigate">
+            <div class="audit-section-head">
+              <div>
+                <p class="eyebrow">Investigacion guiada</p>
+                <h3>Linea de tiempo filtrada</h3>
+              </div>
+              <div class="audit-head-actions">
+                <div class="audit-export-inline">
+                  <span>Exportar vista</span>
+                  <button type="button" class="btn tiny secondary" data-audit-export="pdf">PDF</button>
+                  <button type="button" class="btn tiny secondary" data-audit-export="excel">Excel</button>
+                  <button type="button" class="btn tiny secondary" data-audit-export="csv">CSV</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="audit-filter-bar">
+              <label class="field filter-field audit-search-field">
+                <span>Persona o registro</span>
+                <input type="text" id="auditSearchInput" placeholder="Ej. carlos.mendoza, bloqueo, reserva, viaje cancelado" />
+              </label>
+              <label class="field filter-field">
+                <span>Periodo</span>
+                <div class="audit-chip-row">
+                  <button type="button" class="audit-chip" data-audit-period="today">Hoy</button>
+                  <button type="button" class="audit-chip" data-audit-period="7d">7 dias</button>
+                  <button type="button" class="audit-chip" data-audit-period="month">Mes</button>
+                  <button type="button" class="audit-chip" data-audit-period="clear">Todo</button>
+                </div>
+              </label>
+              <label class="field filter-field">
+                <span>Tipo de auditoria</span>
+                <select id="auditTypeFilter">
+                  <option value="">Toda la actividad</option>
+                  <option value="account">Cuentas y perfiles</option>
+                  <option value="trip">Viajes y rutas</option>
+                  <option value="reservation">Reservas y abordajes</option>
+                  <option value="incident">Reportes e incidentes</option>
+                  <option value="admin">Cambios administrativos</option>
+                </select>
+              </label>
+              <label class="field filter-field">
+                <span>Persona involucrada</span>
+                <select id="auditActorFilter">
+                  <option value="">Todas</option>
+                  <option value="driver">Conductores</option>
+                  <option value="passenger">Pasajeros</option>
+                  <option value="staff">Equipo administrativo</option>
+                </select>
+              </label>
+              <label class="field filter-field">
+                <span>Resultado</span>
+                <select id="auditResultFilter">
+                  <option value="">Todos</option>
+                  <option value="Success">Exitoso</option>
+                  <option value="Failed">Fallido</option>
+                </select>
+              </label>
+              <label class="field filter-field">
+                <span>Desde</span>
+                <input type="date" id="auditStartDate" />
+              </label>
+              <label class="field filter-field">
+                <span>Hasta</span>
+                <input type="date" id="auditEndDate" />
+              </label>
+            </div>
+
+            <p id="auditDataMessage" class="message" aria-live="polite"></p>
+            <div class="audit-investigation-summary" id="auditInvestigationSummary"></div>
+            <div class="audit-timeline" id="auditTimelineList"></div>
+          </div>
+
+          <div class="audit-panel hidden" id="audit-panel-logs">
+            <div class="audit-section-head">
+              <div>
+                <p class="eyebrow">Vista tecnica</p>
+                <h3>Logs avanzados</h3>
+              </div>
+              <div class="audit-head-actions">
+                <p class="audit-help-text">Esta tabla conserva el detalle completo para auditoria formal y revision tecnica.</p>
+                <div class="audit-export-inline">
+                  <span>Exportar tabla</span>
+                  <button type="button" class="btn tiny secondary" data-audit-export="pdf">PDF</button>
+                  <button type="button" class="btn tiny secondary" data-audit-export="excel">Excel</button>
+                  <button type="button" class="btn tiny secondary" data-audit-export="csv">CSV</button>
+                </div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="admin-table" id="auditLogsTable">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Accion</th>
+                    <th>Area</th>
+                    <th>Registro afectado</th>
+                    <th>Resultado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="auditLogsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
         </article>
       </section>
 
@@ -838,24 +1025,24 @@
             <input type="password" id="adminPassword" required placeholder="Minimo 6 caracteres" minlength="6" />
           </label>
           <label class="field">
-            <span>Tipo de Rol</span>
+            <span>Grupo de trabajo</span>
             <select id="adminRolePreset" required>
               <option value="Soporte">Soporte</option>
-              <option value="Analista">Analista</option>
-              <option value="Secretariado">Secretariado</option>
+              <option value="Analista">Analisis</option>
+              <option value="Secretariado">Gestion operativa</option>
               <option value="Personalizado">Personalizado</option>
             </select>
           </label>
         </div>
 
         <div class="field hidden" id="adminCustomRoleNameContainer">
-          <span>Nombre del Rol Personalizado</span>
-          <input type="text" id="adminCustomRoleName" placeholder="Ej. Supervisor de Soporte" />
+          <span>Nombre del grupo personalizado</span>
+          <input type="text" id="adminCustomRoleName" placeholder="Ej. Revision de incidentes" />
         </div>
 
         <div class="field">
-          <span>Permisos del Rol</span>
-          <p class="hint-box">Selecciona los modulos y operaciones permitidas para esta cuenta.</p>
+          <span>Permisos del grupo</span>
+          <p class="hint-box">Selecciona las areas y operaciones permitidas para esta cuenta.</p>
           
           <div class="permissions-groups-grid">
             <!-- Metrics -->
@@ -928,6 +1115,19 @@
               <label class="checkbox-field">
                 <input type="checkbox" name="permissions" value="support:write" />
                 <span>Responder reportes</span>
+              </label>
+            </div>
+
+            <!-- Audit -->
+            <div class="permission-group-card">
+              <h4>Auditoria</h4>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="audit:read" />
+                <span>Consultar auditoria</span>
+              </label>
+              <label class="checkbox-field">
+                <input type="checkbox" name="permissions" value="audit:export" />
+                <span>Exportar auditoria</span>
               </label>
             </div>
 

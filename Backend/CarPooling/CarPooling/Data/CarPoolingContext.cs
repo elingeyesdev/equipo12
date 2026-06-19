@@ -33,6 +33,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<UserBookmark> UserBookmarks => Set<UserBookmark>();
     public DbSet<TripSchedule> TripSchedules => Set<TripSchedule>();
     public DbSet<RecurringReservation> RecurringReservations => Set<RecurringReservation>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -64,6 +65,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureUserBookmark(modelBuilder);
         ConfigureTripSchedule(modelBuilder);
         ConfigureRecurringReservation(modelBuilder);
+        ConfigureAuditLog(modelBuilder);
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
@@ -864,6 +866,41 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .WithOne(r => r.RecurringReservation)
                 .HasForeignKey(r => r.RecurringReservationId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+    }
+
+    private static void ConfigureAuditLog(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("AuditLogs");
+            entity.HasKey(l => l.Id);
+
+            entity.HasOne(l => l.ActorUser)
+                .WithMany()
+                .HasForeignKey(l => l.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.Property(l => l.ActorEmailSnapshot).HasMaxLength(120);
+            entity.Property(l => l.ActionType).IsRequired().HasMaxLength(80);
+            entity.Property(l => l.Module).IsRequired().HasMaxLength(60);
+            entity.Property(l => l.EntityName).IsRequired().HasMaxLength(80);
+            entity.Property(l => l.EntityId).HasMaxLength(80);
+            entity.Property(l => l.OldValuesJson).HasColumnType("nvarchar(max)");
+            entity.Property(l => l.NewValuesJson).HasColumnType("nvarchar(max)");
+            entity.Property(l => l.ChangedFieldsJson).HasMaxLength(1000);
+            entity.Property(l => l.Result).IsRequired().HasMaxLength(30);
+            entity.Property(l => l.Description).HasMaxLength(500);
+            entity.Property(l => l.IpAddress).HasMaxLength(45);
+            entity.Property(l => l.UserAgent).HasMaxLength(500);
+            entity.Property(l => l.RequestPath).HasMaxLength(200);
+            entity.Property(l => l.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(l => l.CreatedAt);
+            entity.HasIndex(l => l.ActorUserId);
+            entity.HasIndex(l => l.ActionType);
+            entity.HasIndex(l => l.Module);
+            entity.HasIndex(l => new { l.EntityName, l.EntityId });
         });
     }
 }

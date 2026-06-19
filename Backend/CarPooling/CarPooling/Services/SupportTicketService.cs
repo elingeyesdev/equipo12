@@ -5,9 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Services;
 
-public class SupportTicketService(CarPoolingContext context)
+public class SupportTicketService(CarPoolingContext context, AuditService auditService)
 {
     private readonly CarPoolingContext _context = context;
+    private readonly AuditService _auditService = auditService;
 
     private static readonly SupportTicketStatus[] ActiveStatuses =
     [
@@ -93,6 +94,16 @@ public class SupportTicketService(CarPoolingContext context)
 
         _context.SupportTickets.Add(ticket);
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "UserCreatedReport",
+            "Support",
+            "SupportTicket",
+            ticket.Id.ToString(),
+            null,
+            AuditService.SnapshotSupportTicket(ticket),
+            actorUserId: userId,
+            description: $"Usuario creo reporte de tipo {ticket.Category}.");
 
         return await GetByIdAsync(userId, ticket.Id)
             ?? throw new InvalidOperationException("No se pudo recuperar el reporte creado.");

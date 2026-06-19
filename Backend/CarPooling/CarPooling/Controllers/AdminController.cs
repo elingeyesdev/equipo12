@@ -16,11 +16,13 @@ namespace CarPooling.Controllers;
 public class AdminController(
     CarPoolingContext context,
     SupportTicketService supportTicketService,
-    SupportTicketMessagingService supportTicketMessagingService) : ControllerBase
+    SupportTicketMessagingService supportTicketMessagingService,
+    AuditService auditService) : ControllerBase
 {
     private readonly CarPoolingContext _context = context;
     private readonly SupportTicketService _supportTicketService = supportTicketService;
     private readonly SupportTicketMessagingService _supportTicketMessagingService = supportTicketMessagingService;
+    private readonly AuditService _auditService = auditService;
 
     [HttpGet("users")]
     [RequirePermission(AppPermissions.ReadUsers)]
@@ -102,6 +104,9 @@ public class AdminController(
             return BadRequest("El Rol especificado no existe.");
         }
 
+        var oldValues = AuditService.SnapshotUser(user);
+        var passwordChanged = !string.IsNullOrWhiteSpace(dto.Password);
+
         user.FullName = dto.FullName.Trim();
         user.Email = normalizedEmail;
         user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
@@ -144,6 +149,24 @@ public class AdminController(
 
         // Force load vehicles for UserResponseDto
         await _context.Entry(user).Collection(u => u.Vehicles).LoadAsync();
+
+        await _auditService.RecordAsync(
+            passwordChanged ? "AdminUpdatedUserAndPassword" : "AdminUpdatedUser",
+            "Admin",
+            "User",
+            user.Id.ToString(),
+            oldValues,
+            new
+            {
+                user.Id,
+                user.FullName,
+                user.Email,
+                user.PhoneNumber,
+                user.IsActive,
+                Roles = new[] { targetRole.Name },
+                PasswordChanged = passwordChanged
+            },
+            description: $"Administrador actualizo la cuenta de {user.Email}.");
 
         return Ok(UserResponseDto.FromEntity(user));
     }
@@ -226,6 +249,15 @@ public class AdminController(
         _context.Users.Remove(user);
         await _context.SaveChangesAsync();
 
+        await _auditService.RecordAsync(
+            "AdminDeletedUser",
+            "Admin",
+            "User",
+            id.ToString(),
+            new { user.Id, user.FullName, user.Email, user.PhoneNumber, user.IsActive, user.CreatedAt },
+            null,
+            description: $"Administrador elimino el usuario {user.Email}.");
+
         return NoContent();
     }
 
@@ -242,8 +274,18 @@ public class AdminController(
             return NotFound("Usuario no encontrado.");
         }
 
+        var oldValues = AuditService.SnapshotUser(user);
         user.IsActive = dto.IsActive;
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            dto.IsActive ? "AdminEnabledUser" : "AdminDisabledUser",
+            "Admin",
+            "User",
+            user.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotUser(user),
+            description: $"Administrador cambio el estado de {user.Email} a {(dto.IsActive ? "activo" : "inactivo")}.");
 
         return Ok(UserResponseDto.FromEntity(user));
     }
@@ -311,6 +353,8 @@ public class AdminController(
             return BadRequest("Longitud de destino invalida.");
         }
 
+        var oldValues = AuditService.SnapshotTrip(trip);
+
         trip.DriverName = dto.DriverName.Trim();
         trip.DriverUserId = dto.DriverUserId;
         trip.AvailableSeats = dto.AvailableSeats;
@@ -333,6 +377,15 @@ public class AdminController(
 
         await _context.SaveChangesAsync();
 
+        await _auditService.RecordAsync(
+            "AdminUpdatedTrip",
+            "Admin",
+            "Trip",
+            trip.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotTrip(trip),
+            description: $"Administrador actualizo el viaje {trip.Id}.");
+
         return Ok(TripService.MapToDto(trip));
     }
 
@@ -354,6 +407,15 @@ public class AdminController(
 
         _context.Trips.Remove(trip);
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "AdminDeletedTrip",
+            "Admin",
+            "Trip",
+            id.ToString(),
+            new { trip.Id, trip.DriverName, trip.DriverUserId, trip.StatusId, trip.AvailableSeats, trip.CreatedAt },
+            null,
+            description: $"Administrador elimino el viaje {id}.");
 
         return NoContent();
     }
@@ -402,11 +464,22 @@ public class AdminController(
             return BadRequest("PassengerUserId no corresponde a un usuario existente.");
         }
 
+        var oldValues = AuditService.SnapshotReservation(reservation);
+
         reservation.PassengerUserId = dto.PassengerUserId;
         reservation.TripId = dto.TripId;
         reservation.StatusId = statusId;
 
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "AdminUpdatedReservation",
+            "Admin",
+            "Reservation",
+            reservation.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotReservation(reservation),
+            description: $"Administrador actualizo la reserva {reservation.Id}.");
 
         return Ok(ReservationService.MapToDto(reservation));
     }
@@ -423,6 +496,15 @@ public class AdminController(
 
         _context.Reservations.Remove(reservation);
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "AdminDeletedReservation",
+            "Admin",
+            "Reservation",
+            id.ToString(),
+            new { reservation.Id, reservation.TripId, reservation.PassengerUserId, reservation.StatusId, reservation.SeatsReserved, reservation.CreatedAt },
+            null,
+            description: $"Administrador elimino la reserva {id}.");
 
         return NoContent();
     }
@@ -446,6 +528,15 @@ public class AdminController(
         {
             return NotFound(new { message = "Reporte de soporte no encontrado." });
         }
+
+        await _auditService.RecordAsync(
+            "AdminViewedSensitiveReport",
+            "Admin",
+            "SupportTicket",
+            id.ToString(),
+            null,
+            new { ViewedAt = DateTime.UtcNow, ticket.UserId, ticket.TripId, ticket.ReservationId, ticket.Status },
+            description: $"Administrador consulto informacion sensible del reporte {id}.");
 
         return Ok(ticket);
     }
@@ -478,6 +569,17 @@ public class AdminController(
         try
         {
             var message = await _supportTicketMessagingService.SendMessageAsAdminAsync(adminUserId.Value, id, dto);
+
+            await _auditService.RecordAsync(
+                "AdminRepliedReport",
+                "Admin",
+                "SupportTicket",
+                id.ToString(),
+                null,
+                new { MessageId = message.Id, message.CreatedAt },
+                actorUserId: adminUserId,
+                description: $"Administrador respondio el reporte {id}.");
+
             return StatusCode(StatusCodes.Status201Created, message);
         }
         catch (KeyNotFoundException ex)
@@ -498,7 +600,22 @@ public class AdminController(
     {
         try
         {
+            var oldTicket = await _context.SupportTickets
+                .AsNoTracking()
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
             var updated = await _supportTicketService.UpdateStatusForAdminAsync(id, dto.Status);
+
+            await _auditService.RecordAsync(
+                "AdminUpdatedReportStatus",
+                "Admin",
+                "SupportTicket",
+                id.ToString(),
+                oldTicket is null ? null : AuditService.SnapshotSupportTicket(oldTicket),
+                updated,
+                description: $"Administrador cambio el estado del reporte {id}.");
+
             return Ok(updated);
         }
         catch (KeyNotFoundException ex)
@@ -631,6 +748,22 @@ public class AdminController(
 
         // Load relations for mapper
         await _context.Entry(user).Collection(u => u.UserRoles).Query().Include(ur => ur.Role).LoadAsync();
+
+        await _auditService.RecordAsync(
+            "AdminCreatedWebAdmin",
+            "Admin",
+            "User",
+            user.Id.ToString(),
+            null,
+            new
+            {
+                user.Id,
+                user.FullName,
+                user.Email,
+                Role = customRole.Name,
+                Permissions = dto.Permissions
+            },
+            description: $"Administrador creo una cuenta administrativa para {user.Email}.");
 
         return Ok(UserResponseDto.FromEntity(user));
     }

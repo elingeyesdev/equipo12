@@ -12,10 +12,12 @@ namespace CarPooling.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController(CarPoolingContext context,
-    VehicleService vehicleService) : ControllerBase
+    VehicleService vehicleService,
+    AuditService auditService) : ControllerBase
 {
     private readonly CarPoolingContext _context = context;
     private readonly VehicleService _vehicleService = vehicleService;
+    private readonly AuditService _auditService = auditService;
     private const string AllowedDomain = "@univalle.edu";
 
     [HttpPost("register")]
@@ -62,6 +64,16 @@ public class UsersController(CarPoolingContext context,
         // Load UserRoles and Roles for mapper
         await _context.Entry(user).Collection(u => u.UserRoles).Query().Include(ur => ur.Role).LoadAsync();
 
+        await _auditService.RecordAsync(
+            "UserRegistered",
+            "Users",
+            "User",
+            user.Id.ToString(),
+            null,
+            AuditService.SnapshotUser(user),
+            actorUserId: user.Id,
+            description: $"Usuario registrado como {dynamicRoleName}.");
+
         return CreatedAtRoute("GetUserById", new { id = user.Id }, UserResponseDto.FromEntity(user));
     }
 
@@ -83,6 +95,17 @@ public class UsersController(CarPoolingContext context,
 
         if (user is null) return Unauthorized("Credenciales invalidas.");
         if (!user.IsActive) return Unauthorized("Tu cuenta ha sido deshabilitada. Contacta al administrador.");
+
+        await _auditService.RecordAsync(
+            "UserLoggedIn",
+            "Authentication",
+            "User",
+            user.Id.ToString(),
+            null,
+            new { user.Id, user.Email, LoggedInAt = DateTime.UtcNow },
+            actorUserId: user.Id,
+            description: $"Usuario inicio sesion: {user.Email}.");
+
         return Ok(UserResponseDto.FromEntity(user));
     }
 
@@ -102,6 +125,9 @@ public class UsersController(CarPoolingContext context,
             return BadRequest("Solo correos @univalle.edu");
         if (await _context.Users.AnyAsync(u => u.Email == normalizedEmail && u.Id != id))
             return Conflict("Email en uso.");
+
+        var oldValues = AuditService.SnapshotUser(user);
+        var passwordChanged = !string.IsNullOrWhiteSpace(dto.NewPassword);
 
         user.FullName = dto.FullName.Trim();
         user.Email = normalizedEmail;
@@ -150,11 +176,42 @@ public class UsersController(CarPoolingContext context,
 
         await _context.SaveChangesAsync();
         await _context.Entry(user).Collection(u => u.Vehicles).LoadAsync();
+
+        await _auditService.RecordAsync(
+            passwordChanged ? "UserUpdatedProfileAndPassword" : "UserUpdatedProfile",
+            "Users",
+            "User",
+            user.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotUser(user),
+            actorUserId: user.Id,
+            description: $"Usuario actualizo sus datos: {user.Email}.");
+
         return Ok(UserResponseDto.FromEntity(user));
     }
 
     [HttpPost("logout")]
-    public IActionResult Logout() => Ok(new { message = "Sesion cerrada." });
+    public async Task<IActionResult> Logout()
+    {
+        Guid? actorUserId = null;
+        if (Request.Headers.TryGetValue("X-User-Id", out var userIdHeader) &&
+            Guid.TryParse(userIdHeader.ToString(), out var parsedUserId))
+        {
+            actorUserId = parsedUserId;
+        }
+
+        await _auditService.RecordAsync(
+            "UserLoggedOut",
+            "Authentication",
+            "User",
+            actorUserId?.ToString(),
+            null,
+            new { LoggedOutAt = DateTime.UtcNow },
+            actorUserId: actorUserId,
+            description: "Usuario cerro sesion.");
+
+        return Ok(new { message = "Sesion cerrada." });
+    }
 
     [HttpGet("{id:guid}", Name = "GetUserById")]
     public async Task<ActionResult<UserResponseDto>> GetByIdAsync(Guid id)

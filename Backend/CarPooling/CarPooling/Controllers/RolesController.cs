@@ -1,6 +1,7 @@
 using CarPooling.Data;
 using CarPooling.Models;
 using CarPooling.Security;
+using CarPooling.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,9 +12,10 @@ namespace CarPooling.Controllers;
 [Route("api/[controller]")]
 [Authorize]
 [RequirePermission(AppPermissions.ManageRoles)]
-public class RolesController(CarPoolingContext context) : ControllerBase
+public class RolesController(CarPoolingContext context, AuditService auditService) : ControllerBase
 {
     private readonly CarPoolingContext _context = context;
+    private readonly AuditService _auditService = auditService;
 
     [HttpGet("permissions")]
     public async Task<ActionResult<object>> GetPermissionsAsync()
@@ -89,6 +91,15 @@ public class RolesController(CarPoolingContext context) : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        await _auditService.RecordAsync(
+            "AdminCreatedRole",
+            "Admin",
+            "Role",
+            role.Id.ToString(),
+            null,
+            new { role.Id, role.Name, role.Description, Permissions = dto.Permissions ?? [] },
+            description: $"Administrador creo el rol {role.Name}.");
+
         return CreatedAtAction(nameof(GetRolesAsync), new { id = role.Id }, new
         {
             role.Id,
@@ -119,6 +130,14 @@ public class RolesController(CarPoolingContext context) : ControllerBase
         if (exists)
             return Conflict("Ya existe otro rol con ese nombre.");
 
+        var oldValues = new
+        {
+            role.Id,
+            role.Name,
+            role.Description,
+            Permissions = role.RolePermissions.Select(rp => rp.PermissionId).OrderBy(p => p).ToList()
+        };
+
         role.Name = dto.Name.Trim();
         role.Description = dto.Description?.Trim() ?? string.Empty;
 
@@ -145,6 +164,15 @@ public class RolesController(CarPoolingContext context) : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        await _auditService.RecordAsync(
+            "AdminUpdatedRole",
+            "Admin",
+            "Role",
+            role.Id.ToString(),
+            oldValues,
+            new { role.Id, role.Name, role.Description, Permissions = dto.Permissions ?? [] },
+            description: $"Administrador actualizo el rol {role.Name}.");
+
         return Ok(new
         {
             role.Id,
@@ -169,8 +197,19 @@ public class RolesController(CarPoolingContext context) : ControllerBase
         if (usersWithRole)
             return BadRequest("No se puede eliminar el rol porque tiene usuarios asociados.");
 
+        var oldValues = new { role.Id, role.Name, role.Description, role.IsSystemRole };
+
         _context.Roles.Remove(role);
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "AdminDeletedRole",
+            "Admin",
+            "Role",
+            id.ToString(),
+            oldValues,
+            null,
+            description: $"Administrador elimino el rol {role.Name}.");
 
         return NoContent();
     }

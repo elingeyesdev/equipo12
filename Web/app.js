@@ -87,7 +87,10 @@ const state = {
     reservations: [],
     supportTickets: []
   },
+  auditLogs: [],
+  auditDashboard: null,
   adminPayments: [],
+  isLoadingAuditData: false,
   isLoadingSupportTickets: false,
   supportChatTicketId: null,
   supportChatPollId: null,
@@ -153,6 +156,20 @@ const createEntityType = document.getElementById("createEntityType");
 const createModalFields = document.getElementById("createModalFields");
 const supportDataMessage = document.getElementById("supportDataMessage");
 const adminSupportBody = document.getElementById("adminSupportBody");
+const auditLogsBody = document.getElementById("auditLogsBody");
+const auditDataMessage = document.getElementById("auditDataMessage");
+const auditSearchInput = document.getElementById("auditSearchInput");
+const auditTypeFilter = document.getElementById("auditTypeFilter");
+const auditActorFilter = document.getElementById("auditActorFilter");
+const auditResultFilter = document.getElementById("auditResultFilter");
+const auditStartDate = document.getElementById("auditStartDate");
+const auditEndDate = document.getElementById("auditEndDate");
+const auditReloadBtn = document.getElementById("auditReloadBtn");
+const auditResetBtn = document.getElementById("auditResetBtn");
+const auditTimelineList = document.getElementById("auditTimelineList");
+const auditInvestigationSummary = document.getElementById("auditInvestigationSummary");
+const auditTabButtons = Array.from(document.querySelectorAll("[data-audit-tab]"));
+const auditPanels = Array.from(document.querySelectorAll(".audit-panel"));
 const supportFilterInput = document.getElementById("supportFilterInput");
 const supportStatusFilter = document.getElementById("supportStatusFilter");
 const supportCategoryFilter = document.getElementById("supportCategoryFilter");
@@ -871,8 +888,12 @@ function openSection(section) {
 
   document.getElementById(`section-${section}`).classList.remove("hidden");
 
-  if (["overview", "users", "trips", "reservations", "reports", "admins"].includes(section) && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+  if (["overview", "audit", "users", "trips", "reservations", "reports", "admins"].includes(section) && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
     loadAdminData();
+  }
+
+  if (["overview", "audit"].includes(section) && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
+    loadAuditData();
   }
 
   if (section === "support" && state.currentUser && Number(state.currentUser.roleId) === ADMIN_ROLE_ID) {
@@ -897,6 +918,10 @@ function getSectionMeta(section) {
     overview: {
       name: "Resumen",
       description: "Vista general del estado del panel." 
+    },
+    audit: {
+      name: "Auditoria",
+      description: "Consulta acciones, cambios, entidades afectadas y trazabilidad del sistema."
     },
     users: {
       name: "Usuarios",
@@ -984,6 +1009,7 @@ function applyAllTableFilters() {
   applyTableFilter("adminTripsBody", document.getElementById("tripsFilterInput")?.value || "");
   applyTableFilter("adminReservationsBody", document.getElementById("reservationsFilterInput")?.value || "");
   applyTableFilter("adminSupportBody", supportFilterInput?.value || "");
+  applyAuditFilter();
 }
 
 function formatSupportReference(ticketId) {
@@ -1837,6 +1863,10 @@ function renderDetailsModalContent(type, entity) {
     return renderPaymentDetails(entity);
   }
 
+  if (type === "audit") {
+    return renderAuditDetails(entity);
+  }
+
   return renderUserDetails(entity);
 }
 
@@ -1852,7 +1882,8 @@ function openDetailsModal(type, entity) {
     trip: "Ver detalles de viaje",
     reservation: "Ver detalles de reserva",
     support: "Ver detalles del reporte",
-    payment: "Ver detalles de pago"
+    payment: "Ver detalles de pago",
+    audit: "Ver log de auditoria"
   };
 
   state.detailContext = { type, id: entity.id };
@@ -1967,7 +1998,8 @@ function getEntityFromState(type, id) {
     trip: state.adminData.trips,
     reservation: state.adminData.reservations,
     support: state.adminData.supportTickets,
-    payment: state.adminPayments
+    payment: state.adminPayments,
+    audit: state.auditLogs
   }[type] || [];
 
   return source.find((item) => String(item.id) === String(id));
@@ -2119,6 +2151,7 @@ function updateNavVisibility() {
 
   const mapping = {
     overview: "metrics:view",
+    audit: "audit:read",
     users: "users:read",
     trips: "trips:read",
     reservations: "reservations:read",
@@ -2206,10 +2239,11 @@ function startSession(user) {
   updateActionButtonsVisibility();
 
   // Find first allowed section based on permissions
-  const order = ["overview", "users", "trips", "reservations", "support", "safe-zones", "admins", "settings"];
+  const order = ["overview", "audit", "users", "trips", "reservations", "support", "safe-zones", "admins", "settings"];
   const allowed = order.find(sec => {
     const mapping = {
       overview: "metrics:view",
+      audit: "audit:read",
       users: "users:read",
       trips: "trips:read",
       reservations: "reservations:read",
@@ -2251,6 +2285,10 @@ function startAdminAutoRefresh() {
 
     if (state.section === "support") {
       loadSupportTickets();
+    }
+
+    if (state.section === "audit") {
+      loadAuditData();
     }
   }, ADMIN_DATA_REFRESH_MS);
 }
@@ -2302,7 +2340,8 @@ async function loadAdminData() {
     state.adminData = {
       users,
       trips,
-      reservations
+      reservations,
+      supportTickets: state.adminData.supportTickets || []
     };
 
     renderUsersTable(users);
@@ -2406,6 +2445,9 @@ async function loadSupportTickets() {
     setMessage(supportDataMessage, `No se pudieron cargar los reportes: ${error.message}`, "error");
   } finally {
     state.isLoadingSupportTickets = false;
+    if (state.section === "audit") {
+      applyAuditFilter();
+    }
   }
 }
 
@@ -2439,6 +2481,759 @@ function renderSupportTable(tickets) {
       </td>
     </tr>
   `).join("");
+}
+
+function getAuditQueryParams() {
+  const query = new URLSearchParams();
+  if (auditResultFilter?.value) query.set("result", auditResultFilter.value);
+  if (auditStartDate?.value) query.set("from", `${auditStartDate.value}T00:00:00`);
+  if (auditEndDate?.value) query.set("to", `${auditEndDate.value}T23:59:59`);
+  query.set("limit", "500");
+  return query;
+}
+
+function setAuditTab(tabName) {
+  const target = tabName || "summary";
+  auditTabButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.auditTab === target);
+  });
+  auditPanels.forEach((panel) => {
+    panel.classList.toggle("hidden", panel.id !== `audit-panel-${target}`);
+  });
+}
+
+function formatDateForInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function setAuditPeriod(period) {
+  const today = new Date();
+  let start = null;
+  let end = today;
+
+  if (period === "today") {
+    start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  } else if (period === "7d") {
+    start = new Date(today);
+    start.setDate(today.getDate() - 6);
+  } else if (period === "month") {
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+  }
+
+  if (auditStartDate) auditStartDate.value = start ? formatDateForInput(start) : "";
+  if (auditEndDate) auditEndDate.value = period === "clear" ? "" : formatDateForInput(end);
+  loadAuditData();
+}
+
+function resetAuditFilters() {
+  if (auditSearchInput) auditSearchInput.value = "";
+  if (auditTypeFilter) auditTypeFilter.value = "";
+  if (auditActorFilter) auditActorFilter.value = "";
+  if (auditResultFilter) auditResultFilter.value = "";
+  if (auditStartDate) auditStartDate.value = "";
+  if (auditEndDate) auditEndDate.value = "";
+}
+
+function applyAuditPreset(preset) {
+  resetAuditFilters();
+
+  if (preset === "admin-changes") {
+    if (auditTypeFilter) auditTypeFilter.value = "admin";
+    setAuditTab("investigate");
+  } else if (preset === "incidents" || preset === "reports") {
+    if (auditTypeFilter) auditTypeFilter.value = "incident";
+    setAuditTab("investigate");
+  } else if (preset === "trip-flow") {
+    if (auditTypeFilter) auditTypeFilter.value = "trip";
+    setAuditTab("investigate");
+  } else if (preset === "users" || preset === "user-focus") {
+    if (auditTypeFilter) auditTypeFilter.value = "account";
+    setAuditTab("investigate");
+    auditSearchInput?.focus();
+  } else if (preset === "drivers") {
+    if (auditActorFilter) auditActorFilter.value = "driver";
+    setAuditTab("investigate");
+  } else {
+    setAuditTab("logs");
+  }
+
+  loadAuditData();
+}
+
+async function loadAuditData() {
+  if (state.isLoadingAuditData) {
+    return;
+  }
+
+  state.isLoadingAuditData = true;
+  try {
+    const query = getAuditQueryParams();
+    const [logs, dashboardData] = await Promise.all([
+      apiFetch(`/api/audit/logs?${query.toString()}`, {
+        headers: getAdminHeaders()
+      }),
+      apiFetch(`/api/audit/dashboard?${query.toString()}`, {
+        headers: getAdminHeaders()
+      })
+    ]);
+
+    state.auditLogs = Array.isArray(logs) ? logs : [];
+    state.auditDashboard = dashboardData || null;
+    renderAuditDashboard(dashboardData || {});
+    applyAuditFilter();
+    setMessage(auditDataMessage, `Actualizado ${new Date().toLocaleTimeString()}. Logs: ${state.auditLogs.length}`, "success");
+  } catch (error) {
+    state.auditLogs = [];
+    renderAuditTable([]);
+    renderAuditTimeline([]);
+    renderAuditInvestigationSummary([]);
+    setMessage(auditDataMessage, `No se pudo cargar auditoria: ${error.message}`, "error");
+  } finally {
+    state.isLoadingAuditData = false;
+  }
+}
+
+function renderAuditDashboard(data) {
+  const setText = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = String(value ?? 0);
+  };
+
+  setText("auditLogsCount", data.totalLogs);
+  setText("auditActiveUsersCount", (data.activeDrivers || 0) + (data.activePassengers || 0));
+  setText("auditActiveDriversCount", data.activeDrivers);
+  setText("auditReportsResolvedCount", data.reportsResolved);
+  setText("auditBlockedUsersCount", data.blockedOrInactiveUsers);
+  setText("auditTripsCompletedCount", data.tripsCompleted);
+  setText("auditTripsCancelledCount", data.tripsCancelled);
+  setText("auditReportsUnresolvedCount", data.reportsUnresolved);
+  setText("auditAdminChangesCount", data.administrativeChanges);
+
+  renderAuditAnalysisList("auditUsersCancellationsList", data.usersWithManyCancellations, "Sin cancelaciones relevantes", {
+    clickable: true,
+    type: "reservation"
+  });
+  renderAuditAnalysisList("auditDriversReportsList", data.driversWithManyReports, "Sin reportes relevantes", {
+    clickable: true,
+    type: "incident"
+  });
+  renderAuditAnalysisList("auditPassengersNoShowList", data.passengersNoShowRisk, "Sin patrones de no abordaje", {
+    clickable: true,
+    type: "reservation"
+  });
+  renderAuditAnalysisList("auditRepeatedCancelledTripsList", data.repeatedCancelledTrips, "Sin cancelaciones repetidas", {
+    clickable: true,
+    type: "trip"
+  });
+  renderAuditAnalysisList("auditRecentAdminChangesList", data.recentAdministrativeChanges, "Sin cambios administrativos recientes", {
+    formatLabel: formatAuditAction,
+    hideZeroCount: true,
+    clickable: true,
+    type: "admin"
+  });
+}
+
+function renderAuditAnalysisList(containerId, items, emptyText, options = {}) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    return;
+  }
+
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    container.innerHTML = `<p class="empty-state">${escapeHtml(emptyText)}</p>`;
+    return;
+  }
+
+  container.innerHTML = rows.map((item) => {
+    const rawLabel = item.label || "Sin nombre";
+    const label = options.formatLabel ? options.formatLabel(rawLabel) : rawLabel;
+    const count = Number(item.count || 0);
+    const showCount = !options.hideZeroCount || count > 1;
+
+    const clickableAttrs = options.clickable
+      ? `type="button" data-audit-analysis-search="${escapeHtml(label)}" data-audit-analysis-type="${escapeHtml(options.type || "")}"`
+      : "";
+    const tagName = options.clickable ? "button" : "div";
+
+    return `
+      <${tagName} class="audit-analysis-item${options.clickable ? " audit-analysis-item--button" : ""}" ${clickableAttrs}>
+        <div>
+          <strong>${escapeHtml(label)}</strong>
+          ${item.detail ? `<span>${escapeHtml(item.detail)}</span>` : ""}
+        </div>
+        ${showCount ? `<em>${escapeHtml(count)}</em>` : ""}
+      </${tagName}>
+    `;
+  }).join("");
+}
+
+function renderAuditTable(logs) {
+  if (!auditLogsBody) {
+    return;
+  }
+
+  if (!logs.length) {
+    auditLogsBody.innerHTML = '<tr><td colspan="7">Sin logs de auditoria.</td></tr>';
+    return;
+  }
+
+  auditLogsBody.innerHTML = logs.map((log) => {
+    const actor = log.actorEmail || log.actorName || "Sistema";
+    return `
+      <tr data-created-at="${escapeHtml(log.createdAt || "")}" data-module="${escapeHtml(log.module || "")}" data-entity="${escapeHtml(log.entityName || "")}">
+        <td>${escapeHtml(formatDateTime(log.createdAt))}</td>
+        <td>${escapeHtml(actor)}</td>
+        <td>${escapeHtml(formatAuditAction(log.actionType))}</td>
+        <td>${escapeHtml(formatAuditArea(log.module))}</td>
+        <td>${escapeHtml(formatAuditEntity(log.entityName))}<br><small>${escapeHtml(log.entityId || "-")}</small></td>
+        <td><span class="status-badge status-badge--${String(log.result || "").toLowerCase() === "success" ? "active" : "inactive"}">${escapeHtml(log.result || "-")}</span></td>
+        <td><button class="btn tiny secondary admin-view-details" data-type="audit" data-id="${escapeHtml(log.id)}">Ver detalle</button></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function getFilteredAuditLogs() {
+  const search = String(auditSearchInput?.value || "").trim().toLowerCase();
+  const typeValue = auditTypeFilter?.value || "";
+  const actorValue = auditActorFilter?.value || "";
+  const resultValue = auditResultFilter?.value || "";
+
+  return (state.auditLogs || []).filter((log) => {
+    const actor = log.actorEmail || log.actorName || "Sistema";
+    const searchable = [
+      actor,
+      formatAuditAction(log.actionType),
+      log.actionType,
+      log.module,
+      log.entityName,
+      log.entityId,
+      log.description,
+      getAuditSearchAliases(log),
+      getAuditRelatedSearchText(log)
+    ].join(" ").toLowerCase();
+
+    const matchesSearch = !search || searchable.includes(search);
+    const matchesType = !typeValue || getAuditCategory(log) === typeValue;
+    const matchesActor = !actorValue || getAuditActorGroup(log) === actorValue;
+    const matchesResult = !resultValue || log.result === resultValue;
+    return matchesSearch && matchesType && matchesActor && matchesResult;
+  });
+}
+
+function getAuditCategory(log) {
+  const action = String(log.actionType || "");
+  const entity = String(log.entityName || "");
+  const module = String(log.module || "");
+
+  if (module === "Admin" || action.startsWith("Admin")) {
+    return "admin";
+  }
+  if (entity === "SupportTicket" || action.includes("Report")) {
+    return "incident";
+  }
+  if (entity === "Reservation" || action.includes("Reservation") || action.includes("Boarded")) {
+    return "reservation";
+  }
+  if (entity === "Trip" || action.includes("Trip")) {
+    return "trip";
+  }
+  if (entity === "User" || module === "Users" || module === "Authentication") {
+    return "account";
+  }
+  return "other";
+}
+
+function getAuditActorGroup(log) {
+  const email = String(log.actorEmail || "").toLowerCase();
+  const action = String(log.actionType || "");
+  const module = String(log.module || "");
+  const driverActions = new Set([
+    "UserCreatedTrip",
+    "UserUpdatedTripDestination",
+    "UserCancelledTrip",
+    "UserStartedTrip",
+    "UserFinishedTrip",
+    "DriverAcceptedReservation",
+    "DriverRejectedReservation"
+  ]);
+  const passengerActions = new Set([
+    "UserReservedSeat",
+    "UserBoardedTrip",
+    "UserCancelledReservation",
+    "UserCreatedReport"
+  ]);
+
+  if (module === "Admin" || action.startsWith("Admin") || email.includes("admin") || email.includes("analista") || email.includes("soporte")) {
+    return "staff";
+  }
+  if (driverActions.has(action) || action.startsWith("Driver") || email.includes("conductor")) {
+    return "driver";
+  }
+  if (passengerActions.has(action) || email.includes("estudiante")) {
+    return "passenger";
+  }
+  return "";
+}
+
+function applyAuditFilter() {
+  const filteredLogs = getFilteredAuditLogs();
+  renderAuditTable(filteredLogs);
+  renderAuditTimeline(filteredLogs);
+  renderAuditInvestigationSummary(filteredLogs);
+}
+
+function renderAuditInvestigationSummary(logs) {
+  if (!auditInvestigationSummary) {
+    return;
+  }
+
+  const actors = new Set(logs.map(log => log.actorEmail || log.actorName).filter(Boolean));
+  const adminChanges = logs.filter(log => log.module === "Admin" || String(log.actionType || "").startsWith("Admin")).length;
+  const incidents = logs.filter(log => log.entityName === "SupportTicket" || log.actionType === "UserCancelledTrip" || log.actionType === "UserCancelledReservation").length;
+  const latest = logs[0]?.createdAt ? formatDateTime(logs[0].createdAt) : "-";
+
+  auditInvestigationSummary.innerHTML = `
+    <div><strong>${escapeHtml(logs.length)}</strong><span>eventos encontrados</span></div>
+    <div><strong>${escapeHtml(actors.size)}</strong><span>usuarios involucrados</span></div>
+    <div><strong>${escapeHtml(adminChanges)}</strong><span>cambios admin</span></div>
+    <div><strong>${escapeHtml(incidents)}</strong><span>incidentes/cancelaciones</span></div>
+    <div><strong>${escapeHtml(latest)}</strong><span>ultimo movimiento</span></div>
+  `;
+}
+
+function renderAuditTimeline(logs) {
+  if (!auditTimelineList) {
+    return;
+  }
+
+  if (!logs.length) {
+    auditTimelineList.innerHTML = `
+      <div class="empty-state audit-empty">
+        <strong>Sin eventos para esta busqueda</strong>
+        <p>Cambia el periodo, limpia filtros o busca por persona, accion o registro.</p>
+      </div>
+    `;
+    return;
+  }
+
+  auditTimelineList.innerHTML = logs.slice(0, 80).map((log) => {
+    const actor = log.actorEmail || log.actorName || "Sistema";
+    const entityLabel = formatAuditEntity(log.entityName);
+    const changed = getAuditChangeSummary(log);
+    const operationalContext = renderAuditOperationalContext(log);
+    return `
+      <article class="audit-timeline-item">
+        <div class="audit-timeline-dot" aria-hidden="true"></div>
+        <div class="audit-timeline-content">
+          <div class="audit-timeline-main">
+            <div>
+              <strong>${escapeHtml(formatAuditAction(log.actionType))}</strong>
+              <p>${escapeHtml(actor)} sobre ${escapeHtml(entityLabel)}${log.entityId ? ` · ${escapeHtml(log.entityId)}` : ""}</p>
+            </div>
+            <time>${escapeHtml(formatDateTime(log.createdAt))}</time>
+          </div>
+          ${log.description ? `<p class="audit-timeline-description">${escapeHtml(log.description)}</p>` : ""}
+          ${operationalContext}
+          ${changed ? `<div class="audit-change-summary">${changed}</div>` : ""}
+          <button class="btn tiny secondary admin-view-details" data-type="audit" data-id="${escapeHtml(log.id)}">Ver detalle tecnico</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function formatAuditEntity(entityName) {
+  const labels = {
+    User: "usuario",
+    Trip: "viaje",
+    Reservation: "reserva",
+    SupportTicket: "reporte",
+    Role: "rol"
+  };
+  return labels[entityName] || entityName || "registro";
+}
+
+function formatAuditArea(moduleName) {
+  const labels = {
+    Admin: "Administracion",
+    Users: "Cuentas",
+    Authentication: "Acceso",
+    Trips: "Viajes",
+    Reservations: "Reservas",
+    Support: "Soporte"
+  };
+  return labels[moduleName] || moduleName || "-";
+}
+
+function getAuditTicketContext(log) {
+  if (String(log.entityName || "") !== "SupportTicket" || !log.entityId) {
+    return null;
+  }
+
+  const ticket = (state.adminData.supportTickets || []).find(t => String(t.id) === String(log.entityId));
+  const newValues = parseJsonObject(log.newValuesJson) || {};
+  const oldValues = parseJsonObject(log.oldValuesJson) || {};
+  const tripId = ticket?.tripId || newValues.tripId || newValues.TripId || oldValues.tripId || oldValues.TripId;
+  const reservationId = ticket?.reservationId || newValues.reservationId || newValues.ReservationId || oldValues.reservationId || oldValues.ReservationId;
+  const trip = tripId ? (state.adminData.trips || []).find(t => String(t.id) === String(tripId)) : null;
+  const reservation = reservationId ? (state.adminData.reservations || []).find(r => String(r.id) === String(reservationId)) : null;
+  const driver = trip?.driverUserId
+    ? (state.adminData.users || []).find(u => String(u.id) === String(trip.driverUserId))
+    : null;
+
+  return {
+    ticket,
+    trip,
+    reservation,
+    driver,
+    subject: ticket?.subject || log.relatedSubject || newValues.subject || newValues.Subject || oldValues.subject || oldValues.Subject || "",
+    description: ticket?.description || log.relatedDescription || newValues.description || newValues.Description || oldValues.description || oldValues.Description || "",
+    reporterName: ticket?.userFullName || log.relatedReporterName || log.actorName || "",
+    driverName: trip?.driverName || driver?.fullName || log.relatedDriverName || "",
+    status: ticket?.statusLabel || log.relatedStatus || newValues.status || newValues.Status || oldValues.status || oldValues.Status || "",
+    tripId: tripId || log.relatedTripId,
+    reservationId: reservationId || log.relatedReservationId
+  };
+}
+
+function getAuditReservationContext(log) {
+  if (String(log.entityName || "") !== "Reservation" || !log.entityId) {
+    return null;
+  }
+
+  const reservation = (state.adminData.reservations || []).find(r => String(r.id) === String(log.entityId));
+  const newValues = parseJsonObject(log.newValuesJson) || {};
+  const oldValues = parseJsonObject(log.oldValuesJson) || {};
+  const tripId = reservation?.tripId || newValues.tripId || newValues.TripId || oldValues.tripId || oldValues.TripId;
+  const passengerUserId = reservation?.passengerUserId || newValues.passengerUserId || newValues.PassengerUserId || oldValues.passengerUserId || oldValues.PassengerUserId;
+  const trip = tripId ? (state.adminData.trips || []).find(t => String(t.id) === String(tripId)) : null;
+  const passenger = passengerUserId
+    ? (state.adminData.users || []).find(u => String(u.id) === String(passengerUserId))
+    : null;
+  const driver = trip?.driverUserId
+    ? (state.adminData.users || []).find(u => String(u.id) === String(trip.driverUserId))
+    : null;
+  const rawStatus = reservation?.statusId ?? reservation?.status ?? reservation?.statusLabel ?? newValues.statusId ?? newValues.StatusId ?? oldValues.statusId ?? oldValues.StatusId;
+
+  return {
+    reservation,
+    trip,
+    passenger,
+    driver,
+    tripId,
+    passengerName: reservation?.passengerName || passenger?.fullName || newValues.passengerName || newValues.PassengerName || oldValues.passengerName || oldValues.PassengerName || "",
+    driverName: trip?.driverName || driver?.fullName || "",
+    status: formatReservationStatus(rawStatus),
+    seatsReserved: reservation?.seatsReserved ?? newValues.seatsReserved ?? newValues.SeatsReserved ?? oldValues.seatsReserved ?? oldValues.SeatsReserved ?? ""
+  };
+}
+
+function getAuditTripContext(log) {
+  if (String(log.entityName || "") !== "Trip" || !log.entityId) {
+    return null;
+  }
+
+  const trip = (state.adminData.trips || []).find(t => String(t.id) === String(log.entityId));
+  const newValues = parseJsonObject(log.newValuesJson) || {};
+  const oldValues = parseJsonObject(log.oldValuesJson) || {};
+  const driverUserId = trip?.driverUserId || newValues.driverUserId || newValues.DriverUserId || oldValues.driverUserId || oldValues.DriverUserId;
+  const driver = driverUserId
+    ? (state.adminData.users || []).find(u => String(u.id) === String(driverUserId))
+    : null;
+  const rawStatus = trip?.statusId ?? trip?.status ?? trip?.statusLabel ?? newValues.statusId ?? newValues.StatusId ?? oldValues.statusId ?? oldValues.StatusId;
+
+  return {
+    trip,
+    driver,
+    driverName: trip?.driverName || driver?.fullName || newValues.driverName || newValues.DriverName || oldValues.driverName || oldValues.DriverName || "",
+    driverEmail: driver?.email || "",
+    status: formatTripStatus(rawStatus),
+    tripId: log.entityId
+  };
+}
+
+function getAuditRelatedSearchText(log) {
+  const ticketContext = getAuditTicketContext(log);
+  const reservationContext = getAuditReservationContext(log);
+  const tripContext = getAuditTripContext(log);
+
+  return [
+    ticketContext?.subject,
+    ticketContext?.description,
+    ticketContext?.reporterName,
+    ticketContext?.status,
+    ticketContext?.driverName,
+    ticketContext?.driver?.fullName,
+    ticketContext?.driver?.email,
+    ticketContext?.tripId,
+    ticketContext?.reservationId,
+    ticketContext?.reservation?.passengerName,
+    reservationContext?.passengerName,
+    reservationContext?.passenger?.email,
+    reservationContext?.driverName,
+    reservationContext?.driver?.email,
+    reservationContext?.status,
+    reservationContext?.tripId,
+    tripContext?.driverName,
+    tripContext?.driverEmail,
+    tripContext?.status,
+    tripContext?.tripId,
+    log.relatedSearchText,
+    log.relatedSummary,
+    log.relatedSubject,
+    log.relatedDescription,
+    log.relatedReporterName,
+    log.relatedDriverName,
+    log.relatedStatus,
+  ].filter(Boolean).join(" ");
+}
+
+function getAuditSearchAliases(log) {
+  const action = String(log.actionType || "");
+  const aliases = {
+    UserCreatedReport: "genero reporte genero denuncia reporte generado denuncia incidente queja",
+    AdminUpdatedReportStatus: "reporte revisado cambio estado denuncia seguimiento soporte",
+    AdminViewedSensitiveReport: "ver reporte revisar denuncia informacion sensible",
+    AdminRepliedReport: "respuesta reporte soporte denuncia seguimiento"
+  };
+
+  return aliases[action] || "";
+}
+
+function renderAuditReportContext(log) {
+  const context = getAuditTicketContext(log);
+  if (!context || (!context.subject && !context.description && !context.driverName)) {
+    return "";
+  }
+
+  const driverName = context.driverName || "-";
+  const reporterName = context.reporterName || log.actorName || log.actorEmail || "-";
+
+  return `
+    <div class="audit-report-context">
+      <strong>Detalle del reporte</strong>
+      <p><b>Reporta:</b> ${escapeHtml(reporterName)} · <b>Conductor:</b> ${escapeHtml(driverName)}</p>
+      ${context.subject ? `<p><b>Asunto:</b> ${escapeHtml(context.subject)}</p>` : ""}
+      ${context.description ? `<p>${escapeHtml(context.description)}</p>` : ""}
+      <div class="audit-change-summary">
+        ${context.status ? `<span>Estado: ${escapeHtml(context.status)}</span>` : ""}
+        ${context.tripId ? `<span>Viaje: ${escapeHtml(context.tripId)}</span>` : ""}
+        ${context.reservationId ? `<span>Reserva: ${escapeHtml(context.reservationId)}</span>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderAuditOperationalContext(log) {
+  const reportContext = renderAuditReportContext(log);
+  if (reportContext) {
+    return reportContext;
+  }
+
+  const reservationContext = getAuditReservationContext(log);
+  if (reservationContext && (reservationContext.passengerName || reservationContext.driverName || reservationContext.tripId)) {
+    return `
+      <div class="audit-report-context">
+        <strong>Detalle de la reserva</strong>
+        <p><b>Pasajero:</b> ${escapeHtml(reservationContext.passengerName || "-")} · <b>Conductor:</b> ${escapeHtml(reservationContext.driverName || "-")}</p>
+        <div class="audit-change-summary">
+          ${reservationContext.status ? `<span>Estado: ${escapeHtml(reservationContext.status)}</span>` : ""}
+          ${reservationContext.seatsReserved !== "" ? `<span>Asientos: ${escapeHtml(reservationContext.seatsReserved)}</span>` : ""}
+          ${reservationContext.tripId ? `<span>Viaje: ${escapeHtml(reservationContext.tripId)}</span>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  const tripContext = getAuditTripContext(log);
+  if (tripContext && (tripContext.driverName || tripContext.tripId)) {
+    return `
+      <div class="audit-report-context">
+        <strong>Detalle del viaje</strong>
+        <p><b>Conductor:</b> ${escapeHtml(tripContext.driverName || "-")}</p>
+        <div class="audit-change-summary">
+          ${tripContext.status ? `<span>Estado: ${escapeHtml(tripContext.status)}</span>` : ""}
+          ${tripContext.tripId ? `<span>Viaje: ${escapeHtml(tripContext.tripId)}</span>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  return "";
+}
+
+function parseJsonObject(json) {
+  if (!json) return null;
+  try {
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function getAuditChangeSummary(log) {
+  const fields = parseJsonObject(log.changedFieldsJson);
+  const oldValues = parseJsonObject(log.oldValuesJson);
+  const newValues = parseJsonObject(log.newValuesJson);
+  const fieldNames = Array.isArray(fields) ? fields.slice(0, 4) : [];
+
+  if (!fieldNames.length && !oldValues && !newValues) {
+    return "";
+  }
+
+  if (!fieldNames.length) {
+    return `
+      <span>Antes: ${escapeHtml(formatCompactAuditValue(oldValues))}</span>
+      <span>Despues: ${escapeHtml(formatCompactAuditValue(newValues))}</span>
+    `;
+  }
+
+  return fieldNames.map((field) => {
+    const before = oldValues && Object.prototype.hasOwnProperty.call(oldValues, field) ? oldValues[field] : null;
+    const after = newValues && Object.prototype.hasOwnProperty.call(newValues, field) ? newValues[field] : null;
+    return `<span>${escapeHtml(field)}: ${escapeHtml(formatCompactAuditValue(before))} -> ${escapeHtml(formatCompactAuditValue(after))}</span>`;
+  }).join("");
+}
+
+function formatCompactAuditValue(value) {
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function formatAuditAction(action) {
+  const labels = {
+    UserRegistered: "Usuario registrado",
+    UserLoggedIn: "Inicio de sesion",
+    UserLoggedOut: "Cierre de sesion",
+    UserUpdatedProfile: "Cambio de datos",
+    UserUpdatedProfileAndPassword: "Cambio de datos y contraseña",
+    AdminUpdatedUser: "Admin modifico usuario",
+    AdminUpdatedUserAndPassword: "Admin modifico contraseña",
+    AdminDisabledUser: "Admin bloqueo/deshabilito usuario",
+    AdminEnabledUser: "Admin habilito usuario",
+    AdminDeletedUser: "Admin elimino usuario",
+    UserCreatedTrip: "Viaje creado",
+    UserUpdatedTripDestination: "Destino actualizado",
+    UserCancelledTrip: "Viaje cancelado",
+    UserStartedTrip: "Viaje iniciado",
+    UserFinishedTrip: "Viaje finalizado",
+    AdminUpdatedTrip: "Admin modifico viaje",
+    AdminDeletedTrip: "Admin elimino viaje",
+    UserReservedSeat: "Reserva creada",
+    DriverAcceptedReservation: "Reserva aceptada",
+    DriverRejectedReservation: "Reserva rechazada",
+    UserBoardedTrip: "Pasajero abordo",
+    UserCancelledReservation: "Reserva cancelada",
+    AdminUpdatedReservation: "Admin modifico reserva",
+    AdminDeletedReservation: "Admin elimino reserva",
+    UserCreatedReport: "Reporte creado",
+    AdminUpdatedReportStatus: "Estado de reporte actualizado",
+    AdminViewedSensitiveReport: "Admin vio reporte sensible",
+    AdminRepliedReport: "Admin respondio reporte",
+    AdminCreatedRole: "Rol creado",
+    AdminUpdatedRole: "Rol actualizado",
+    AdminDeletedRole: "Rol eliminado"
+  };
+
+  return labels[action] || action || "-";
+}
+
+function formatJsonPreview(json) {
+  if (!json) {
+    return "-";
+  }
+
+  try {
+    return JSON.stringify(JSON.parse(json), null, 2);
+  } catch {
+    return String(json);
+  }
+}
+
+function renderAuditDetails(log) {
+  if (!log) {
+    return `
+      <div class="empty-state">
+        <strong>Sin resultados</strong>
+        <p>Selecciona un log para revisar su detalle.</p>
+      </div>
+    `;
+  }
+
+  const actor = log.actorEmail || log.actorName || "Sistema";
+  const changed = getAuditChangeSummary(log);
+  const operationalContext = renderAuditOperationalContext(log);
+
+  return `
+    <article class="detail-card">
+      <div class="detail-card__header">
+        <div>
+          <h4>${escapeHtml(formatAuditAction(log.actionType))}</h4>
+          <p>${escapeHtml(formatDateTime(log.createdAt))}</p>
+        </div>
+        <span class="status-badge status-badge--${String(log.result || "").toLowerCase() === "success" ? "active" : "inactive"}">${escapeHtml(log.result || "-")}</span>
+      </div>
+      <div class="detail-grid">
+        <div><strong>Responsable:</strong> ${escapeHtml(actor)}</div>
+        <div><strong>Area:</strong> ${escapeHtml(formatAuditArea(log.module))}</div>
+        <div><strong>Registro afectado:</strong> ${escapeHtml(formatAuditEntity(log.entityName))}</div>
+        <div><strong>Registro:</strong> ${escapeHtml(log.entityId || "-")}</div>
+        <div><strong>IP:</strong> ${escapeHtml(log.ipAddress || "-")}</div>
+        <div><strong>Descripcion:</strong> ${escapeHtml(log.description || "-")}</div>
+      </div>
+      ${changed ? `
+        <div class="detail-card__section audit-human-summary">
+          <h5>Resumen del cambio</h5>
+          <div class="audit-change-summary">${changed}</div>
+        </div>
+      ` : ""}
+      ${operationalContext ? `
+        <div class="detail-card__section">
+          ${operationalContext}
+        </div>
+      ` : ""}
+      <details class="audit-technical-details">
+        <summary>Ver datos tecnicos</summary>
+        <div class="detail-card__section">
+          <h5>Campos modificados</h5>
+          <code class="json-preview">${escapeHtml(formatJsonPreview(log.changedFieldsJson))}</code>
+        </div>
+        <div class="detail-card__section">
+          <h5>Antes</h5>
+          <code class="json-preview">${escapeHtml(formatJsonPreview(log.oldValuesJson))}</code>
+        </div>
+        <div class="detail-card__section">
+          <h5>Despues</h5>
+          <code class="json-preview">${escapeHtml(formatJsonPreview(log.newValuesJson))}</code>
+        </div>
+      </details>
+    </article>
+  `;
+}
+
+function getAuditExportData() {
+  const source = getFilteredAuditLogs();
+
+  return source.map(log => [
+    log.id,
+    formatDateTime(log.createdAt),
+    log.actorEmail || log.actorName || "Sistema",
+    formatAuditAction(log.actionType),
+    formatAuditArea(log.module),
+    formatAuditEntity(log.entityName),
+    log.entityId || "",
+    log.result,
+    log.description || "",
+    formatJsonPreview(log.changedFieldsJson),
+    formatJsonPreview(log.oldValuesJson),
+    formatJsonPreview(log.newValuesJson)
+  ]);
 }
 
 async function loadAdminPayments() {
@@ -3317,6 +4112,55 @@ supportCategoryFilter?.addEventListener("change", () => {
 
 supportReloadBtn?.addEventListener("click", () => {
   loadSupportTickets();
+});
+
+auditSearchInput?.addEventListener("input", applyAuditFilter);
+auditTypeFilter?.addEventListener("change", applyAuditFilter);
+auditActorFilter?.addEventListener("change", applyAuditFilter);
+auditResultFilter?.addEventListener("change", () => {
+  loadAuditData();
+});
+auditStartDate?.addEventListener("change", () => {
+  loadAuditData();
+});
+auditEndDate?.addEventListener("change", () => {
+  loadAuditData();
+});
+auditReloadBtn?.addEventListener("click", () => {
+  loadAuditData();
+});
+auditResetBtn?.addEventListener("click", () => {
+  resetAuditFilters();
+  setAuditTab("summary");
+  loadAuditData();
+});
+auditTabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setAuditTab(button.dataset.auditTab);
+  });
+});
+document.querySelectorAll("[data-audit-period]").forEach((button) => {
+  button.addEventListener("click", () => {
+    setAuditPeriod(button.dataset.auditPeriod);
+  });
+});
+document.querySelectorAll("[data-audit-preset]").forEach((button) => {
+  button.addEventListener("click", () => {
+    applyAuditPreset(button.dataset.auditPreset);
+  });
+});
+document.addEventListener("click", (event) => {
+  const item = event.target.closest("[data-audit-analysis-search]");
+  if (!item) {
+    return;
+  }
+
+  resetAuditFilters();
+  if (auditSearchInput) auditSearchInput.value = item.dataset.auditAnalysisSearch || "";
+  if (auditTypeFilter && item.dataset.auditAnalysisType) auditTypeFilter.value = item.dataset.auditAnalysisType;
+  setAuditTab("investigate");
+  applyAuditFilter();
+  auditSearchInput?.focus();
 });
 
 document.getElementById("section-support")?.addEventListener("click", async (event) => {
@@ -4347,7 +5191,8 @@ const permissionCheckboxes = document.querySelectorAll('#adminModalForm input[na
 
 function formatRoleNameCleanly(roleName) {
   if (!roleName) return "Admin";
-  if (roleName === "SuperAdmin") return "Super Administrador";
+  if (roleName === "SuperAdmin") return "Administrador principal";
+  if (roleName === "Admin") return "Administrador";
   
   const match = roleName.match(/^Admin\s*-\s*(.+?)\s*\([^\)]+\)$/);
   if (match) {
@@ -4375,7 +5220,9 @@ function formatPermissionLabel(perm) {
     "reservations:delete": "Eliminar reservas",
     "support:read": "Ver reportes",
     "support:write": "Responder reportes",
-    "roles:manage": "Gestionar roles"
+    "roles:manage": "Gestionar roles",
+    "audit:read": "Consultar auditoria",
+    "audit:export": "Exportar auditoria"
   };
   return mapping[perm] || perm;
 }
@@ -4394,9 +5241,12 @@ function renderAdminsTable(users) {
   }
 
   adminAdminsBody.innerHTML = admins.map((user) => {
-    const cleanRoles = (user.rawRoles && user.rawRoles.length > 0) 
-      ? user.rawRoles.map(formatRoleNameCleanly).join(", ") 
-      : "Admin";
+    const formattedRoles = (user.rawRoles && user.rawRoles.length > 0)
+      ? user.rawRoles.map(formatRoleNameCleanly)
+      : ["Administrador"];
+    const cleanRoles = formattedRoles.includes("Administrador principal")
+      ? "Administrador principal"
+      : [...new Set(formattedRoles)].join(", ");
     const permsText = (user.permissions && user.permissions.length > 0) 
       ? user.permissions.map(formatPermissionLabel).join(", ") 
       : "Ninguno";
@@ -4416,8 +5266,8 @@ function renderAdminsTable(users) {
 function handlePresetChange() {
   const preset = adminRolePreset.value;
   const adminPresets = {
-    Soporte: ["support:read", "support:write", "users:read", "metrics:view"],
-    Analista: ["metrics:view", "users:read", "trips:read", "reservations:read"],
+    Soporte: ["support:read", "support:write", "users:read", "metrics:view", "audit:read"],
+    Analista: ["metrics:view", "audit:read", "audit:export", "users:read", "trips:read", "reservations:read"],
     Secretariado: ["users:read", "users:write", "trips:read", "reservations:read"],
     Personalizado: []
   };
@@ -4778,6 +5628,28 @@ function performExport(data, headers, filename, format) {
     URL.revokeObjectURL(url);
   }
 }
+
+document.querySelectorAll("[data-audit-export]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const format = button.dataset.auditExport;
+    if (format === "pdf") {
+      performExport(
+        getAuditExportData().map(row => row.slice(1, 9)),
+        ["Fecha", "Usuario", "Accion", "Area", "Registro afectado", "ID de registro", "Resultado", "Descripcion"],
+        "logs_auditoria_filtrada",
+        "pdf"
+      );
+      return;
+    }
+
+    performExport(
+      getAuditExportData(),
+      ["ID", "Fecha", "Usuario", "Accion", "Area", "Registro afectado", "ID de registro", "Resultado", "Descripcion", "Campos", "Antes", "Despues"],
+      "logs_auditoria_filtrada",
+      format
+    );
+  });
+});
 
 function getExportUsersData() {
   const users = state.adminData.users || [];
@@ -5456,11 +6328,11 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
   };
   
   filteredReservations.forEach(r => {
-    const st = Number(r.status);
-    if (st === 1) reservationsStatus['Pendientes']++;
-    else if (st === 2) reservationsStatus['Confirmadas']++;
-    else if (st === 3) reservationsStatus['Abordadas']++;
-    else reservationsStatus['Canceladas']++;
+    const statusKey = getReservationStatusKey(r.statusId ?? r.status ?? r.statusLabel);
+    if (statusKey === "pending") reservationsStatus['Pendientes']++;
+    else if (statusKey === "confirmed") reservationsStatus['Confirmadas']++;
+    else if (statusKey === "boarded") reservationsStatus['Abordadas']++;
+    else if (statusKey === "cancelled") reservationsStatus['Canceladas']++;
   });
 
   const ctxReservations = document.getElementById('reservationsChart')?.getContext('2d');

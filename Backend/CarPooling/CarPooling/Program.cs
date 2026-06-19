@@ -15,6 +15,7 @@ const string AdminPanelCorsPolicy = "AdminPanelCorsPolicy";
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services
     .AddAuthentication(HeaderUserAuthenticationHandler.SchemeName)
@@ -50,6 +51,7 @@ builder.Services.AddScoped<SupportTicketService>();
 builder.Services.AddScoped<SupportTicketMessagingService>();
 builder.Services.AddScoped<SafeZoneService>();
 builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<INotificationService, FirebaseNotificationService>();
 builder.Services.AddHttpClient<GeocodingService>();
 builder.Services.AddHostedService<TripSchedulerService>();

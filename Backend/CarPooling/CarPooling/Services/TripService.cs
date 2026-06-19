@@ -5,11 +5,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Services;
 
-public class TripService(CarPoolingContext context, GeocodingService geocodingService, INotificationService notificationService)
+public class TripService(
+    CarPoolingContext context,
+    GeocodingService geocodingService,
+    INotificationService notificationService,
+    AuditService auditService)
 {
     private readonly CarPoolingContext _context = context;
     private readonly GeocodingService _geocoding = geocodingService;
     private readonly INotificationService _notificationService = notificationService;
+    private readonly AuditService _auditService = auditService;
 
     public async Task<Trip> CreateTripAsync(CoordinateRequest request)
     {
@@ -49,6 +54,16 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         _context.Trips.Add(trip);
         await _context.SaveChangesAsync();
 
+        await _auditService.RecordAsync(
+            "UserCreatedTrip",
+            "Trips",
+            "Trip",
+            trip.Id.ToString(),
+            null,
+            AuditService.SnapshotTrip(trip),
+            actorUserId: trip.DriverUserId,
+            description: $"Conductor creo el viaje {trip.Id}.");
+
         return trip;
     }
 
@@ -62,6 +77,8 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
         if (trip.StatusId == 5) throw new InvalidOperationException("El viaje fue cancelado.");
         if (trip.StatusId != 1) throw new InvalidOperationException("El viaje ya tiene destino.");
+
+        var oldValues = AuditService.SnapshotTrip(trip);
 
         var address = await _geocoding.ReverseGeocodeAsync(request.Latitude, request.Longitude);
         var destination = new Location
@@ -77,6 +94,17 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         trip.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "UserUpdatedTripDestination",
+            "Trips",
+            "Trip",
+            trip.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotTrip(trip),
+            actorUserId: trip.DriverUserId ?? request.DriverUserId,
+            description: $"Conductor definio destino del viaje {trip.Id}.");
+
         return trip;
     }
 
@@ -90,10 +118,22 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
         if (trip.StatusId == 5) return trip;
 
+        var oldValues = AuditService.SnapshotTrip(trip);
+
         trip.StatusId = 5; // cancelled
         trip.CancelledAt = DateTime.UtcNow;
         trip.UpdatedAt = trip.CancelledAt;
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "UserCancelledTrip",
+            "Trips",
+            "Trip",
+            trip.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotTrip(trip),
+            actorUserId: trip.DriverUserId,
+            description: $"Conductor cancelo el viaje {trip.Id}.");
 
         var passengerIds = await _context.Reservations
             .Where(r => r.TripId == tripId && (r.StatusId == 1 || r.StatusId == 2 || r.StatusId == 3))
@@ -125,11 +165,22 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         if (trip.StatusId != 2) throw new InvalidOperationException("El viaje no esta listo para iniciar.");
 
         // Permitir iniciar viaje sin pasajeros abordados (se pueden abordar en ruta)
+        var oldValues = AuditService.SnapshotTrip(trip);
 
         trip.StatusId = 3; // in_progress
         trip.StartedAt ??= DateTime.UtcNow;
         trip.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "UserStartedTrip",
+            "Trips",
+            "Trip",
+            trip.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotTrip(trip),
+            actorUserId: trip.DriverUserId,
+            description: $"Conductor inicio el viaje {trip.Id}.");
 
         var passengerIds = await _context.Reservations
             .Where(r => r.TripId == tripId && r.StatusId == 2) // confirmed
@@ -161,10 +212,22 @@ public class TripService(CarPoolingContext context, GeocodingService geocodingSe
         if (trip.StatusId == 4) return trip;
         if (trip.StatusId != 3) throw new InvalidOperationException("Solo se puede finalizar un viaje en curso.");
 
+        var oldValues = AuditService.SnapshotTrip(trip);
+
         trip.StatusId = 4; // finished
         trip.FinishedAt ??= DateTime.UtcNow;
         trip.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+
+        await _auditService.RecordAsync(
+            "UserFinishedTrip",
+            "Trips",
+            "Trip",
+            trip.Id.ToString(),
+            oldValues,
+            AuditService.SnapshotTrip(trip),
+            actorUserId: trip.DriverUserId,
+            description: $"Conductor finalizo el viaje {trip.Id}.");
 
         var passengerIds = await _context.Reservations
             .Where(r => r.TripId == tripId && r.StatusId == 3) // boarded
