@@ -35,6 +35,13 @@ public class FirebaseNotificationService(CarPoolingContext context) : INotificat
                     Title = title,
                     Body = body
                 },
+                Android = new AndroidConfig
+                {
+                    Notification = new AndroidNotification
+                    {
+                        Icon = "ic_launcher_foreground_custom"
+                    }
+                },
                 Data = data
             };
 
@@ -88,6 +95,13 @@ public class FirebaseNotificationService(CarPoolingContext context) : INotificat
                 {
                     Title = title,
                     Body = body
+                },
+                Android = new AndroidConfig
+                {
+                    Notification = new AndroidNotification
+                    {
+                        Icon = "ic_launcher_foreground_custom"
+                    }
                 },
                 Data = data
             };

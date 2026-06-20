@@ -22,6 +22,12 @@
         <meta-data
             android:name="com.mapbox.maps.token"
             android:value="@string/mapbox_access_token" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_launcher_foreground_custom" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="carpooling_notifications" />
 
         <activity
             android:name=".presentation.splash.ui.SplashActivity"

@@ -1,6 +1,7 @@
 package com.example.proyectocarpooling.presentation.main.ui;
 
 import android.app.Application;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -71,35 +72,43 @@ public class MainViewModel extends AndroidViewModel {
 
     public SessionManager getSessionManager() { return sessionManager; }
 
+    private static <T> void updateLiveData(MutableLiveData<T> liveData, T value) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            liveData.setValue(value);
+        } else {
+            liveData.postValue(value);
+        }
+    }
+
     public LiveData<Point> getSelectedOrigin() { return selectedOrigin; }
-    public void setSelectedOrigin(Point p) { this.selectedOrigin.setValue(p); }
+    public void setSelectedOrigin(Point p) { updateLiveData(this.selectedOrigin, p); }
 
     public LiveData<String> getSelectedOriginAddress() { return selectedOriginAddress; }
-    public void setSelectedOriginAddress(String s) { this.selectedOriginAddress.setValue(s); }
+    public void setSelectedOriginAddress(String s) { updateLiveData(this.selectedOriginAddress, s); }
 
     public LiveData<Point> getSelectedDestination() { return selectedDestination; }
-    public void setSelectedDestination(Point p) { this.selectedDestination.setValue(p); }
+    public void setSelectedDestination(Point p) { updateLiveData(this.selectedDestination, p); }
 
     public LiveData<String> getSelectedDestinationAddress() { return selectedDestinationAddress; }
-    public void setSelectedDestinationAddress(String s) { this.selectedDestinationAddress.setValue(s); }
+    public void setSelectedDestinationAddress(String s) { updateLiveData(this.selectedDestinationAddress, s); }
 
     public LiveData<String> getActiveTripId() { return activeTripId; }
-    public void setActiveTripId(String id) { this.activeTripId.setValue(id); }
+    public void setActiveTripId(String id) { updateLiveData(this.activeTripId, id); }
 
     public LiveData<String> getLastTripStatusLabel() { return lastTripStatusLabel; }
-    public void setLastTripStatusLabel(String s) { this.lastTripStatusLabel.setValue(s); }
+    public void setLastTripStatusLabel(String s) { updateLiveData(this.lastTripStatusLabel, s); }
 
     public LiveData<Integer> getActiveTripAvailableSeats() { return activeTripAvailableSeats; }
-    public void setActiveTripAvailableSeats(int n) { this.activeTripAvailableSeats.setValue(n); }
+    public void setActiveTripAvailableSeats(int n) { updateLiveData(this.activeTripAvailableSeats, n); }
 
     public LiveData<Integer> getActiveTripOfferedSeats() { return activeTripOfferedSeats; }
-    public void setActiveTripOfferedSeats(int n) { this.activeTripOfferedSeats.setValue(n); }
+    public void setActiveTripOfferedSeats(int n) { updateLiveData(this.activeTripOfferedSeats, n); }
 
     public LiveData<Double> getActiveTripDistanceMeters() { return activeTripDistanceMeters; }
-    public void setActiveTripDistanceMeters(double n) { this.activeTripDistanceMeters.setValue(n); }
+    public void setActiveTripDistanceMeters(double n) { updateLiveData(this.activeTripDistanceMeters, n); }
 
     public LiveData<String> getLastRouteTimeLabel() { return lastRouteTimeLabel; }
-    public void setLastRouteTimeLabel(String s) { this.lastRouteTimeLabel.setValue(s); }
+    public void setLastRouteTimeLabel(String s) { updateLiveData(this.lastRouteTimeLabel, s); }
 
     public void reverseGeocodePoint(final Point point, final boolean isOrigin, String token) {
         if (point == null) return;

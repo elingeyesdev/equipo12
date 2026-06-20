@@ -3,99 +3,243 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_white_card"
     android:orientation="vertical"
-    android:paddingStart="4dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="4dp"
-    android:paddingBottom="4dp">
+    android:paddingStart="24dp"
+    android:paddingTop="28dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="24dp">
 
-    <TextView
-        android:id="@+id/startTripFareSubtitle"
+    <!-- Header Section: Title + Subtitle (Icon removed as requested) -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Define el precio por pasajero antes de iniciar el recorrido."
-        android:textColor="@color/carpool_text_secondary"
-        android:textSize="14sp" />
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:layout_marginBottom="24dp">
 
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:cardBackgroundColor="@color/uber_chip_bg"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="0dp"
-        app:strokeColor="@color/uber_border"
-        app:strokeWidth="1dp">
-
-        <LinearLayout
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:text="Precio por Pasajero"
+            android:textColor="@color/fare_dialog_text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:gravity="center" />
 
-            <TextView
+        <TextView
+            android:id="@+id/startTripFareSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="3dp"
+            android:text="Te dejamos un monto inicial. Puedes cambiarlo antes de publicar el viaje."
+            android:textColor="@color/fare_dialog_text_secondary"
+            android:textSize="14sp"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <!-- Main Stepper Section: [-] [ Input ] [+] -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginBottom="20dp">
+
+        <!-- Decrement Button -->
+        <ImageButton
+            android:id="@+id/btnDecreaseFare"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_circle_button"
+            android:src="@drawable/ic_minus"
+            android:contentDescription="Disminuir tarifa"
+            app:tint="@color/uber_accent"
+            android:elevation="0dp" />
+
+        <!-- Input Box -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/startTripFareLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:hint="Monto"
+            app:boxBackgroundColor="@color/white"
+            app:boxCornerRadiusBottomEnd="16dp"
+            app:boxCornerRadiusBottomStart="16dp"
+            app:boxCornerRadiusTopEnd="16dp"
+            app:boxCornerRadiusTopStart="16dp"
+            app:boxStrokeColor="@color/fare_dialog_primary"
+            app:errorEnabled="true"
+            app:prefixText="Bs "
+            app:prefixTextColor="@color/fare_dialog_primary">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/startTripFareInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Precio recomendado"
-                android:textColor="@color/carpool_text_secondary"
-                android:textSize="12sp"
+                android:inputType="numberDecimal"
+                android:maxLength="7"
+                android:minHeight="56dp"
+                android:singleLine="true"
+                android:gravity="center_horizontal"
+                android:textColor="@color/fare_dialog_text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Increment Button -->
+        <ImageButton
+            android:id="@+id/btnIncreaseFare"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_circle_button"
+            android:src="@drawable/ic_plus"
+            android:contentDescription="Incrementar tarifa"
+            app:tint="@color/uber_accent"
+            android:elevation="0dp" />
+    </LinearLayout>
+
+    <!-- Beautiful Suggested/Limit Dashboard Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_white_outlined_card"
+        android:orientation="horizontal"
+        android:baselineAligned="false"
+        android:padding="16dp"
+        android:layout_marginBottom="24dp">
+
+        <!-- Column 1: Suggested Price (Interactive) -->
+        <LinearLayout
+            android:id="@+id/startTripFareSuggestedChip"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Precio Sugerido"
+                android:textColor="@color/fare_dialog_text_secondary"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/startTripSuggestedFare"
-                android:layout_width="match_parent"
+                android:id="@+id/startTripFareSuggestedText"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Bs 0.00"
-                android:textColor="@color/carpool_primary"
-                android:textSize="28sp"
+                android:text="Bs --"
+                android:textColor="@color/uber_accent"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Vertical Divider -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#FFE2DCE0"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Column 2: Maximum Limit (Static) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Límite Máximo"
+                android:textColor="@color/fare_dialog_text_secondary"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/startTripFareFormula"
-                android:layout_width="match_parent"
+                android:id="@+id/startTripFareMaxText"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="Calculado por distancia y dividido entre los asientos ofrecidos."
-                android:textColor="@color/carpool_text_secondary"
-                android:textSize="12sp" />
+                android:layout_marginTop="4dp"
+                android:text="Bs --"
+                android:textColor="@color/fare_dialog_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/startTripFareLayout"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+    <!-- Warning Card Container -->
+    <LinearLayout
+        android:id="@+id/startTripFreeFareWarningCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Precio por pasajero"
-        app:boxStrokeColor="@color/carpool_primary"
-        app:errorEnabled="true"
-        app:helperText="Puedes cobrar menos; el maximo permitido es Bs 10 sobre el recomendado."
-        app:prefixText="Bs ">
+        android:background="@drawable/bg_warning_card"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="24dp"
+        android:visibility="gone">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/startTripFareInput"
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_warning_amber"
+            android:layout_marginEnd="10dp" />
+
+        <TextView
+            android:id="@+id/startTripFreeFareWarning"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal"
-            android:maxLength="7"
-            android:singleLine="true"
-            android:textColor="@color/carpool_text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:lineSpacingExtra="2dp"
+            android:text="Estás ofreciendo este viaje gratis. Los pasajeros verán Bs 0.00 como precio."
+            android:textColor="#FF8F6B00"
+            android:textSize="12sp" />
+    </LinearLayout>
 
-    <TextView
-        android:id="@+id/startTripFreeFareWarning"
+    <!-- Action Buttons Row -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/bg_info_field"
-        android:padding="12dp"
-        android:text="Advertencia: estas ofreciendo este viaje gratis. Los pasajeros veran Bs 0.00 como precio."
-        android:textColor="@color/carpool_text_primary"
-        android:textSize="12sp"
-        android:visibility="gone" />
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelFare"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:text="Cancelar"
+            android:textColor="@color/fare_dialog_text_secondary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:rippleColor="#20000000" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnConfirmFare"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Crear viaje"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/uber_accent"
+            app:cornerRadius="12dp"
+            app:elevation="0dp" />
+    </LinearLayout>
 
 </LinearLayout>

@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.util.Log;
 
@@ -22,6 +23,12 @@ import com.google.firebase.messaging.RemoteMessage;
 import java.io.IOException;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
+
+    public static final String ACTION_NOTIFICATION_EVENT = "com.example.proyectocarpooling.NOTIFICATION_EVENT";
+    public static final String EXTRA_NOTIFICATION_TYPE = "type";
+    public static final String EXTRA_NOTIFICATION_TRIP_ID = "tripId";
+    public static final String EXTRA_NOTIFICATION_TITLE = "title";
+    public static final String EXTRA_NOTIFICATION_BODY = "body";
 
     private static final String TAG = "FCMService";
     private static final String CHANNEL_ID = "carpooling_notifications";
@@ -72,6 +79,21 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
 
         showNotification(title, body, tripId, type);
+        notifyForegroundScreens(title, body, tripId, type);
+    }
+
+    private void notifyForegroundScreens(String title, String body, String tripId, String type) {
+        Intent eventIntent = new Intent(ACTION_NOTIFICATION_EVENT);
+        eventIntent.setPackage(getPackageName());
+        eventIntent.putExtra(EXTRA_NOTIFICATION_TITLE, title);
+        eventIntent.putExtra(EXTRA_NOTIFICATION_BODY, body);
+        if (tripId != null) {
+            eventIntent.putExtra(EXTRA_NOTIFICATION_TRIP_ID, tripId);
+        }
+        if (type != null) {
+            eventIntent.putExtra(EXTRA_NOTIFICATION_TYPE, type);
+        }
+        sendBroadcast(eventIntent);
     }
 
     private void showNotification(String title, String body, String tripId, String type) {
@@ -104,10 +126,12 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         );
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher) // Ícono de la app
+                .setSmallIcon(R.drawable.ic_launcher_foreground_custom)
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher))
                 .setContentTitle(title)
                 .setContentText(body)
                 .setAutoCancel(true)
+                .setBadgeIconType(NotificationCompat.BADGE_ICON_LARGE)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent);
 

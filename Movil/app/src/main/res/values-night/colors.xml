@@ -40,4 +40,8 @@
     <color name="match_status_in_progress">#FFD0A27D</color>
     <color name="match_status_cancelled">#FFFF8A80</color>
     <color name="match_status_finished">#FF917E86</color>
+    <color name="fare_dialog_background">#FFFFFFFF</color>
+    <color name="fare_dialog_text_primary">#FF2B141E</color>
+    <color name="fare_dialog_text_secondary">#FF76686F</color>
+    <color name="fare_dialog_primary">#FF82254B</color>
 </resources>

@@ -3,7 +3,10 @@ package com.example.proyectocarpooling.presentation.main.ui;
 import com.example.proyectocarpooling.presentation.BaseActivity;
 import android.Manifest;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -68,11 +71,11 @@ import com.example.proyectocarpooling.presentation.search.ui.SearchTripActivity;
 import com.example.proyectocarpooling.presentation.match.ui.DriverMatchActivity;
 import com.example.proyectocarpooling.presentation.payment.ui.DriverPaymentsActivity;
 import com.example.proyectocarpooling.presentation.payment.ui.PaymentActivity;
+import com.example.proyectocarpooling.presentation.security.MyFirebaseMessagingService;
 import com.example.proyectocarpooling.data.remote.search.MapboxGeocodingRemoteDataSource;
 // MainViewModel now in same package
 import com.example.proyectocarpooling.presentation.profile.ui.ProfileActivity;
 import com.example.proyectocarpooling.presentation.schedules.ui.TripSchedulesActivity;
-import com.example.proyectocarpooling.presentation.schedules.ui.CreateTripScheduleActivity;
 
 import com.mapbox.geojson.Point;
 import com.mapbox.maps.CameraOptions;
@@ -111,8 +114,9 @@ public class MainActivity extends BaseActivity {
     private static final double DRAFT_FARE_AMOUNT_BS = 10.0;
     private static final double FARE_MIN_AMOUNT_BS = 0.0;
     private static final double FARE_MAX_OVER_SUGGESTED_BS = 10.0;
-    private static final double FARE_BASE_ROUTE_BS = 6.0;
-    private static final double FARE_PER_KM_BS = 4.0;
+    private static final int FARE_DEFAULT_OFFERED_SEATS = 4;
+    private static final double FARE_BASE_ROUTE_BS = 2.0;
+    private static final double FARE_PER_KM_BS = 2.0;
 
     public static boolean sReservationCompletedFromBanner = false;
     public static Intent sReservationResultData = null;
@@ -146,7 +150,6 @@ public class MainActivity extends BaseActivity {
     private EditText fareAmountInput;
     private View menuToggleButton;
     private Button createTripButton;
-    private TextView btnScheduleTripOption;
     private Button cancelTripButton;
     private Button findDriverButton;
     private Button markBoardedButton;
@@ -250,6 +253,19 @@ public class MainActivity extends BaseActivity {
         }
     };
     private Runnable passengerPollingRunnable;
+    private boolean notificationEventReceiverRegistered;
+
+    private final BroadcastReceiver notificationEventReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null || !MyFirebaseMessagingService.ACTION_NOTIFICATION_EVENT.equals(intent.getAction())) {
+                return;
+            }
+            String type = intent.getStringExtra(MyFirebaseMessagingService.EXTRA_NOTIFICATION_TYPE);
+            String tripId = intent.getStringExtra(MyFirebaseMessagingService.EXTRA_NOTIFICATION_TRIP_ID);
+            handleRealtimeNotificationEvent(type, tripId);
+        }
+    };
 
     private final ActivityResultLauncher<Intent> driverMatchLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -454,7 +470,6 @@ public class MainActivity extends BaseActivity {
         fareAmountInput = findViewById(R.id.fareAmountInput);
         menuToggleButton = findViewById(R.id.menuToggleButton);
         createTripButton = findViewById(R.id.createTripButton);
-        btnScheduleTripOption = findViewById(R.id.btnScheduleTripOption);
         cancelTripButton = findViewById(R.id.cancelTripButton);
         btnSimulateTrip = findViewById(R.id.btnSimulateTrip);
         findDriverButton = findViewById(R.id.findDriverButton);
@@ -595,26 +610,6 @@ public class MainActivity extends BaseActivity {
             }
             createTrip();
         });
-        if (btnScheduleTripOption != null) {
-            btnScheduleTripOption.setOnClickListener(v -> {
-                if (activeTripId != null) {
-                    Toast.makeText(this, R.string.toast_trip_exists, Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (selectedOrigin == null) {
-                    Toast.makeText(this, R.string.toast_origin_required, Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (selectedDestination == null) {
-                    Toast.makeText(this, R.string.toast_destination_required, Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                Intent intent = new Intent(MainActivity.this, CreateTripScheduleActivity.class);
-                intent.putExtra("EXTRA_ORIGIN", selectedOriginAddress != null ? selectedOriginAddress : "");
-                intent.putExtra("EXTRA_DESTINATION", selectedDestinationAddress != null ? selectedDestinationAddress : "");
-                startActivity(intent);
-            });
-        }
         cancelTripButton.setOnClickListener(v -> {
             if (activeTripId == null) {
                 Toast.makeText(this, R.string.toast_no_trip, Toast.LENGTH_SHORT).show();
@@ -1922,13 +1917,125 @@ public class MainActivity extends BaseActivity {
     }
 
     private void createTripWithVehicle(String vehicleId) {
+        showCreateTripFareDialog(vehicleId);
+    }
+
+    private void showCreateTripFareDialog(String vehicleId) {
+        final double suggestedFare = calculateSuggestedFareAmount();
+        final double maxFare = suggestedFare + FARE_MAX_OVER_SUGGESTED_BS;
+        final View dialogView = getLayoutInflater().inflate(R.layout.dialog_start_trip_fare, null);
+        
+        final View freeFareWarningCard = dialogView.findViewById(R.id.startTripFreeFareWarningCard);
+        final TextInputLayout fareLayout = dialogView.findViewById(R.id.startTripFareLayout);
+        final TextInputEditText fareInput = dialogView.findViewById(R.id.startTripFareInput);
+        
+        final View decreaseBtn = dialogView.findViewById(R.id.btnDecreaseFare);
+        final View increaseBtn = dialogView.findViewById(R.id.btnIncreaseFare);
+        
+        final View suggestedChip = dialogView.findViewById(R.id.startTripFareSuggestedChip);
+        final TextView suggestedText = dialogView.findViewById(R.id.startTripFareSuggestedText);
+        final TextView maxText = dialogView.findViewById(R.id.startTripFareMaxText);
+        
+        final View btnCancel = dialogView.findViewById(R.id.btnCancelFare);
+        final View btnConfirm = dialogView.findViewById(R.id.btnConfirmFare);
+
+        if (suggestedText != null) {
+            suggestedText.setText(String.format(Locale.US, "Sugerido: Bs %.2f", suggestedFare));
+        }
+        if (maxText != null) {
+            maxText.setText(String.format(Locale.US, "Máximo: Bs %.2f", maxFare));
+        }
+
+        if (suggestedChip != null) {
+            suggestedChip.setOnClickListener(v -> {
+                if (fareInput != null) {
+                    fareInput.setText(String.format(Locale.US, "%.2f", suggestedFare));
+                    fareInput.setSelection(fareInput.getText().length());
+                }
+            });
+        }
+
+        if (decreaseBtn != null) {
+            decreaseBtn.setOnClickListener(v -> {
+                if (fareInput != null && fareInput.getText() != null) {
+                    try {
+                        String currentValStr = fareInput.getText().toString().trim();
+                        double val = currentValStr.isEmpty() ? 0.0 : Double.parseDouble(currentValStr);
+                        double newVal = Math.max(FARE_MIN_AMOUNT_BS, val - 1.0);
+                        fareInput.setText(String.format(Locale.US, "%.2f", newVal));
+                        fareInput.setSelection(fareInput.getText().length());
+                    } catch (NumberFormatException e) {
+                        fareInput.setText(String.format(Locale.US, "%.2f", suggestedFare));
+                    }
+                }
+            });
+        }
+
+        if (increaseBtn != null) {
+            increaseBtn.setOnClickListener(v -> {
+                if (fareInput != null && fareInput.getText() != null) {
+                    try {
+                        String currentValStr = fareInput.getText().toString().trim();
+                        double val = currentValStr.isEmpty() ? 0.0 : Double.parseDouble(currentValStr);
+                        double newVal = Math.min(maxFare, val + 1.0);
+                        fareInput.setText(String.format(Locale.US, "%.2f", newVal));
+                        fareInput.setSelection(fareInput.getText().length());
+                    } catch (NumberFormatException e) {
+                        fareInput.setText(String.format(Locale.US, "%.2f", suggestedFare));
+                    }
+                }
+            });
+        }
+
+        if (fareInput != null) {
+            fareInput.setFilters(new InputFilter[]{buildFareInputFilter()});
+            fareInput.setText(String.format(Locale.US, "%.2f", suggestedFare));
+            fareInput.setSelectAllOnFocus(true);
+            fareInput.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    validateFareInput(fareLayout, fareInput, suggestedFare, maxFare, false);
+                    updateFreeFareWarning(freeFareWarningCard, fareInput);
+                }
+                @Override public void afterTextChanged(Editable s) {}
+            });
+        }
+
+        final androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setView(dialogView)
+                .create();
+
+        if (btnCancel != null) {
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        if (btnConfirm != null) {
+            btnConfirm.setOnClickListener(v -> {
+                Double fareAmount = validateFareInput(fareLayout, fareInput, suggestedFare, maxFare, true);
+                if (fareAmount == null) {
+                    return;
+                }
+                dialog.dismiss();
+                createTripWithVehicle(vehicleId, fareAmount);
+            });
+        }
+
+        dialog.setOnShowListener(dialogInterface -> {
+            if (fareInput != null) {
+                fareInput.requestFocus();
+                updateFreeFareWarning(freeFareWarningCard, fareInput);
+            }
+        });
+        dialog.show();
+    }
+
+    private void createTripWithVehicle(String vehicleId, double fareAmount) {
         setProgressVisible(true);
         createTripButton.setEnabled(false);
 
         final Point origin = selectedOrigin;
         final Point destination = selectedDestination;
         final SafeZoneItem routeStop = activeSafeZoneRouteStop;
-        final double fareAmount = DRAFT_FARE_AMOUNT_BS;
         mainViewModel.createTrip(origin, destination, vehicleId, fareAmount, new MainViewModel.ResultCallback<>() {
             @Override
             public void onSuccess(CreateTripResult result) {
@@ -2527,71 +2634,21 @@ public class MainActivity extends BaseActivity {
             return;
         }
 
-        showStartTripFareDialog();
+        startTripWithFare(getCurrentTripFareAmount());
     }
 
-    private void showStartTripFareDialog() {
-        final double suggestedFare = calculateSuggestedFareAmount();
-        final double maxFare = suggestedFare + FARE_MAX_OVER_SUGGESTED_BS;
-        final View dialogView = getLayoutInflater().inflate(R.layout.dialog_start_trip_fare, null);
-        final TextView suggestedFareText = dialogView.findViewById(R.id.startTripSuggestedFare);
-        final TextView formulaText = dialogView.findViewById(R.id.startTripFareFormula);
-        final TextView freeFareWarning = dialogView.findViewById(R.id.startTripFreeFareWarning);
-        final TextInputLayout fareLayout = dialogView.findViewById(R.id.startTripFareLayout);
-        final TextInputEditText fareInput = dialogView.findViewById(R.id.startTripFareInput);
-        final int offeredSeats = getFareCalculationSeats();
-        final double distanceKm = getFareCalculationDistanceKm();
-
-        if (suggestedFareText != null) {
-            suggestedFareText.setText(formatBolivianos(suggestedFare));
-        }
-        if (formulaText != null) {
-            formulaText.setText(String.format(Locale.US,
-                    "Ruta estimada: %.1f km. Calculo: Bs %.0f base + Bs %.0f/km, dividido entre %d asientos.",
-                    distanceKm,
-                    FARE_BASE_ROUTE_BS,
-                    FARE_PER_KM_BS,
-                    offeredSeats));
-        }
-        if (fareInput != null) {
-            fareInput.setFilters(new InputFilter[]{buildFareInputFilter()});
-            fareInput.setText(String.format(Locale.US, "%.2f", suggestedFare));
-            fareInput.setSelectAllOnFocus(true);
-            fareInput.addTextChangedListener(new TextWatcher() {
-                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                    validateFareInput(fareLayout, fareInput, suggestedFare, maxFare, false);
-                    updateFreeFareWarning(freeFareWarning, fareInput);
+    private double getCurrentTripFareAmount() {
+        if (fareAmountInput != null && fareAmountInput.getText() != null) {
+            String raw = fareAmountInput.getText().toString().trim().replace(',', '.');
+            if (!raw.isEmpty()) {
+                try {
+                    return Double.parseDouble(raw);
+                } catch (NumberFormatException ignored) {
+                    // Fall back to the draft fare below.
                 }
-                @Override public void afterTextChanged(Editable s) {}
-            });
+            }
         }
-
-        androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle("Precio del viaje")
-                .setView(dialogView)
-                .setNegativeButton(R.string.dialog_button_cancel, null)
-                .setPositiveButton("Iniciar viaje", null)
-                .create();
-
-        dialog.setOnShowListener(dialogInterface -> {
-            Button positive = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE);
-            if (positive != null) {
-                positive.setOnClickListener(v -> {
-                    Double fareAmount = validateFareInput(fareLayout, fareInput, suggestedFare, maxFare, true);
-                    if (fareAmount == null) {
-                        return;
-                    }
-                    dialog.dismiss();
-                    startTripWithFare(fareAmount);
-                });
-            }
-            if (fareInput != null) {
-                fareInput.requestFocus();
-                updateFreeFareWarning(freeFareWarning, fareInput);
-            }
-        });
-        dialog.show();
+        return DRAFT_FARE_AMOUNT_BS;
     }
 
     private void startTripWithFare(double fareAmount) {
@@ -2666,9 +2723,8 @@ public class MainActivity extends BaseActivity {
                     error = "El precio no puede ser negativo.";
                 } else if (value > maxFare) {
                     error = String.format(Locale.US,
-                            "El maximo permitido es %s, solo Bs %.0f sobre el recomendado.",
-                            formatBolivianos(maxFare),
-                            FARE_MAX_OVER_SUGGESTED_BS);
+                            "El maximo permitido para este trayecto es %s.",
+                            formatBolivianos(maxFare));
                 }
             } catch (NumberFormatException exception) {
                 error = "Ingresa un precio valido en bolivianos.";
@@ -2681,7 +2737,7 @@ public class MainActivity extends BaseActivity {
         return error == null ? value : null;
     }
 
-    private void updateFreeFareWarning(TextView warningView, TextInputEditText fareInput) {
+    private void updateFreeFareWarning(View warningView, TextInputEditText fareInput) {
         if (warningView == null || fareInput == null || fareInput.getText() == null) {
             return;
         }
@@ -2705,17 +2761,14 @@ public class MainActivity extends BaseActivity {
         if (activeTripOfferedSeats > 0) {
             return activeTripOfferedSeats;
         }
-        if (activeTripAvailableSeats > 0) {
-            return activeTripAvailableSeats;
-        }
-        return 1;
+        return FARE_DEFAULT_OFFERED_SEATS;
     }
 
     private double getFareCalculationDistanceKm() {
         double meters = activeTripDistanceMeters > 0.0
                 ? activeTripDistanceMeters
                 : estimateDirectDistanceMeters(selectedOrigin, selectedDestination);
-        return Math.max(0.1, meters / 1000.0);
+        return Math.max(0.0, meters / 1000.0);
     }
 
     private double estimateDirectDistanceMeters(Point origin, Point destination) {
@@ -2825,7 +2878,6 @@ public class MainActivity extends BaseActivity {
         if (!isDriverUser) {
             // Modo Pasajero
             if (createTripButton != null) createTripButton.setVisibility(View.GONE);
-            if (btnScheduleTripOption != null) btnScheduleTripOption.setVisibility(View.GONE);
             if (btnSimulateTrip != null) btnSimulateTrip.setVisibility(View.GONE);
             if (cancelTripButton != null) cancelTripButton.setVisibility(View.GONE);
             if (tripButtonsRow != null) tripButtonsRow.setVisibility(View.GONE);
@@ -2854,7 +2906,6 @@ public class MainActivity extends BaseActivity {
             if (hasActiveTrip) {
                 // Viaje activo
                 if (createTripButton != null) createTripButton.setVisibility(View.GONE);
-                if (btnScheduleTripOption != null) btnScheduleTripOption.setVisibility(View.GONE);
                 if (tripButtonsRow != null) tripButtonsRow.setVisibility(View.GONE);
                 if (fareAmountInput != null) fareAmountInput.setVisibility(View.GONE);
                 
@@ -2892,10 +2943,6 @@ public class MainActivity extends BaseActivity {
                 if (createTripButton != null) {
                     createTripButton.setVisibility(View.VISIBLE);
                     createTripButton.setEnabled(canCreate);
-                }
-                if (btnScheduleTripOption != null) {
-                    btnScheduleTripOption.setVisibility(View.VISIBLE);
-                    btnScheduleTripOption.setEnabled(canCreate);
                 }
                 if (fareAmountInput != null) {
                     fareAmountInput.setVisibility(View.GONE);
@@ -3515,6 +3562,64 @@ public class MainActivity extends BaseActivity {
         }
     }
 
+    private void registerNotificationEventReceiver() {
+        if (notificationEventReceiverRegistered) {
+            return;
+        }
+        IntentFilter filter = new IntentFilter(MyFirebaseMessagingService.ACTION_NOTIFICATION_EVENT);
+        ContextCompat.registerReceiver(
+                this,
+                notificationEventReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+        );
+        notificationEventReceiverRegistered = true;
+    }
+
+    private void unregisterNotificationEventReceiver() {
+        if (!notificationEventReceiverRegistered) {
+            return;
+        }
+        unregisterReceiver(notificationEventReceiver);
+        notificationEventReceiverRegistered = false;
+    }
+
+    private void handleRealtimeNotificationEvent(String type, String tripId) {
+        Log.d("MainActivity", "Realtime notification event. Type: " + type + ", TripId: " + tripId);
+        if (isDriverUser) {
+            if ("reservation_request".equals(type) || "reservation_cancelled".equals(type)) {
+                checkPendingReservations();
+                return;
+            }
+            if ("payment_pending".equals(type) || "payment_approved".equals(type)
+                    || "payment_rejected".equals(type) || "payment_confirmed".equals(type)
+                    || "payment_cancelled".equals(type) || "refund_requested".equals(type)
+                    || "refund_approved".equals(type) || "refund_rejected".equals(type)) {
+                refreshDrawerUserInfo();
+                updateStatusText();
+                return;
+            }
+            if ("trip_cancelled".equals(type) || "trip_started".equals(type) || "trip_finished".equals(type)) {
+                maybeRestoreDriverActiveTripAsync();
+            }
+            return;
+        }
+
+        if ("reservation_accepted".equals(type) || "reservation_rejected".equals(type)
+                || "reservation_boarded".equals(type) || "reservation_cancelled".equals(type)
+                || "trip_cancelled".equals(type) || "trip_started".equals(type)
+                || "trip_finished".equals(type) || "payment_approved".equals(type)
+                || "payment_rejected".equals(type) || "payment_confirmed".equals(type)
+                || "payment_cancelled".equals(type) || "refund_approved".equals(type)
+                || "refund_rejected".equals(type)) {
+            if (hasActivePassengerReservation) {
+                pollPassengerReservationStatus();
+            } else {
+                checkPassengerReservationOnStart();
+            }
+        }
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -3526,6 +3631,7 @@ public class MainActivity extends BaseActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        registerNotificationEventReceiver();
         if (mapView != null) {
             mapView.onStart();
         }
@@ -3539,6 +3645,7 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void onStop() {
+        unregisterNotificationEventReceiver();
         if (mapView != null) {
             mapView.onStop();
         }

@@ -176,6 +176,17 @@ public class ReservationService(
             actorUserId: reservation.PassengerUserId,
             description: $"Pasajero abordo el viaje {reservation.TripId}.");
 
+        await _notificationService.SendNotificationAsync(
+            reservation.PassengerUserId,
+            "Abordaje confirmado",
+            $"Tu abordaje al viaje con {reservation.Trip.DriverName} fue confirmado.",
+            new Dictionary<string, string>
+            {
+                { "type", "reservation_boarded" },
+                { "tripId", reservation.TripId.ToString() },
+                { "reservationId", reservation.Id.ToString() }
+            });
+
         return reservation;
     }
 

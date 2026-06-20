@@ -5,9 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Services;
 
-public class SupportTicketMessagingService(CarPoolingContext context)
+public class SupportTicketMessagingService(
+    CarPoolingContext context,
+    INotificationService notificationService)
 {
     private readonly CarPoolingContext _context = context;
+    private readonly INotificationService _notificationService = notificationService;
 
     private static readonly SupportTicketStatus[] ClosedStatuses =
     [
@@ -59,7 +62,21 @@ public class SupportTicketMessagingService(CarPoolingContext context)
                 "Aún no puedes escribir en el chat. Espera la primera respuesta del equipo de soporte.");
         }
 
-        return await PersistMessageAsync(ticket, userId, SupportMessageSenderKind.User, dto.MessageText, isAdmin: false);
+        var message = await PersistMessageAsync(ticket, userId, SupportMessageSenderKind.User, dto.MessageText, isAdmin: false);
+        if (ticket.AssignedAdminUserId.HasValue && ticket.AssignedAdminUserId.Value != userId)
+        {
+            await _notificationService.SendNotificationAsync(
+                ticket.AssignedAdminUserId.Value,
+                "Nueva respuesta en soporte",
+                "Un usuario respondio un reporte asignado.",
+                new Dictionary<string, string>
+                {
+                    { "type", "support_message" },
+                    { "supportTicketId", ticket.Id.ToString() }
+                });
+        }
+
+        return message;
     }
 
     public async Task<SupportTicketMessageResponseDto> SendMessageAsAdminAsync(
@@ -112,6 +129,16 @@ public class SupportTicketMessagingService(CarPoolingContext context)
             ticket.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
         }
+
+        await _notificationService.SendNotificationAsync(
+            ticket.UserId,
+            isFirstAdminReply ? "Soporte respondio tu reporte" : "Nueva respuesta de soporte",
+            dto.MessageText.Trim(),
+            new Dictionary<string, string>
+            {
+                { "type", "support_message" },
+                { "supportTicketId", ticket.Id.ToString() }
+            });
 
         return message;
     }

@@ -5,10 +5,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Services;
 
-public class SupportTicketService(CarPoolingContext context, AuditService auditService)
+public class SupportTicketService(
+    CarPoolingContext context,
+    AuditService auditService,
+    INotificationService notificationService)
 {
     private readonly CarPoolingContext _context = context;
     private readonly AuditService _auditService = auditService;
+    private readonly INotificationService _notificationService = notificationService;
 
     private static readonly SupportTicketStatus[] ActiveStatuses =
     [
@@ -104,6 +108,27 @@ public class SupportTicketService(CarPoolingContext context, AuditService auditS
             AuditService.SnapshotSupportTicket(ticket),
             actorUserId: userId,
             description: $"Usuario creo reporte de tipo {ticket.Category}.");
+
+        var adminIds = await _context.Users
+            .Where(u => u.UserRoles.Any(ur =>
+                ur.Role.Name == "SuperAdmin" ||
+                ur.Role.Name == "Admin" ||
+                ur.Role.Name.Contains("Admin")))
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        if (adminIds.Count > 0)
+        {
+            await _notificationService.SendNotificationToMultipleAsync(
+                adminIds,
+                "Nuevo reporte de soporte",
+                $"Se creo un reporte: {ticket.Subject}",
+                new Dictionary<string, string>
+                {
+                    { "type", "support_ticket_created" },
+                    { "supportTicketId", ticket.Id.ToString() }
+                });
+        }
 
         return await GetByIdAsync(userId, ticket.Id)
             ?? throw new InvalidOperationException("No se pudo recuperar el reporte creado.");
@@ -214,7 +239,29 @@ public class SupportTicketService(CarPoolingContext context, AuditService auditS
 
         await _context.SaveChangesAsync();
 
+        await _notificationService.SendNotificationAsync(
+            ticket.UserId,
+            "Actualizacion de soporte",
+            $"Tu reporte ahora esta en estado {FormatSupportStatus(status)}.",
+            new Dictionary<string, string>
+            {
+                { "type", "support_status_updated" },
+                { "supportTicketId", ticket.Id.ToString() }
+            });
+
         return SupportTicketResponseDto.FromEntity(ticket);
+    }
+
+    private static string FormatSupportStatus(SupportTicketStatus status)
+    {
+        return status switch
+        {
+            SupportTicketStatus.Open => "abierto",
+            SupportTicketStatus.InReview => "en revision",
+            SupportTicketStatus.Resolved => "resuelto",
+            SupportTicketStatus.Closed => "cerrado",
+            _ => status.ToString()
+        };
     }
     private async Task ValidateTripLinkAsync(Guid userId, Guid tripId)
     {

@@ -32,4 +32,8 @@
     <color name="uber_text_inverse">#FFFFFFFF</color>
     <color name="auth_on_hero">#FFFFFFFF</color>
     <color name="rating_star_yellow">#FFFFC107</color>
+    <color name="fare_dialog_background">#FFFFFFFF</color>
+    <color name="fare_dialog_text_primary">#FF2B141E</color>
+    <color name="fare_dialog_text_secondary">#FF76686F</color>
+    <color name="fare_dialog_primary">#FF82254B</color>
 </resources>

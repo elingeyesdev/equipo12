@@ -58,12 +58,18 @@ builder.Services.AddHostedService<TripSchedulerService>();
 
 // Initialize Firebase
 var pathToFirebaseKey = builder.Configuration["Firebase:CredentialsPath"] ?? "firebase-adminsdk.json";
+if (!Path.IsPathRooted(pathToFirebaseKey))
+{
+    pathToFirebaseKey = Path.Combine(builder.Environment.ContentRootPath, pathToFirebaseKey);
+}
+
 if (File.Exists(pathToFirebaseKey))
 {
     FirebaseApp.Create(new AppOptions
     {
         Credential = GoogleCredential.FromFile(pathToFirebaseKey)
     });
+    Console.WriteLine($"Firebase inicializado con credenciales en: {pathToFirebaseKey}");
 }
 else
 {

@@ -5,9 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarPooling.Services;
 
-public class PaymentService(CarPoolingContext context)
+public class PaymentService(CarPoolingContext context, INotificationService notificationService)
 {
     private readonly CarPoolingContext _context = context;
+    private readonly INotificationService _notificationService = notificationService;
 
     public async Task<List<PaymentMethodResponseDto>> ListMethodsAsync()
     {
@@ -223,6 +224,35 @@ public class PaymentService(CarPoolingContext context)
         _context.Payments.Add(payment);
         await _context.SaveChangesAsync();
 
+        payment.Reservation = reservation;
+        payment.PaymentMethod = method;
+        if (payment.Status == PaymentStatus.Pending && reservation.Trip.DriverUserId.HasValue)
+        {
+            await _notificationService.SendNotificationAsync(
+                reservation.Trip.DriverUserId.Value,
+                "Pago pendiente de confirmacion",
+                $"Tienes un pago de {payment.Amount:0.00} {payment.Currency} pendiente por confirmar.",
+                BuildPaymentData(payment, "payment_pending"));
+            await _notificationService.SendNotificationAsync(
+                reservation.PassengerUserId,
+                "Pago enviado",
+                "Tu pago quedo pendiente de confirmacion del conductor.",
+                BuildPaymentData(payment, "payment_pending"));
+        }
+        else if (payment.Status == PaymentStatus.Approved && reservation.Trip.DriverUserId.HasValue)
+        {
+            await _notificationService.SendNotificationAsync(
+                reservation.Trip.DriverUserId.Value,
+                "Pago recibido",
+                $"Se registro un pago aprobado de {payment.Amount:0.00} {payment.Currency}.",
+                BuildPaymentData(payment, "payment_approved"));
+            await _notificationService.SendNotificationAsync(
+                reservation.PassengerUserId,
+                "Pago aprobado",
+                $"Tu pago de {payment.Amount:0.00} {payment.Currency} fue aprobado.",
+                BuildPaymentData(payment, "payment_approved"));
+        }
+
         return await GetPaymentForUserAsync(userId, payment.Id);
     }
 
@@ -312,6 +342,25 @@ public class PaymentService(CarPoolingContext context)
 
 
         await _context.SaveChangesAsync();
+
+        if (payment.Reservation.Trip.DriverUserId.HasValue)
+        {
+            await _notificationService.SendNotificationAsync(
+                payment.Reservation.Trip.DriverUserId.Value,
+                dto.Approve ? "Pago aprobado" : "Pago rechazado",
+                dto.Approve
+                    ? $"El pasajero completo un pago de {payment.Amount:0.00} {payment.Currency}."
+                    : "El pago del pasajero fue rechazado.",
+                BuildPaymentData(payment, dto.Approve ? "payment_approved" : "payment_rejected"));
+        }
+        await _notificationService.SendNotificationAsync(
+            payment.Reservation.PassengerUserId,
+            dto.Approve ? "Pago aprobado" : "Pago rechazado",
+            dto.Approve
+                ? $"Tu pago de {payment.Amount:0.00} {payment.Currency} fue aprobado."
+                : "Tu pago fue rechazado.",
+            BuildPaymentData(payment, dto.Approve ? "payment_approved" : "payment_rejected"));
+
         return PaymentResponseDto.FromEntity(payment);
     }
 
@@ -381,6 +430,12 @@ public class PaymentService(CarPoolingContext context)
         });
 
         await _context.SaveChangesAsync();
+        await _notificationService.SendNotificationAsync(
+            payment.Reservation.PassengerUserId,
+            "Pago confirmado",
+            $"Tu pago de {payment.Amount:0.00} {payment.Currency} fue confirmado por el conductor.",
+            BuildPaymentData(payment, "payment_confirmed"));
+
         return await GetPaymentForUserAsync(userId, paymentId);
     }
 
@@ -405,6 +460,18 @@ public class PaymentService(CarPoolingContext context)
             payment.Amount, payment.PaymentMethod.Code, "CANCELLED", "Pago cancelado.");
 
         await _context.SaveChangesAsync();
+        var otherUserId = payment.Reservation.PassengerUserId == userId
+            ? payment.Reservation.Trip.DriverUserId
+            : payment.Reservation.PassengerUserId;
+        if (otherUserId.HasValue)
+        {
+            await _notificationService.SendNotificationAsync(
+                otherUserId.Value,
+                "Pago cancelado",
+                $"Se cancelo un pago de {payment.Amount:0.00} {payment.Currency}.",
+                BuildPaymentData(payment, "payment_cancelled"));
+        }
+
         return PaymentResponseDto.FromEntity(payment);
     }
 
@@ -456,6 +523,15 @@ public class PaymentService(CarPoolingContext context)
         payment.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
+        if (payment.Reservation.Trip.DriverUserId.HasValue)
+        {
+            await _notificationService.SendNotificationAsync(
+                payment.Reservation.Trip.DriverUserId.Value,
+                "Solicitud de devolucion",
+                $"El pasajero solicito una devolucion de {refund.Amount:0.00} {payment.Currency}.",
+                BuildPaymentData(payment, "refund_requested"));
+        }
+
         return await GetPaymentForUserAsync(userId, paymentId);
     }
 
@@ -492,6 +568,12 @@ public class PaymentService(CarPoolingContext context)
             refund.Amount, payment.PaymentMethod.Code, "REFUNDED", "Devolucion procesada.");
 
         await _context.SaveChangesAsync();
+        await _notificationService.SendNotificationAsync(
+            payment.Reservation.PassengerUserId,
+            "Devolucion aprobada",
+            $"Tu devolucion de {refund.Amount:0.00} {payment.Currency} fue procesada.",
+            BuildPaymentData(payment, "refund_approved"));
+
         return RefundResponseDto.FromEntity(refund);
     }
 
@@ -513,6 +595,12 @@ public class PaymentService(CarPoolingContext context)
         refund.RejectionReason = dto.Notes?.Trim() ?? "Devolucion rechazada.";
 
         await _context.SaveChangesAsync();
+        await _notificationService.SendNotificationAsync(
+            refund.Payment.Reservation.PassengerUserId,
+            "Devolucion rechazada",
+            refund.RejectionReason,
+            BuildPaymentData(refund.Payment, "refund_rejected"));
+
         return RefundResponseDto.FromEntity(refund);
     }
 
@@ -620,6 +708,23 @@ public class PaymentService(CarPoolingContext context)
         }
 
         return normalized;
+    }
+
+    private static Dictionary<string, string> BuildPaymentData(Payment payment, string type)
+    {
+        var data = new Dictionary<string, string>
+        {
+            ["type"] = type,
+            ["paymentId"] = payment.Id.ToString(),
+            ["reservationId"] = payment.ReservationId.ToString()
+        };
+
+        if (payment.Reservation?.TripId is Guid tripId)
+        {
+            data["tripId"] = tripId.ToString();
+        }
+
+        return data;
     }
 
     private static void AddTransaction(

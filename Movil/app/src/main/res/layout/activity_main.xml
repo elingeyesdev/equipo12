@@ -305,22 +305,6 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/btnScheduleTripOption"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_gravity="center_horizontal"
-                android:text="Programar como viaje recurrente"
-                android:textColor="@color/carpool_primary"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?android:attr/selectableItemBackground"
-                android:padding="8dp"
-                android:visibility="gone" />
-
             <EditText
                 android:id="@+id/fareAmountInput"
                 android:layout_width="match_parent"
