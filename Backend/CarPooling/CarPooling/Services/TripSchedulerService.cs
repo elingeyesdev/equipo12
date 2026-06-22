@@ -81,6 +81,7 @@ public class TripSchedulerService : BackgroundService
                 if (!activeDays.Contains(date.DayOfWeek)) continue;
 
                 var scheduledDateTime = date.Add(schedule.DepartureTime);
+                if (scheduledDateTime < now) continue;
 
                 var exists = await context.Trips.AnyAsync(t => t.TripScheduleId == schedule.Id && t.ScheduledDate == scheduledDateTime);
                 if (exists) continue;

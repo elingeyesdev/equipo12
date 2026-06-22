@@ -8,6 +8,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -53,9 +54,10 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
         setupToggleListener();
         setupFabListener();
         observeViewModel();
+        setupSwipeToDelete();
 
-        // Load default tab
-        updateTabSelection(true);
+        // Ensure default tab is checked on start (triggers listener)
+        toggleGroup.check(R.id.btnDriverTab);
     }
 
     @Override
@@ -84,11 +86,89 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
     }
 
     private void setupToggleListener() {
+        int primaryColor = androidx.core.content.ContextCompat.getColor(this, R.color.carpool_primary);
+        int whiteColor = androidx.core.content.ContextCompat.getColor(this, R.color.white);
+
+        int[][] states = new int[][] {
+            new int[] { android.R.attr.state_checked },
+            new int[] { -android.R.attr.state_checked }
+        };
+
+        android.content.res.ColorStateList bgStates = new android.content.res.ColorStateList(states, new int[] { primaryColor, whiteColor });
+        android.content.res.ColorStateList textStates = new android.content.res.ColorStateList(states, new int[] { whiteColor, primaryColor });
+        android.content.res.ColorStateList strokeStates = new android.content.res.ColorStateList(states, new int[] { primaryColor, primaryColor });
+
+        com.google.android.material.button.MaterialButton btnDriver = findViewById(R.id.btnDriverTab);
+        com.google.android.material.button.MaterialButton btnPassenger = findViewById(R.id.btnPassengerTab);
+
+        btnDriver.setBackgroundTintList(bgStates);
+        btnDriver.setTextColor(textStates);
+        btnDriver.setStrokeColor(strokeStates);
+
+        btnPassenger.setBackgroundTintList(bgStates);
+        btnPassenger.setTextColor(textStates);
+        btnPassenger.setStrokeColor(strokeStates);
+
         toggleGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
                 updateTabSelection(checkedId == R.id.btnDriverTab);
             }
         });
+    }
+
+    private void setupSwipeToDelete() {
+        androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback simpleCallback = new androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(0, androidx.recyclerview.widget.ItemTouchHelper.LEFT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int position = viewHolder.getAdapterPosition();
+                if (adapter != null && position != RecyclerView.NO_POSITION) {
+                    Object item = adapter.getItemAt(position);
+                    if (item instanceof TripSchedule) {
+                        onDeleteSchedule((TripSchedule) item);
+                    } else if (item instanceof RecurringReservation) {
+                        onCancelSubscription((RecurringReservation) item);
+                    }
+                }
+            }
+
+            @Override
+            public void onChildDraw(@NonNull android.graphics.Canvas c, @NonNull RecyclerView recyclerView,
+                                    @NonNull RecyclerView.ViewHolder viewHolder,
+                                    float dX, float dY, int actionState, boolean isCurrentlyActive) {
+                if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_SWIPE && dX < 0) {
+                    View itemView = viewHolder.itemView;
+                    android.graphics.Paint paint = new android.graphics.Paint();
+                    paint.setColor(android.graphics.Color.parseColor("#FFE02020"));
+
+                    c.drawRoundRect(
+                            (float) itemView.getRight() + dX, (float) itemView.getTop(),
+                            (float) itemView.getRight(), (float) itemView.getBottom(),
+                            18f, 18f, paint
+                    );
+
+                    android.graphics.drawable.Drawable deleteIcon = androidx.core.content.ContextCompat.getDrawable(TripSchedulesActivity.this, android.R.drawable.ic_menu_delete);
+                    if (deleteIcon != null) {
+                        int iconMargin = (itemView.getHeight() - deleteIcon.getIntrinsicHeight()) / 2;
+                        int iconTop = itemView.getTop() + iconMargin;
+                        int iconBottom = iconTop + deleteIcon.getIntrinsicHeight();
+                        int iconLeft = itemView.getRight() - iconMargin - deleteIcon.getIntrinsicWidth();
+                        int iconRight = itemView.getRight() - iconMargin;
+
+                        deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom);
+                        deleteIcon.setTint(android.graphics.Color.WHITE);
+                        deleteIcon.draw(c);
+                    }
+                }
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+            }
+        };
+        androidx.recyclerview.widget.ItemTouchHelper itemTouchHelper = new androidx.recyclerview.widget.ItemTouchHelper(simpleCallback);
+        itemTouchHelper.attachToRecyclerView(recyclerView);
     }
 
     private void setupFabListener() {
@@ -176,13 +256,47 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
                 .setPositiveButton("Sí, Cancelar", (dialog, which) -> {
                     viewModel.cancelSubscription(subscription, sessionManager.getUserId());
                 })
-                .setNegativeButton("No", null)
+                .setNegativeButton("No", (dialog, which) -> {
+                    refreshCurrentTab();
+                })
+                .setOnCancelListener(dialog -> {
+                    refreshCurrentTab();
+                })
                 .show();
     }
 
     @Override
     public void onSubscribeToSchedule(TripSchedule schedule) {
         // Not used in this list directly
+    }
+
+    @Override
+    public void onScheduleClick(TripSchedule schedule) {
+        Intent intent = new Intent(this, TripScheduleDetailActivity.class);
+        intent.putExtra("EXTRA_SCHEDULE_ID", schedule.id);
+        intent.putExtra("EXTRA_ORIGIN", schedule.originAddress);
+        intent.putExtra("EXTRA_DESTINATION", schedule.destinationAddress);
+        intent.putExtra("EXTRA_TIME", schedule.departureTime);
+        intent.putExtra("EXTRA_DAYS", schedule.daysOfWeek);
+        intent.putExtra("EXTRA_SEATS", schedule.offeredSeats);
+        intent.putExtra("EXTRA_FARE", schedule.fareAmount);
+        startActivity(intent);
+    }
+
+    public void onDeleteSchedule(TripSchedule schedule) {
+        new AlertDialog.Builder(this)
+                .setTitle("Confirmar eliminación")
+                .setMessage("¿Estás seguro de que deseas eliminar este viaje programado permanentemente?")
+                .setPositiveButton("Sí, Eliminar", (dialog, which) -> {
+                    viewModel.deleteSchedule(schedule.id, sessionManager.getUserId());
+                })
+                .setNegativeButton("Cancelar", (dialog, which) -> {
+                    refreshCurrentTab();
+                })
+                .setOnCancelListener(dialog -> {
+                    refreshCurrentTab();
+                })
+                .show();
     }
 
     private void showAvailableSchedulesDialog() {
@@ -219,8 +333,12 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
             @Override
             public void onSubscribeToSchedule(TripSchedule schedule) {
                 dialog.dismiss();
-                confirmSubscriptionSeatsDialog(schedule);
+                // Subscribe directly with 1 seat, since it is personal
+                viewModel.subscribeToSchedule(schedule, sessionManager.getUserId(), 1);
             }
+
+            @Override
+            public void onScheduleClick(TripSchedule schedule) {}
         });
 
         dialogRecycler.setAdapter(dialogAdapter);
@@ -244,17 +362,5 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
         });
 
         dialog.show();
-    }
-
-    private void confirmSubscriptionSeatsDialog(TripSchedule schedule) {
-        String[] options = {"1 asiento", "2 asientos", "3 asientos", "4 asientos"};
-        new AlertDialog.Builder(this)
-                .setTitle("Seleccionar asientos para suscripción")
-                .setItems(options, (dialog, which) -> {
-                    int seats = which + 1;
-                    viewModel.subscribeToSchedule(schedule, sessionManager.getUserId(), seats);
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
     }
 }

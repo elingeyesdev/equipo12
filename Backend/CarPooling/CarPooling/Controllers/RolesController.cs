@@ -14,6 +14,8 @@ namespace CarPooling.Controllers;
 [RequirePermission(AppPermissions.ManageRoles)]
 public class RolesController(CarPoolingContext context, AuditService auditService) : ControllerBase
 {
+    private const string GetRolesRouteName = "GetRoles";
+
     private readonly CarPoolingContext _context = context;
     private readonly AuditService _auditService = auditService;
 
@@ -34,7 +36,7 @@ public class RolesController(CarPoolingContext context, AuditService auditServic
         return Ok(permissions);
     }
 
-    [HttpGet]
+    [HttpGet(Name = GetRolesRouteName)]
     public async Task<ActionResult<object>> GetRolesAsync()
     {
         var roles = await _context.Roles
@@ -100,7 +102,7 @@ public class RolesController(CarPoolingContext context, AuditService auditServic
             new { role.Id, role.Name, role.Description, Permissions = dto.Permissions ?? [] },
             description: $"Administrador creo el rol {role.Name}.");
 
-        return CreatedAtAction(nameof(GetRolesAsync), new { id = role.Id }, new
+        return CreatedAtRoute(GetRolesRouteName, new
         {
             role.Id,
             role.Name,

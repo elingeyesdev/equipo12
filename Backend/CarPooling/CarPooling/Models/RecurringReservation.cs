@@ -25,6 +25,8 @@ public class RecurringReservation
 
     public bool IsActive { get; set; } = true;
 
+    public bool IsAccepted { get; set; } = false;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Reservation> Reservations { get; set; } = [];

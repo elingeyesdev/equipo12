@@ -10,6 +10,8 @@ namespace CarPooling.Controllers;
 [Authorize(Roles = "Admin")]
 public class AdminSafeZonesController(SafeZoneService safeZoneService) : ControllerBase
 {
+    private const string GetSafeZoneByIdRouteName = "GetAdminSafeZoneById";
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<SafeZoneResponseDto>>> GetAllAsync()
     {
@@ -17,7 +19,7 @@ public class AdminSafeZonesController(SafeZoneService safeZoneService) : Control
         return Ok(zones);
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:guid}", Name = GetSafeZoneByIdRouteName)]
     public async Task<ActionResult<SafeZoneResponseDto>> GetByIdAsync(Guid id)
     {
         var zone = await safeZoneService.GetByIdAsync(id);
@@ -35,7 +37,7 @@ public class AdminSafeZonesController(SafeZoneService safeZoneService) : Control
         try
         {
             var created = await safeZoneService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetByIdAsync), new { id = created.Id }, created);
+            return CreatedAtRoute(GetSafeZoneByIdRouteName, new { id = created.Id }, created);
         }
         catch (InvalidOperationException ex)
         {

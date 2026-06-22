@@ -27,6 +27,7 @@ public class TripSchedulesAdapter extends RecyclerView.Adapter<TripSchedulesAdap
         void onToggleSchedule(TripSchedule schedule, boolean active);
         void onCancelSubscription(RecurringReservation subscription);
         void onSubscribeToSchedule(TripSchedule schedule);
+        void onScheduleClick(TripSchedule schedule);
     }
 
     private final List<Object> items = new ArrayList<>();
@@ -44,6 +45,13 @@ public class TripSchedulesAdapter extends RecyclerView.Adapter<TripSchedulesAdap
             items.addAll(list);
         }
         notifyDataSetChanged();
+    }
+
+    public Object getItemAt(int position) {
+        if (position >= 0 && position < items.size()) {
+            return items.get(position);
+        }
+        return null;
     }
 
     @Override
@@ -65,7 +73,7 @@ public class TripSchedulesAdapter extends RecyclerView.Adapter<TripSchedulesAdap
         if (viewTypeMode == TYPE_DRIVER_SCHEDULE && item instanceof TripSchedule) {
             TripSchedule schedule = (TripSchedule) item;
             holder.tvScheduleTime.setText(schedule.departureTime);
-            holder.tvScheduleDays.setText("🗓️ " + formatDaysOfWeek(schedule.daysOfWeek));
+            holder.tvScheduleDays.setText(formatDaysOfWeek(schedule.daysOfWeek));
             holder.tvScheduleOrigin.setText("Origen: " + schedule.originAddress);
             holder.tvScheduleDestination.setText("Destino: " + schedule.destinationAddress);
             holder.tvScheduleDetails.setText("Asientos: " + schedule.offeredSeats + " | Tarifa: " + schedule.fareAmount + " Bs.");
@@ -82,13 +90,19 @@ public class TripSchedulesAdapter extends RecyclerView.Adapter<TripSchedulesAdap
             holder.btnCancelSubscription.setVisibility(View.GONE);
             holder.btnSubscribeAction.setVisibility(View.GONE);
 
+            holder.itemView.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onScheduleClick(schedule);
+                }
+            });
+
         } else if (viewTypeMode == TYPE_PASSENGER_SUBSCRIPTION && item instanceof RecurringReservation) {
             RecurringReservation sub = (RecurringReservation) item;
             holder.tvScheduleTime.setText(sub.departureTime != null && !sub.departureTime.isEmpty() ? sub.departureTime : "--:--");
-            holder.tvScheduleDays.setText("🗓️ " + formatDaysOfWeek(sub.daysOfWeek));
+            holder.tvScheduleDays.setText(formatDaysOfWeek(sub.daysOfWeek));
             holder.tvScheduleOrigin.setText("Origen: " + sub.originAddress);
             holder.tvScheduleDestination.setText("Destino: " + sub.destinationAddress);
-            holder.tvScheduleDetails.setText("Conductor: " + sub.driverName + " | Reservados: " + sub.seatsReserved);
+            holder.tvScheduleDetails.setText("Conductor: " + sub.driverName + " | Reservados: " + sub.seatsReserved + " | Estado: " + (sub.isAccepted ? "Aceptado" : "Pendiente"));
 
             holder.switchScheduleActive.setVisibility(View.GONE);
             holder.btnCancelSubscription.setVisibility(sub.isActive ? View.VISIBLE : View.GONE);
@@ -102,7 +116,7 @@ public class TripSchedulesAdapter extends RecyclerView.Adapter<TripSchedulesAdap
         } else if (viewTypeMode == TYPE_BROWSE_SCHEDULE && item instanceof TripSchedule) {
             TripSchedule schedule = (TripSchedule) item;
             holder.tvScheduleTime.setText(schedule.departureTime);
-            holder.tvScheduleDays.setText("🗓️ " + formatDaysOfWeek(schedule.daysOfWeek));
+            holder.tvScheduleDays.setText(formatDaysOfWeek(schedule.daysOfWeek));
             holder.tvScheduleOrigin.setText("Origen: " + schedule.originAddress);
             holder.tvScheduleDestination.setText("Destino: " + schedule.destinationAddress);
             holder.tvScheduleDetails.setText("Conductor: " + schedule.driverName + " | Asientos: " + schedule.offeredSeats + " | Tarifa: " + schedule.fareAmount + " Bs.");

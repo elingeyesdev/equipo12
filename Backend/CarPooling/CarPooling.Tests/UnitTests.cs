@@ -372,7 +372,7 @@ public class UnitTests
     {
         // Arrange
         using var context = GetInMemoryContext("BankQrValidationDb");
-        var service = new PaymentService(context);
+        var service = new PaymentService(context, new MockNotificationService());
         var userId = Guid.NewGuid();
 
         context.Users.Add(new User

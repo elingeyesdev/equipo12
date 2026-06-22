@@ -10,6 +10,7 @@ public class RecurringReservation {
     public final String passengerName;
     public final int seatsReserved;
     public final boolean isActive;
+    public final boolean isAccepted;
     public final String createdAt;
     public final String originAddress;
     public final String destinationAddress;
@@ -18,15 +19,16 @@ public class RecurringReservation {
     public final String driverName;
 
     public RecurringReservation(String id, String tripScheduleId, String passengerUserId,
-                                String passengerName, int seatsReserved, boolean isActive, String createdAt,
-                                String originAddress, String destinationAddress, String departureTime,
-                                String daysOfWeek, String driverName) {
+                                String passengerName, int seatsReserved, boolean isActive, boolean isAccepted,
+                                String createdAt, String originAddress, String destinationAddress,
+                                String departureTime, String daysOfWeek, String driverName) {
         this.id = id;
         this.tripScheduleId = tripScheduleId;
         this.passengerUserId = passengerUserId;
         this.passengerName = passengerName;
         this.seatsReserved = seatsReserved;
         this.isActive = isActive;
+        this.isAccepted = isAccepted;
         this.createdAt = createdAt;
         this.originAddress = originAddress;
         this.destinationAddress = destinationAddress;
@@ -43,6 +45,7 @@ public class RecurringReservation {
                 obj.optString("passengerName", ""),
                 obj.optInt("seatsReserved", 1),
                 obj.optBoolean("isActive", true),
+                obj.optBoolean("isAccepted", false),
                 obj.optString("createdAt", ""),
                 obj.optString("originAddress", ""),
                 obj.optString("destinationAddress", ""),

@@ -214,4 +214,51 @@ public class TripScheduleRemoteDataSource {
             return response.isSuccessful();
         }
     }
+
+    public List<RecurringReservation> getScheduleSubscriptions(String scheduleId) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/RecurringReservation/schedule/" + scheduleId)
+                .get()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Unexpected response: " + response.code() + " " + errorBody);
+            }
+            if (response.body() == null) throw new IOException("Server returned empty body");
+            JSONArray array = new JSONArray(response.body().string());
+            List<RecurringReservation> list = new ArrayList<>();
+            for (int i = 0; i < array.length(); i++) {
+                list.add(RecurringReservation.fromJson(array.getJSONObject(i)));
+            }
+            return list;
+        } catch (JSONException e) {
+            throw new IOException("Invalid JSON response", e);
+        }
+    }
+
+    public boolean approveSubscription(String id) throws IOException {
+        RequestBody body = RequestBody.create("", null);
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/RecurringReservation/" + id + "/approve")
+                .post(body)
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            return response.isSuccessful();
+        }
+    }
+
+    public boolean rejectSubscription(String id) throws IOException {
+        RequestBody body = RequestBody.create("", null);
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/RecurringReservation/" + id + "/reject")
+                .post(body)
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            return response.isSuccessful();
+        }
+    }
 }

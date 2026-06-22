@@ -59,10 +59,10 @@ public class TripScheduleController(CarPoolingContext context) : ControllerBase
         context.TripSchedules.Add(schedule);
         await context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetScheduleByIdAsync), new { id = schedule.Id }, MapToResponse(schedule, driver.FullName));
+        return CreatedAtRoute(nameof(GetScheduleByIdAsync), new { id = schedule.Id }, MapToResponse(schedule, driver.FullName));
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:guid}", Name = nameof(GetScheduleByIdAsync))]
     public async Task<ActionResult<TripScheduleResponse>> GetScheduleByIdAsync(Guid id)
     {
         var schedule = await context.TripSchedules

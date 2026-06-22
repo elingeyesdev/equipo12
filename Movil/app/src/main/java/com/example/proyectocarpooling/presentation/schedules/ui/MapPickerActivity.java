@@ -39,6 +39,7 @@ import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListen
 import org.json.JSONException;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,6 +65,7 @@ public class MapPickerActivity extends AppCompatActivity {
 
     private Point selectedPoint;
     private String selectedAddress;
+    private final java.util.Map<String, com.example.proyectocarpooling.data.model.safezones.SafeZoneItem> safeZoneByAnnotationId = new java.util.HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,6 +137,7 @@ public class MapPickerActivity extends AppCompatActivity {
             );
 
             checkLocationPermissions();
+            loadSafeZonesOnMap();
         });
     }
 
@@ -173,6 +176,7 @@ public class MapPickerActivity extends AppCompatActivity {
             pointAnnotationManager = com.mapbox.maps.plugin.annotation.generated.PointAnnotationManagerKt.createPointAnnotationManager(annotationPlugin, null);
         }
         markerBitmap = createMarkerBitmap();
+        registerSafeZoneClickListenerIfNeeded();
     }
 
     private void setupMapClickListener() {
@@ -266,6 +270,126 @@ public class MapPickerActivity extends AppCompatActivity {
         innerPaint.setStyle(Paint.Style.FILL);
         innerPaint.setColor(Color.WHITE);
         canvas.drawCircle(centerX, circleCenterY, radius * 0.42f, innerPaint);
+
+        return bitmap;
+    }
+
+    private void registerSafeZoneClickListenerIfNeeded() {
+        if (pointAnnotationManager == null) {
+            return;
+        }
+
+        pointAnnotationManager.addClickListener(clicked -> {
+            com.example.proyectocarpooling.data.model.safezones.SafeZoneItem zone = safeZoneByAnnotationId.get(clicked.getId());
+            if (zone != null) {
+                Point point = Point.fromLngLat(zone.longitude, zone.latitude);
+                
+                if (selectionAnnotation == null) {
+                    PointAnnotationOptions options = new PointAnnotationOptions()
+                            .withPoint(point)
+                            .withIconImage(markerBitmap);
+                    selectionAnnotation = pointAnnotationManager.create(options);
+                } else {
+                    selectionAnnotation.setPoint(point);
+                    pointAnnotationManager.update(selectionAnnotation);
+                }
+                
+                selectedPoint = point;
+                selectedAddress = (zone.name != null && !zone.name.trim().isEmpty() ? zone.name.trim() : "Zona segura") 
+                        + (zone.addressLabel != null && !zone.addressLabel.trim().isEmpty() ? " - " + zone.addressLabel.trim() : "");
+                tvSelectedAddress.setText(selectedAddress);
+                btnConfirm.setEnabled(true);
+                
+                mapView.getMapboxMap().setCamera(
+                        new CameraOptions.Builder()
+                                .center(point)
+                                .build()
+                );
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void loadSafeZonesOnMap() {
+        if (pointAnnotationManager == null) {
+            return;
+        }
+
+        Bitmap safeZoneBitmap = createSafeZoneMarkerBitmap();
+        backgroundExecutor.execute(() -> {
+            try {
+                List<com.example.proyectocarpooling.data.model.safezones.SafeZoneItem> zones = 
+                        ((com.example.proyectocarpooling.CarPoolingApplication) getApplication())
+                        .getSafeZonesRemoteDataSource()
+                        .fetchActiveSafeZones();
+                
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    for (com.example.proyectocarpooling.data.model.safezones.SafeZoneItem zone : zones) {
+                        if (zone.latitude == 0d && zone.longitude == 0d) {
+                            continue;
+                        }
+                        PointAnnotationOptions options = new PointAnnotationOptions()
+                                .withPoint(Point.fromLngLat(zone.longitude, zone.latitude))
+                                .withIconImage(safeZoneBitmap)
+                                .withIconSize(1.0)
+                                .withSymbolSortKey(10.0);
+                        PointAnnotation annotation = pointAnnotationManager.create(options);
+                        safeZoneByAnnotationId.put(annotation.getId(), zone);
+                    }
+                });
+            } catch (Exception e) {
+                android.util.Log.w("MapPickerActivity", "Error loading safe zones", e);
+            }
+        });
+    }
+
+    private Bitmap createSafeZoneMarkerBitmap() {
+        int size = 96;
+        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fillPaint.setStyle(Paint.Style.FILL);
+        fillPaint.setColor(Color.parseColor("#43A047"));
+
+        Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        strokePaint.setStyle(Paint.Style.STROKE);
+        strokePaint.setStrokeWidth(6f);
+        strokePaint.setColor(Color.WHITE);
+
+        float centerX = size / 2f;
+        float centerY = size * 0.42f;
+        float radius = size * 0.22f;
+
+        canvas.drawCircle(centerX, centerY, radius + 4f, strokePaint);
+        canvas.drawCircle(centerX, centerY, radius, fillPaint);
+
+        Paint shieldPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        shieldPaint.setStyle(Paint.Style.FILL);
+        shieldPaint.setColor(Color.WHITE);
+
+        Path shield = new Path();
+        shield.moveTo(centerX, size * 0.24f);
+        shield.lineTo(centerX + radius * 0.72f, size * 0.34f);
+        shield.lineTo(centerX + radius * 0.55f, size * 0.56f);
+        shield.quadTo(centerX, size * 0.64f, centerX - radius * 0.55f, size * 0.56f);
+        shield.lineTo(centerX - radius * 0.72f, size * 0.34f);
+        shield.close();
+        canvas.drawPath(shield, shieldPaint);
+
+        Paint checkPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        checkPaint.setStyle(Paint.Style.STROKE);
+        checkPaint.setStrokeWidth(5f);
+        checkPaint.setColor(Color.parseColor("#2E7D32"));
+        checkPaint.setStrokeCap(Paint.Cap.ROUND);
+
+        Path check = new Path();
+        check.moveTo(centerX - radius * 0.22f, centerY);
+        check.lineTo(centerX - radius * 0.02f, centerY + radius * 0.2f);
+        check.lineTo(centerX + radius * 0.3f, centerY - radius * 0.18f);
+        canvas.drawPath(check, checkPaint);
 
         return bitmap;
     }

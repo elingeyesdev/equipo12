@@ -23,6 +23,7 @@ public class RecurringReservationResponse
     public string PassengerName { get; set; } = "";
     public int SeatsReserved { get; set; }
     public bool IsActive { get; set; }
+    public bool IsAccepted { get; set; }
     public DateTime CreatedAt { get; set; }
 
     public string OriginAddress { get; set; } = "";

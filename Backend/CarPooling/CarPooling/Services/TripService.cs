@@ -162,7 +162,7 @@ public class TripService(
             .FirstOrDefaultAsync(t => t.Id == tripId);
         if (trip is null) throw new InvalidOperationException("Viaje no encontrado.");
         if (trip.StatusId == 5) throw new InvalidOperationException("Viaje cancelado.");
-        if (trip.StatusId != 2) throw new InvalidOperationException("El viaje no esta listo para iniciar.");
+        if (trip.StatusId != 2 && trip.StatusId != 1) throw new InvalidOperationException("El viaje no esta listo para iniciar.");
 
         // Permitir iniciar viaje sin pasajeros abordados (se pueden abordar en ruta)
         var oldValues = AuditService.SnapshotTrip(trip);
@@ -299,7 +299,7 @@ public class TripService(
             .Include(t => t.Vehicle)
             .Include(t => t.DriverUser)
             .Where(t =>
-                (t.StatusId == 1 || t.StatusId == 2 || t.StatusId == 3) // scheduled, ready, or in progress
+                ((t.StatusId == 2 || t.StatusId == 3) || (t.StatusId == 1 && t.ScheduledDate.HasValue && DateTime.UtcNow >= t.ScheduledDate.Value))
                 && t.AvailableSeats > 0)
             .ToListAsync();
 
@@ -367,6 +367,7 @@ public class TripService(
             .Include(t => t.DriverUser)
             .Where(t =>
                 t.DriverUserId == driverUserId
+                && (t.StatusId != 1 || (t.ScheduledDate.HasValue && DateTime.UtcNow >= t.ScheduledDate.Value))
                 && t.StatusId != 4
                 && t.StatusId != 5)
             .OrderByDescending(t => t.CreatedAt)
@@ -383,6 +384,7 @@ public class TripService(
                     t.DriverUserId == null
                     && t.DriverName != null
                     && t.DriverName.Trim() == n
+                    && (t.StatusId != 1 || (t.ScheduledDate.HasValue && DateTime.UtcNow >= t.ScheduledDate.Value))
                     && t.StatusId != 4
                     && t.StatusId != 5)
                 .OrderByDescending(t => t.CreatedAt)

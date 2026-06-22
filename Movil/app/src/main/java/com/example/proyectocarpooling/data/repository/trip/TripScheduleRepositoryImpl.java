@@ -60,4 +60,19 @@ public class TripScheduleRepositoryImpl implements TripScheduleRepository {
     public boolean cancelSubscription(String id) throws IOException {
         return remoteDataSource.cancelSubscription(id);
     }
+
+    @Override
+    public List<RecurringReservation> getScheduleSubscriptions(String scheduleId) throws IOException {
+        return remoteDataSource.getScheduleSubscriptions(scheduleId);
+    }
+
+    @Override
+    public boolean approveSubscription(String id) throws IOException {
+        return remoteDataSource.approveSubscription(id);
+    }
+
+    @Override
+    public boolean rejectSubscription(String id) throws IOException {
+        return remoteDataSource.rejectSubscription(id);
+    }
 }

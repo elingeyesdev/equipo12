@@ -18,4 +18,7 @@ public interface TripScheduleRepository {
     RecurringReservation subscribe(String tripScheduleId, String passengerUserId, int seatsReserved) throws IOException;
     List<RecurringReservation> getPassengerSubscriptions(String passengerUserId) throws IOException;
     boolean cancelSubscription(String id) throws IOException;
+    List<RecurringReservation> getScheduleSubscriptions(String scheduleId) throws IOException;
+    boolean approveSubscription(String id) throws IOException;
+    boolean rejectSubscription(String id) throws IOException;
 }

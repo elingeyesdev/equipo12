@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CarPooling.Data;
 using CarPooling.Dtos;
 using CarPooling.Models;
+using CarPooling.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,8 +13,10 @@ namespace CarPooling.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class RecurringReservationController(CarPoolingContext context) : ControllerBase
+public class RecurringReservationController(CarPoolingContext context, INotificationService notificationService) : ControllerBase
 {
+    private const string GetSubscriptionByIdRouteName = "GetRecurringReservationById";
+
     [HttpPost]
     public async Task<ActionResult<RecurringReservationResponse>> SubscribeAsync([FromBody] CreateRecurringReservationDto dto)
     {
@@ -35,16 +38,28 @@ public class RecurringReservationController(CarPoolingContext context) : Control
             PassengerUserId = dto.PassengerUserId,
             SeatsReserved = dto.SeatsReserved,
             IsActive = true,
+            IsAccepted = false,
             CreatedAt = DateTime.UtcNow
         };
 
         context.RecurringReservations.Add(subscription);
         await context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetSubscriptionByIdAsync), new { id = subscription.Id }, MapToResponse(subscription, passenger.FullName));
+        try
+        {
+            await notificationService.SendNotificationAsync(
+                schedule.DriverUserId,
+                "Nueva solicitud de suscripción",
+                $"{passenger.FullName} quiere unirse a tu ruta del día.",
+                new Dictionary<string, string> { { "type", "schedule_subscription_request" }, { "scheduleId", schedule.Id.ToString() } }
+            );
+        }
+        catch { /* Ignorar errores de notificación */ }
+
+        return CreatedAtRoute(GetSubscriptionByIdRouteName, new { id = subscription.Id }, MapToResponse(subscription, passenger.FullName));
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:guid}", Name = GetSubscriptionByIdRouteName)]
     public async Task<ActionResult<RecurringReservationResponse>> GetSubscriptionByIdAsync(Guid id)
     {
         var subscription = await context.RecurringReservations
@@ -82,11 +97,98 @@ public class RecurringReservationController(CarPoolingContext context) : Control
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> CancelSubscriptionAsync(Guid id)
     {
-        var subscription = await context.RecurringReservations.FindAsync(id);
+        var subscription = await context.RecurringReservations
+            .Include(r => r.TripSchedule)
+            .Include(r => r.PassengerUser)
+            .FirstOrDefaultAsync(r => r.Id == id);
         if (subscription is null) return NotFound();
 
         subscription.IsActive = false;
         await context.SaveChangesAsync();
+
+        if (subscription.TripSchedule != null)
+        {
+            try
+            {
+                await notificationService.SendNotificationAsync(
+                    subscription.TripSchedule.DriverUserId,
+                    "Suscripción cancelada",
+                    $"{subscription.PassengerUser.FullName} canceló su suscripción para la ruta programada.",
+                    new Dictionary<string, string> { { "type", "schedule_subscription_cancelled" }, { "scheduleId", subscription.TripSchedule.Id.ToString() } }
+                );
+            }
+            catch { /* Ignorar errores de notificación */ }
+        }
+
+        return NoContent();
+    }
+
+    [HttpGet("schedule/{scheduleId:guid}")]
+    public async Task<ActionResult<IEnumerable<RecurringReservationResponse>>> GetScheduleSubscriptionsAsync(Guid scheduleId)
+    {
+        var subscriptions = await context.RecurringReservations
+            .Include(r => r.PassengerUser)
+            .Include(r => r.TripSchedule)
+                .ThenInclude(s => s.OriginLocation)
+            .Include(r => r.TripSchedule)
+                .ThenInclude(s => s.DestinationLocation)
+            .Include(r => r.TripSchedule)
+                .ThenInclude(s => s.DriverUser)
+            .Where(r => r.TripScheduleId == scheduleId)
+            .ToListAsync();
+
+        return Ok(subscriptions.Select(s => MapToResponse(s, s.PassengerUser.FullName)));
+    }
+
+    [HttpPost("{id:guid}/approve")]
+    public async Task<IActionResult> ApproveSubscriptionAsync(Guid id)
+    {
+        var subscription = await context.RecurringReservations
+            .Include(r => r.TripSchedule)
+            .FirstOrDefaultAsync(r => r.Id == id);
+        if (subscription is null) return NotFound();
+
+        subscription.IsAccepted = true;
+        await context.SaveChangesAsync();
+
+        try
+        {
+            await notificationService.SendNotificationAsync(
+                subscription.PassengerUserId,
+                "Suscripción aceptada",
+                "El conductor aprobó tu suscripción para la ruta programada.",
+                new Dictionary<string, string> { { "type", "schedule_subscription_approved" }, { "subscriptionId", subscription.Id.ToString() } }
+            );
+        }
+        catch { /* Ignorar errores de notificación */ }
+
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/reject")]
+    public async Task<IActionResult> RejectSubscriptionAsync(Guid id)
+    {
+        var subscription = await context.RecurringReservations
+            .Include(r => r.TripSchedule)
+            .FirstOrDefaultAsync(r => r.Id == id);
+        if (subscription is null) return NotFound();
+
+        var passengerUserId = subscription.PassengerUserId;
+
+        context.RecurringReservations.Remove(subscription);
+        await context.SaveChangesAsync();
+
+        try
+        {
+            await notificationService.SendNotificationAsync(
+                passengerUserId,
+                "Suscripción rechazada",
+                "El conductor no pudo aceptar tu suscripción en esta ocasión.",
+                new Dictionary<string, string> { { "type", "schedule_subscription_rejected" } }
+            );
+        }
+        catch { /* Ignorar errores de notificación */ }
+
         return NoContent();
     }
 
@@ -100,6 +202,7 @@ public class RecurringReservationController(CarPoolingContext context) : Control
             PassengerName = passengerName,
             SeatsReserved = r.SeatsReserved,
             IsActive = r.IsActive,
+            IsAccepted = r.IsAccepted,
             CreatedAt = r.CreatedAt,
             OriginAddress = r.TripSchedule?.OriginLocation?.AddressLabel ?? "",
             DestinationAddress = r.TripSchedule?.DestinationLocation?.AddressLabel ?? "",

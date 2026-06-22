@@ -62,7 +62,7 @@
             android:textColor="@color/carpool_text_primary"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:text="🗓️ Lun, Mar, Mie, Jue, Vie" />
+            android:text="Lun, Mar, Mie, Jue, Vie" />
 
         <View
             android:layout_width="match_parent"

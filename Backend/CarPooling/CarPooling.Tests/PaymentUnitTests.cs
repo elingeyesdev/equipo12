@@ -87,7 +87,7 @@ public class PaymentUnitTests
         });
         await context.SaveChangesAsync();
 
-        var service = new PaymentService(context);
+        var service = new PaymentService(context, new MockNotificationService());
         var result = await service.ConfirmManualPaymentAsync(driverId, paymentId, new ConfirmPaymentDto
         {
             Notes = "Recibido en efectivo"

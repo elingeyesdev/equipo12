@@ -227,8 +227,25 @@ public class CreateTripScheduleActivity extends BaseActivity {
             return false;
         }
         int seats = Integer.parseInt(seatsStr.trim());
-        if (seats < 1 || seats > 12) {
-            etOfferedSeats.setError(getString(R.string.validation_seats_range));
+        
+        com.example.proyectocarpooling.data.model.user.VehicleResponse selectedVehicle = null;
+        for (com.example.proyectocarpooling.data.model.user.VehicleResponse vehicle : userVehicles) {
+            if (vehicle.id.equals(selectedVehicleId)) {
+                selectedVehicle = vehicle;
+                break;
+            }
+        }
+        int maxSeats = 4;
+        if (selectedVehicle != null) {
+            maxSeats = selectedVehicle.totalSeats;
+        }
+
+        if (seats < 1) {
+            etOfferedSeats.setError("Debe ofrecer al menos 1 asiento.");
+            return false;
+        }
+        if (seats > maxSeats) {
+            etOfferedSeats.setError("Solo puedes ofrecer hasta " + maxSeats + " asientos (capacidad configurada en tu perfil para este vehículo).");
             return false;
         }
         if (fareStr == null || !fareStr.trim().matches("\\d+(\\.\\d{1,2})?")) {

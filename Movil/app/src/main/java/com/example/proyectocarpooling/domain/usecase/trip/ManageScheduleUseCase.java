@@ -51,4 +51,16 @@ public class ManageScheduleUseCase {
     public boolean cancelSubscription(String id) throws IOException {
         return repository.cancelSubscription(id);
     }
+
+    public List<RecurringReservation> getScheduleSubscriptions(String scheduleId) throws IOException {
+        return repository.getScheduleSubscriptions(scheduleId);
+    }
+
+    public boolean approveSubscription(String id) throws IOException {
+        return repository.approveSubscription(id);
+    }
+
+    public boolean rejectSubscription(String id) throws IOException {
+        return repository.rejectSubscription(id);
+    }
 }

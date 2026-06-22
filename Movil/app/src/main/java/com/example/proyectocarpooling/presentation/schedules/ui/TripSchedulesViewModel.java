@@ -156,7 +156,24 @@ public class TripSchedulesViewModel extends AndroidViewModel {
             }
         });
     }
-
+    public void deleteSchedule(String scheduleId, String driverUserId) {
+        loading.postValue(true);
+        executor.execute(() -> {
+            try {
+                boolean success = manageScheduleUseCase.deleteSchedule(scheduleId);
+                if (success) {
+                    successMessage.postValue("Horario programado eliminado");
+                    loadDriverSchedules(driverUserId);
+                } else {
+                    errorMessage.postValue("No se pudo eliminar el horario");
+                }
+            } catch (Exception e) {
+                errorMessage.postValue("Error al eliminar: " + e.getMessage());
+            } finally {
+                loading.postValue(false);
+            }
+        });
+    }
     @Override
     protected void onCleared() {
         super.onCleared();
