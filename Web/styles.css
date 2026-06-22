@@ -416,9 +416,9 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .result-box {
-  border: 1px dashed rgba(31, 29, 26, 0.2);
+  border: 1px dashed var(--border-color);
   border-radius: 12px;
-  background: #fffefb;
+  background: var(--panel-alt);
   padding: 10px;
   font-size: 0.82rem;
   line-height: 1.4;
@@ -493,7 +493,7 @@ input[type="date"]::-webkit-datetime-edit {
 
 .empty-state--error {
   border-color: rgba(173, 38, 52, 0.32);
-  background: #fff4f4;
+  background: rgba(173, 38, 52, 0.08);
 }
 
 .reservation-list {
@@ -601,10 +601,10 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .support-detail-box {
-  border: 1px solid rgba(31, 29, 26, 0.12);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 12px;
-  background: #fffefb;
+  background: var(--panel-alt);
   display: grid;
   gap: 8px;
 }
@@ -641,9 +641,9 @@ input[type="date"]::-webkit-datetime-edit {
   display: grid;
   gap: 8px;
   padding: 10px;
-  border: 1px solid rgba(31, 29, 26, 0.12);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: #fffefb;
+  background: var(--panel);
 }
 
 .support-chat-empty {
@@ -672,7 +672,7 @@ input[type="date"]::-webkit-datetime-edit {
 
 .support-chat-bubble--in {
   justify-self: start;
-  background: #f2efe8;
+  background: var(--panel-alt);
   color: var(--text);
 }
 
@@ -688,10 +688,10 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .empty-state {
-  border: 1px dashed rgba(31, 29, 26, 0.18);
+  border: 1px dashed var(--border-color);
   border-radius: 14px;
   padding: 16px;
-  background: #fffefb;
+  background: var(--panel-alt);
   color: var(--muted);
   display: grid;
   gap: 6px;
@@ -708,9 +708,9 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .driver-fields {
-  border: 1px solid rgba(31, 29, 26, 0.12);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: #fffaf3;
+  background: var(--panel-alt);
   padding: 10px;
   display: grid;
   gap: 10px;
@@ -798,8 +798,8 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .trip-coord-box {
-  border: 1px solid rgba(31, 29, 26, 0.12);
-  background: #fffefb;
+  border: 1px solid var(--border-color);
+  background: var(--panel-alt);
   border-radius: 12px;
   padding: 10px;
   display: grid;
@@ -817,7 +817,8 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .filter-field input {
-  background: #fffefb;
+  background: var(--panel);
+  color: var(--text);
 }
 
 .table-wrap {
@@ -942,7 +943,7 @@ input[type="date"]::-webkit-datetime-edit {
   min-height: 36px;
   border: 1px solid var(--border-color);
   border-radius: 999px;
-  background: #fffefb;
+  background: var(--panel);
   color: var(--text);
   cursor: pointer;
   font: inherit;
@@ -964,7 +965,7 @@ input[type="date"]::-webkit-datetime-edit {
 
 .audit-kpi--button:hover {
   border-color: var(--accent);
-  background: #f7faf4;
+  background: var(--panel);
 }
 
 .audit-question-grid {
@@ -975,9 +976,9 @@ input[type="date"]::-webkit-datetime-edit {
 
 .audit-question {
   min-height: 104px;
-  border: 1px solid rgba(31, 29, 26, 0.12);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: #fffefb;
+  background: var(--panel);
   color: var(--text);
   cursor: pointer;
   display: grid;
@@ -1064,9 +1065,9 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .audit-timeline-content {
-  border: 1px solid rgba(31, 29, 26, 0.12);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: #fffefb;
+  background: var(--panel);
   display: grid;
   gap: 10px;
   padding: 14px;
@@ -1131,8 +1132,8 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .audit-human-summary {
-  background: #fffefb;
-  border: 1px solid rgba(31, 29, 26, 0.1);
+  background: var(--panel-alt);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 12px;
 }
@@ -1144,9 +1145,9 @@ input[type="date"]::-webkit-datetime-edit {
 }
 
 .audit-analysis-card {
-  border: 1px solid rgba(31, 29, 26, 0.12);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: #fffefb;
+  background: var(--panel);
   padding: 14px;
   min-height: 150px;
 }
@@ -1233,9 +1234,9 @@ input[type="date"]::-webkit-datetime-edit {
 .audit-report-context {
   display: grid;
   gap: 7px;
-  border: 1px solid rgba(154, 45, 45, 0.14);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: #fff8f4;
+  background: var(--panel-alt);
   padding: 10px 12px;
 }
 
@@ -1263,7 +1264,7 @@ input[type="date"]::-webkit-datetime-edit {
   word-break: break-word;
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  background: #fffaf4;
+  background: var(--panel-alt);
   padding: 10px;
   font-size: 0.78rem;
   line-height: 1.45;

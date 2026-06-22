@@ -121,7 +121,7 @@
               <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text);">Pasajeros vs Conductores</h4>
               <canvas id="usersChart"></canvas>
             </div>
-            <div style="background: var(--panel); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+            <div style="background: var(--panel); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: none;">
               <h4 style="margin-bottom: 12px; font-size: 1rem; color: var(--text);">Estado de Reservas</h4>
               <canvas id="reservationsChart"></canvas>
             </div>
@@ -913,6 +913,7 @@
               <th>Fecha/Hora</th>
               <th>Conductor</th>
               <th>Estado</th>
+              <th>Ruta</th>
             </tr>
           </thead>
           <tbody id="userTripsModalBody">
@@ -921,6 +922,22 @@
         </table>
       </div>
       <p id="userTripsModalMessage" class="message" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <div class="modal-overlay hidden" id="routeMapModalOverlay" aria-hidden="true" style="z-index: 100;">
+    <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="routeMapModalTitle">
+      <div class="modal-header">
+        <h3 id="routeMapModalTitle">Ruta del Viaje</h3>
+        <button type="button" class="btn tiny" id="routeMapModalCloseBtn">Cerrar</button>
+      </div>
+      <div class="stack compact">
+        <div id="routeMapContainer" class="trip-map trip-map--tall" aria-label="Mapa de la ruta del viaje"></div>
+        <div class="hint-box" style="background: var(--panel-alt); border-left: 3px solid var(--accent); color: var(--text); padding: 12px; border-radius: 8px; font-size: 0.88rem; display: grid; gap: 8px;">
+          <div><strong>Origen:</strong> <span id="routeMapOriginText">Cargando...</span></div>
+          <div><strong>Destino:</strong> <span id="routeMapDestText">Cargando...</span></div>
+        </div>
+      </div>
     </section>
   </div>
 

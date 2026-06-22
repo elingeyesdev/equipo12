@@ -3904,6 +3904,113 @@ document.getElementById("userTripsModalCloseBtn")?.addEventListener("click", () 
   document.getElementById("userTripsModalOverlay")?.classList.add("hidden");
 });
 
+let routeMapInstance = null;
+let routeMapOriginMarker = null;
+let routeMapDestinationMarker = null;
+
+function destroyRouteMap() {
+  if (routeMapOriginMarker) {
+    routeMapOriginMarker.remove();
+    routeMapOriginMarker = null;
+  }
+  if (routeMapDestinationMarker) {
+    routeMapDestinationMarker.remove();
+    routeMapDestinationMarker = null;
+  }
+  if (routeMapInstance) {
+    routeMapInstance.remove();
+    routeMapInstance = null;
+  }
+}
+
+document.getElementById("routeMapModalCloseBtn")?.addEventListener("click", () => {
+  document.getElementById("routeMapModalOverlay")?.classList.add("hidden");
+  destroyRouteMap();
+});
+
+async function initializeRouteMap(originLat, originLng, destLat, destLng, originLabel, destLabel) {
+  const container = document.getElementById("routeMapContainer");
+  if (!container || typeof mapboxgl === "undefined") {
+    return;
+  }
+
+  destroyRouteMap();
+  mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+
+  const originCoordinates = [Number(originLng), Number(originLat)];
+  const destinationCoordinates = [Number(destLng), Number(destLat)];
+
+  routeMapInstance = new mapboxgl.Map({
+    container,
+    style: "mapbox://styles/mapbox/streets-v12",
+    center: originCoordinates,
+    zoom: 12
+  });
+
+  routeMapInstance.addControl(new mapboxgl.NavigationControl(), "top-right");
+
+  routeMapInstance.on("load", async () => {
+    routeMapOriginMarker = new mapboxgl.Marker({ color: "#b67a52" })
+      .setLngLat(originCoordinates)
+      .addTo(routeMapInstance);
+
+    routeMapDestinationMarker = new mapboxgl.Marker({ color: "#5f7f6c" })
+      .setLngLat(destinationCoordinates)
+      .addTo(routeMapInstance);
+
+    let coordinates = [];
+    try {
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${originCoordinates[0]},${originCoordinates[1]};${destinationCoordinates[0]},${destinationCoordinates[1]}?geometries=geojson&overview=full&access_token=${MAPBOX_ACCESS_TOKEN}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Directions request failed");
+      }
+      const data = await response.json();
+      if (data.routes && data.routes.length > 0) {
+        coordinates = data.routes[0].geometry.coordinates;
+      } else {
+        coordinates = [originCoordinates, destinationCoordinates];
+      }
+    } catch (e) {
+      console.warn("Directions API failed, drawing straight line:", e);
+      coordinates = [originCoordinates, destinationCoordinates];
+    }
+
+    routeMapInstance.addSource("route-line-source", {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: coordinates
+          }
+        }]
+      }
+    });
+
+    routeMapInstance.addLayer({
+      id: "route-line-layer",
+      type: "line",
+      source: "route-line-source",
+      layout: { "line-join": "round", "line-cap": "round" },
+      paint: {
+        "line-color": "#5f7f6c",
+        "line-width": 4
+      }
+    });
+
+    const bounds = new mapboxgl.LngLatBounds();
+    coordinates.forEach(coord => bounds.extend(coord));
+    routeMapInstance.fitBounds(bounds, {
+      padding: { top: 50, bottom: 50, left: 50, right: 50 },
+      maxZoom: 15
+    });
+  });
+}
+
 function viewUserTrips(userId) {
   const trips = state.adminData.trips || [];
   const reservations = state.adminData.reservations || [];
@@ -3951,24 +4058,40 @@ function viewUserTrips(userId) {
   
   const tbody = document.getElementById("userTripsModalBody");
   if (!userTripsList.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay viajes registrados para este usuario.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay viajes registrados para este usuario.</td></tr>';
   } else {
     // Ordenar por fecha descendente
     userTripsList.sort((a, b) => new Date(b.time) - new Date(a.time));
     
-    tbody.innerHTML = userTripsList.map(item => `
-      <tr>
-        <td data-location-title style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(getLocationLabelText(item.origin, "Desconocido"))}">${renderLocationLabel(item.origin, "Desconocido")}</td>
-        <td data-location-title style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(getLocationLabelText(item.dest, "Desconocido"))}">${renderLocationLabel(item.dest, "Desconocido")}</td>
-        <td>${escapeHtml(item.time ? formatDateTime(item.time) : "Desconocido")}</td>
-        <td>${escapeHtml(item.driverName)}</td>
-        <td>
-          <span class="status-badge status-badge--${escapeHtml(String(item.role).toLowerCase())}">${escapeHtml(item.role)}</span>
-          <br>
-          <span style="font-size: 0.85em; color: var(--text-secondary);">${escapeHtml(item.status)}</span>
-        </td>
-      </tr>
-    `).join("");
+    tbody.innerHTML = userTripsList.map(item => {
+      const hasRoute = hasTripCoordinates(item.origin) && hasTripCoordinates(item.dest);
+      return `
+        <tr>
+          <td data-location-title style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(getLocationLabelText(item.origin, "Desconocido"))}">${renderLocationLabel(item.origin, "Desconocido")}</td>
+          <td data-location-title style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(getLocationLabelText(item.dest, "Desconocido"))}">${renderLocationLabel(item.dest, "Desconocido")}</td>
+          <td>${escapeHtml(item.time ? formatDateTime(item.time) : "Desconocido")}</td>
+          <td>${escapeHtml(item.driverName)}</td>
+          <td>
+            <span class="status-badge status-badge--${escapeHtml(String(item.role).toLowerCase())}">${escapeHtml(item.role)}</span>
+            <br>
+            <span style="font-size: 0.85em; color: var(--text-secondary);">${escapeHtml(item.status)}</span>
+          </td>
+          <td>
+            ${hasRoute ? `
+              <button type="button" class="btn tiny primary view-route-btn" 
+                      data-origin-lat="${item.origin.lat}" 
+                      data-origin-lng="${item.origin.lng}" 
+                      data-dest-lat="${item.dest.lat}" 
+                      data-dest-lng="${item.dest.lng}"
+                      data-origin-label="${escapeHtml(getLocationLabelText(item.origin, 'Origen'))}"
+                      data-dest-label="${escapeHtml(getLocationLabelText(item.dest, 'Destino'))}">
+                Ver Ruta
+              </button>
+            ` : `<span style="color: var(--muted); font-size: 0.85em;">Sin ruta</span>`}
+          </td>
+        </tr>
+      `;
+    }).join("");
     void hydrateLocationLabels(tbody);
   }
   
@@ -3979,6 +4102,25 @@ function viewUserTrips(userId) {
 }
 
 document.addEventListener("click", async (event) => {
+  const viewRouteBtn = event.target.closest(".view-route-btn");
+  if (viewRouteBtn) {
+    const originLat = viewRouteBtn.dataset.originLat;
+    const originLng = viewRouteBtn.dataset.originLng;
+    const destLat = viewRouteBtn.dataset.destLat;
+    const destLng = viewRouteBtn.dataset.destLng;
+    const originLabel = viewRouteBtn.dataset.originLabel;
+    const destLabel = viewRouteBtn.dataset.destLabel;
+
+    document.getElementById("routeMapOriginText").textContent = originLabel || "Origen";
+    document.getElementById("routeMapDestText").textContent = destLabel || "Destino";
+    document.getElementById("routeMapModalOverlay")?.classList.remove("hidden");
+
+    setTimeout(() => {
+      initializeRouteMap(originLat, originLng, destLat, destLng, originLabel, destLabel);
+    }, 100);
+    return;
+  }
+
   const viewTripsBtn = event.target.closest(".admin-view-trips");
   if (viewTripsBtn) {
     const userId = viewTripsBtn.dataset.id;
