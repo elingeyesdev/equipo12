@@ -149,6 +149,16 @@
             android:exported="false"
             android:theme="@style/Theme.ProyectoCarpooling" />
 
+        <activity
+            android:name=".presentation.schedules.ui.BrowseSchedulesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
+        <activity
+            android:name=".presentation.schedules.ui.TripSchedulePreviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ProyectoCarpooling" />
+
         <service
             android:name=".presentation.security.MyFirebaseMessagingService"
             android:exported="false">

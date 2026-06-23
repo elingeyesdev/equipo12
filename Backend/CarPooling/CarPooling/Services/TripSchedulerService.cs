@@ -104,7 +104,7 @@ public class TripSchedulerService : BackgroundService
                     CreatedAt = now
                 };
 
-                foreach (var subscription in schedule.RecurringReservations.Where(r => r.IsActive))
+                foreach (var subscription in schedule.RecurringReservations.Where(r => r.IsActive && r.IsAccepted))
                 {
                     if (trip.AvailableSeats >= subscription.SeatsReserved)
                     {

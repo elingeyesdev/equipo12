@@ -37,7 +37,7 @@ public class CreateTripScheduleActivity extends BaseActivity {
     private TextInputLayout tilDestinationAddress;
     private TextInputEditText etOriginAddress;
     private TextInputEditText etDestinationAddress;
-    private CheckBox cbMon, cbTue, cbWed, cbThu, cbFri, cbSat, cbSun;
+    private CheckBox cbMon, cbTue, cbWed, cbThu, cbFri, cbSat;
     private MaterialButton btnSelectTime;
     private TextView tvSelectedTime;
     private TextInputEditText etOfferedSeats;
@@ -94,7 +94,6 @@ public class CreateTripScheduleActivity extends BaseActivity {
         cbThu = findViewById(R.id.cbThu);
         cbFri = findViewById(R.id.cbFri);
         cbSat = findViewById(R.id.cbSat);
-        cbSun = findViewById(R.id.cbSun);
         btnSelectTime = findViewById(R.id.btnSelectTime);
         tvSelectedTime = findViewById(R.id.tvSelectedTime);
         etOfferedSeats = findViewById(R.id.etOfferedSeats);
@@ -175,7 +174,6 @@ public class CreateTripScheduleActivity extends BaseActivity {
             if (cbThu.isChecked()) selectedDays.add("4");
             if (cbFri.isChecked()) selectedDays.add("5");
             if (cbSat.isChecked()) selectedDays.add("6");
-            if (cbSun.isChecked()) selectedDays.add("0");
 
             StringBuilder daysOfWeek = new StringBuilder();
             for (int i = 0; i < selectedDays.size(); i++) {
@@ -218,7 +216,7 @@ public class CreateTripScheduleActivity extends BaseActivity {
             return false;
         }
         if (!cbMon.isChecked() && !cbTue.isChecked() && !cbWed.isChecked() && !cbThu.isChecked()
-                && !cbFri.isChecked() && !cbSat.isChecked() && !cbSun.isChecked()) {
+                && !cbFri.isChecked() && !cbSat.isChecked()) {
             Toast.makeText(this, "Selecciona al menos un dia de la semana.", Toast.LENGTH_SHORT).show();
             return false;
         }

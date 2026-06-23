@@ -56,8 +56,15 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
         observeViewModel();
         setupSwipeToDelete();
 
-        // Ensure default tab is checked on start (triggers listener)
-        toggleGroup.check(R.id.btnDriverTab);
+        // Initialize default tab selection based on user role (Driver vs Passenger)
+        boolean isDriver = sessionManager.isDriver();
+        if (isDriver) {
+            toggleGroup.setVisibility(View.VISIBLE);
+            updateTabSelection(true);
+        } else {
+            toggleGroup.setVisibility(View.GONE);
+            updateTabSelection(false);
+        }
     }
 
     @Override
@@ -94,7 +101,7 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
             new int[] { -android.R.attr.state_checked }
         };
 
-        android.content.res.ColorStateList bgStates = new android.content.res.ColorStateList(states, new int[] { primaryColor, whiteColor });
+        android.content.res.ColorStateList bgStates = new android.content.res.ColorStateList(states, new int[] { primaryColor, android.graphics.Color.TRANSPARENT });
         android.content.res.ColorStateList textStates = new android.content.res.ColorStateList(states, new int[] { whiteColor, primaryColor });
         android.content.res.ColorStateList strokeStates = new android.content.res.ColorStateList(states, new int[] { primaryColor, primaryColor });
 
@@ -177,8 +184,8 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
                 // Open creation screen
                 startActivity(new Intent(this, CreateTripScheduleActivity.class));
             } else {
-                // Show available schedules dialog for passengers to subscribe
-                showAvailableSchedulesDialog();
+                // Open browse schedules activity for passengers to search and subscribe
+                startActivity(new Intent(this, BrowseSchedulesActivity.class));
             }
         });
     }
@@ -299,68 +306,5 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
                 .show();
     }
 
-    private void showAvailableSchedulesDialog() {
-        viewModel.loadActiveSchedules();
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Rutas Recurrentes Disponibles");
-
-        View view = LayoutInflater.from(this).inflate(R.layout.activity_trip_schedules, null);
-        ProgressBar dialogProgress = view.findViewById(R.id.schedulesLoading);
-        RecyclerView dialogRecycler = view.findViewById(R.id.schedulesRecyclerView);
-        TextView dialogEmpty = view.findViewById(R.id.emptyStateText);
-        View dialogToggle = view.findViewById(R.id.toggleGroup);
-        View dialogFab = view.findViewById(R.id.fabAction);
-
-        // Hide toggle and FAB in dialog
-        dialogToggle.setVisibility(View.GONE);
-        dialogFab.setVisibility(View.GONE);
-
-        dialogProgress.setVisibility(View.VISIBLE);
-        dialogRecycler.setLayoutManager(new LinearLayoutManager(this));
-
-        AlertDialog dialog = builder.setView(view)
-                .setNegativeButton("Cerrar", null)
-                .create();
-
-        TripSchedulesAdapter dialogAdapter = new TripSchedulesAdapter(TripSchedulesAdapter.TYPE_BROWSE_SCHEDULE, new TripSchedulesAdapter.Listener() {
-            @Override
-            public void onToggleSchedule(TripSchedule schedule, boolean active) {}
-
-            @Override
-            public void onCancelSubscription(RecurringReservation subscription) {}
-
-            @Override
-            public void onSubscribeToSchedule(TripSchedule schedule) {
-                dialog.dismiss();
-                // Subscribe directly with 1 seat, since it is personal
-                viewModel.subscribeToSchedule(schedule, sessionManager.getUserId(), 1);
-            }
-
-            @Override
-            public void onScheduleClick(TripSchedule schedule) {}
-        });
-
-        dialogRecycler.setAdapter(dialogAdapter);
-
-        viewModel.getActiveSchedules().observe(this, activeList -> {
-            dialogProgress.setVisibility(View.GONE);
-            List<TripSchedule> othersList = new ArrayList<>();
-            String currentUid = sessionManager.getUserId();
-            for (TripSchedule s : activeList) {
-                if (!s.driverUserId.equals(currentUid)) {
-                    othersList.add(s);
-                }
-            }
-            dialogAdapter.setItems(othersList);
-            if (othersList.isEmpty()) {
-                dialogEmpty.setVisibility(View.VISIBLE);
-                dialogEmpty.setText("No hay rutas programadas de otros conductores disponibles.");
-            } else {
-                dialogEmpty.setVisibility(View.GONE);
-            }
-        });
-
-        dialog.show();
-    }
 }

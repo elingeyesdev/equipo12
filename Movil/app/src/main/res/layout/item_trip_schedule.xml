@@ -40,6 +40,11 @@
                 android:id="@+id/switchScheduleActive"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_switch_border"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
                 android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton

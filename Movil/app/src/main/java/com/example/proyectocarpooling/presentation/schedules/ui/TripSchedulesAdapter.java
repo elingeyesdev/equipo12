@@ -129,6 +129,12 @@ public class TripSchedulesAdapter extends RecyclerView.Adapter<TripSchedulesAdap
                     listener.onSubscribeToSchedule(schedule);
                 }
             });
+
+            holder.itemView.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onScheduleClick(schedule);
+                }
+            });
         }
     }
 

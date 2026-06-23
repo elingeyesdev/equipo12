@@ -88,7 +88,7 @@ public class RecurringReservationController(CarPoolingContext context, INotifica
                 .ThenInclude(s => s.DestinationLocation)
             .Include(r => r.TripSchedule)
                 .ThenInclude(s => s.DriverUser)
-            .Where(r => r.PassengerUserId == passengerUserId)
+            .Where(r => r.PassengerUserId == passengerUserId && r.IsActive)
             .ToListAsync();
 
         return Ok(subscriptions.Select(s => MapToResponse(s, s.PassengerUser.FullName)));
@@ -134,7 +134,7 @@ public class RecurringReservationController(CarPoolingContext context, INotifica
                 .ThenInclude(s => s.DestinationLocation)
             .Include(r => r.TripSchedule)
                 .ThenInclude(s => s.DriverUser)
-            .Where(r => r.TripScheduleId == scheduleId)
+            .Where(r => r.TripScheduleId == scheduleId && r.IsActive)
             .ToListAsync();
 
         return Ok(subscriptions.Select(s => MapToResponse(s, s.PassengerUser.FullName)));

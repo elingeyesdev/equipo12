@@ -61,11 +61,26 @@ public final class DynamicThemeManager {
             if ("auth_on_hero".equals(view.getTag()) && view instanceof TextView) {
                 ((TextView) view).setTextColor(Color.WHITE);
             }
-            // 1. Tint standard and Material Buttons (excluding back button in account overview to keep it transparent)
+            // 1. Tint standard and Material Buttons (excluding back button in account overview to keep it transparent, and handling toggle groups natively)
             if (view instanceof Button && !(view instanceof CompoundButton) && view.getId() != com.example.proyectocarpooling.R.id.accountBackButton) {
-                Button btn = (Button) view;
-                btn.setBackgroundTintList(ColorStateList.valueOf(buttonColor));
-                btn.setTextColor(buttonTextColor);
+                if (view.getParent() instanceof com.google.android.material.button.MaterialButtonToggleGroup) {
+                    com.google.android.material.button.MaterialButton toggleBtn = (com.google.android.material.button.MaterialButton) view;
+                    int[][] states = new int[][] {
+                        new int[] { android.R.attr.state_checked },
+                        new int[] { -android.R.attr.state_checked }
+                    };
+                    ColorStateList bgStates = new ColorStateList(states, new int[] { buttonColor, Color.TRANSPARENT });
+                    ColorStateList textStates = new ColorStateList(states, new int[] { buttonTextColor, buttonColor });
+                    ColorStateList strokeStates = new ColorStateList(states, new int[] { buttonColor, buttonColor });
+
+                    toggleBtn.setBackgroundTintList(bgStates);
+                    toggleBtn.setTextColor(textStates);
+                    toggleBtn.setStrokeColor(strokeStates);
+                } else {
+                    Button btn = (Button) view;
+                    btn.setBackgroundTintList(ColorStateList.valueOf(buttonColor));
+                    btn.setTextColor(buttonTextColor);
+                }
             }
             // 2. Tint Floating Action Buttons (FABs) with Secondary
             else if (view instanceof FloatingActionButton) {
