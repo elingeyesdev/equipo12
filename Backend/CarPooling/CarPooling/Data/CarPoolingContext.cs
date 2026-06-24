@@ -14,7 +14,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<ReservationStatusEntity> ReservationStatuses => Set<ReservationStatusEntity>();
     public DbSet<TripChat> TripChats => Set<TripChat>();
     public DbSet<TripChatMessage> TripChatMessages => Set<TripChatMessage>();
-    public DbSet<TripChatMessageRead> TripChatMessageReads => Set<TripChatMessageRead>();
     public DbSet<TripRating> TripRatings => Set<TripRating>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
@@ -44,7 +43,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigureReservationStatus(modelBuilder);
         ConfigureTripChat(modelBuilder);
         ConfigureTripChatMessage(modelBuilder);
-        ConfigureTripChatMessageRead(modelBuilder);
         ConfigureTripRating(modelBuilder);
         ConfigureSupportTicket(modelBuilder);
         ConfigureSupportTicketMessage(modelBuilder);
@@ -289,29 +287,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
 
             entity.HasIndex(m => m.ChatId);
             entity.HasIndex(m => m.CreatedAt);
-        });
-    }
-
-    private static void ConfigureTripChatMessageRead(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<TripChatMessageRead>(entity =>
-        {
-            entity.ToTable("TripChatMessageReads");
-            entity.HasKey(r => new { r.MessageId, r.UserId });
-
-            entity.HasOne(r => r.Message)
-                .WithMany(m => m.Reads)
-                .HasForeignKey(r => r.MessageId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .IsRequired();
-
-            entity.HasOne(r => r.User)
-                .WithMany()
-                .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired();
-
-            entity.Property(r => r.ReadAt).HasDefaultValueSql("GETUTCDATE()");
         });
     }
 

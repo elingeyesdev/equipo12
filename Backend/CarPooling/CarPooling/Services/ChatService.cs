@@ -99,13 +99,7 @@ public class ChatService(CarPoolingContext context, INotificationService notific
                 SenderFullName = m.SenderUser.FullName,
                 SenderProfilePicture = m.SenderUser.ProfilePicture,
                 MessageText = m.MessageText,
-                CreatedAt = m.CreatedAt,
-                ReadByUserIds = m.Reads.Select(r => r.UserId).ToList(),
-                Readers = m.Reads.Select(r => new ChatMessageReaderDto
-                {
-                    UserId = r.UserId,
-                    FullName = r.User.FullName
-                }).ToList()
+                CreatedAt = m.CreatedAt
             })
             .ToListAsync();
 
@@ -113,7 +107,7 @@ public class ChatService(CarPoolingContext context, INotificationService notific
     }
 
     /// <summary>
-    /// Guarda un nuevo mensaje en la base de datos y registra la lectura automática por parte del emisor.
+    /// Guarda un nuevo mensaje en la base de datos.
     /// </summary>
     public async Task<ChatMessageResponseDto> SendMessageAsync(Guid chatId, Guid senderUserId, string messageText)
     {
@@ -126,16 +120,7 @@ public class ChatService(CarPoolingContext context, INotificationService notific
             CreatedAt = DateTime.UtcNow
         };
 
-        // El emisor del mensaje ya lo leyó implícitamente
-        var readReceipt = new TripChatMessageRead
-        {
-            MessageId = message.Id,
-            UserId = senderUserId,
-            ReadAt = DateTime.UtcNow
-        };
-
         _context.TripChatMessages.Add(message);
-        _context.TripChatMessageReads.Add(readReceipt);
         
         await _context.SaveChangesAsync();
 
@@ -189,45 +174,7 @@ public class ChatService(CarPoolingContext context, INotificationService notific
             SenderFullName = senderFullName,
             SenderProfilePicture = senderProfilePicture,
             MessageText = message.MessageText,
-            CreatedAt = message.CreatedAt,
-            ReadByUserIds = [senderUserId],
-            Readers = new List<ChatMessageReaderDto>
-            {
-                new ChatMessageReaderDto
-                {
-                    UserId = senderUserId,
-                    FullName = senderFullName
-                }
-            }
+            CreatedAt = message.CreatedAt
         };
-    }
-
-    /// <summary>
-    /// Registra la lectura de todos los mensajes no leídos del chat para el usuario especificado.
-    /// </summary>
-    public async Task MarkMessagesAsReadAsync(Guid chatId, Guid userId)
-    {
-        // Encontrar mensajes de este chat que el usuario actual no ha registrado como leídos
-        var unreadMessageIds = await _context.TripChatMessages
-            .Where(m => m.ChatId == chatId)
-            .Where(m => !m.Reads.Any(r => r.UserId == userId))
-            .Select(m => m.Id)
-            .ToListAsync();
-
-        if (unreadMessageIds.Count == 0)
-        {
-            return;
-        }
-
-        var now = DateTime.UtcNow;
-        var newReads = unreadMessageIds.Select(messageId => new TripChatMessageRead
-        {
-            MessageId = messageId,
-            UserId = userId,
-            ReadAt = now
-        });
-
-        _context.TripChatMessageReads.AddRange(newReads);
-        await _context.SaveChangesAsync();
     }
 }

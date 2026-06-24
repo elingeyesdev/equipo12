@@ -162,8 +162,7 @@ public class ChatActivity extends BaseActivity {
                                 ChatMessage rMsg = result.get(i);
                                 ChatMessage mMsg = messageList.get(i);
                                 if (!rMsg.id.equals(mMsg.id) ||
-                                    (rMsg.senderProfilePicture != null && !rMsg.senderProfilePicture.equals(mMsg.senderProfilePicture)) ||
-                                    rMsg.readByUserIds.size() != mMsg.readByUserIds.size()) {
+                                    (rMsg.senderProfilePicture != null && !rMsg.senderProfilePicture.equals(mMsg.senderProfilePicture))) {
                                     changed = true;
                                     break;
                                 }

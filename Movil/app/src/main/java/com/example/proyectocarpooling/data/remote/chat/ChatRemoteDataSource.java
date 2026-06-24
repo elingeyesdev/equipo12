@@ -101,19 +101,4 @@ public class ChatRemoteDataSource {
         }
     }
 
-    public void markAsRead(String tripId, String userId) throws IOException {
-        String url = chatPath(tripId) + "/read";
-        Request request = new Request.Builder()
-                .url(url)
-                .header("X-User-Id", userId.trim())
-                .post(RequestBody.create("{}", JSON_MEDIA_TYPE))
-                .build();
-
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                String err = response.body() != null ? response.body().string() : "";
-                throw new IOException("HTTP " + response.code() + " " + err);
-            }
-        }
-    }
 }

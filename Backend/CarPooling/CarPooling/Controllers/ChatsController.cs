@@ -22,7 +22,6 @@ public class ChatsController(ChatService chatService, IHubContext<TripChatHub> h
     /// <summary>
     /// Obtiene el historial de mensajes de chat de un viaje.
     /// Valida que el usuario sea el conductor o un pasajero confirmado/abordado.
-    /// Registra automáticamente las lecturas de los mensajes para el usuario actual.
     /// </summary>
     [HttpGet("messages", Name = "GetTripChatMessages")]
     public async Task<ActionResult<IEnumerable<ChatMessageResponseDto>>> GetMessagesAsync(Guid tripId)
@@ -45,8 +44,6 @@ public class ChatsController(ChatService chatService, IHubContext<TripChatHub> h
             return NotFound(new { message = "Viaje no encontrado." });
         }
 
-        // Registrar lectura de los mensajes de forma automática
-        await _chatService.MarkMessagesAsReadAsync(chat.Id, userId.Value);
 
         // Obtener historial de mensajes
         var messages = await _chatService.GetChatMessagesAsync(chat.Id);
@@ -84,34 +81,6 @@ public class ChatsController(ChatService chatService, IHubContext<TripChatHub> h
             .SendAsync("ReceiveMessage", response);
 
         return CreatedAtRoute("GetTripChatMessages", new { tripId }, response);
-    }
-
-    /// <summary>
-    /// Marca explícitamente todos los mensajes no leídos del chat del viaje como leídos.
-    /// </summary>
-    [HttpPost("read")]
-    public async Task<IActionResult> MarkAsReadAsync(Guid tripId)
-    {
-        var userId = GetCurrentUserId();
-        if (userId == null)
-        {
-            return Unauthorized(new { message = "Usuario no autenticado." });
-        }
-
-        var isAuthorized = await _chatService.IsUserAuthorizedForChatAsync(tripId, userId.Value);
-        if (!isAuthorized)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "No estás autorizado para interactuar con este viaje." });
-        }
-
-        var chat = await _chatService.GetOrCreateChatByTripIdAsync(tripId);
-        if (chat == null)
-        {
-            return NotFound(new { message = "Viaje no encontrado." });
-        }
-
-        await _chatService.MarkMessagesAsReadAsync(chat.Id, userId.Value);
-        return NoContent();
     }
 
     private Guid? GetCurrentUserId()

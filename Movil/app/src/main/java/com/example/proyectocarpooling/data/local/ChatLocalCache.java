@@ -42,11 +42,6 @@ public final class ChatLocalCache {
                 obj.put("createdAt", m.createdAt);
                 obj.put("senderProfilePicture", m.senderProfilePicture);
 
-                JSONArray reads = new JSONArray();
-                for (String r : m.readByUserIds) {
-                    reads.put(r);
-                }
-                obj.put("readByUserIds", reads);
                 arr.put(obj);
             }
 

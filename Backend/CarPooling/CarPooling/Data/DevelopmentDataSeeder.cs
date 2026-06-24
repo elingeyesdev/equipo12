@@ -892,14 +892,6 @@ public static class DevelopmentDataSeeder
 
         context.TripChatMessages.AddRange(activeMessages);
         context.TripChatMessages.AddRange(finishedMessages);
-
-        context.TripChatMessageReads.AddRange(
-            new TripChatMessageRead { MessageId = activeMessages[0].Id, UserId = PassengerSixId, ReadAt = now.AddMinutes(-14) },
-            new TripChatMessageRead { MessageId = activeMessages[0].Id, UserId = PassengerOneId, ReadAt = now.AddMinutes(-13) },
-            new TripChatMessageRead { MessageId = activeMessages[1].Id, UserId = DriverFiveId, ReadAt = now.AddMinutes(-11) },
-            new TripChatMessageRead { MessageId = activeMessages[2].Id, UserId = DriverFiveId, ReadAt = now.AddMinutes(-9) },
-            new TripChatMessageRead { MessageId = finishedMessages[0].Id, UserId = PassengerOneId, ReadAt = now.AddHours(-2) },
-            new TripChatMessageRead { MessageId = finishedMessages[1].Id, UserId = DriverTwoId, ReadAt = now.AddHours(-1).AddMinutes(-50) });
     }
 
     private static void SeedRatings(CarPoolingContext context, DateTime now)

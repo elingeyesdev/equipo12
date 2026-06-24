@@ -225,9 +225,6 @@ public class AdminController(
             return BadRequest("No se puede eliminar el usuario porque tiene mensajes de chat o soporte asociados.");
         }
 
-        // Limpiar confirmaciones de lectura de chats
-        var chatReads = await _context.TripChatMessageReads.Where(r => r.UserId == id).ToListAsync();
-        _context.TripChatMessageReads.RemoveRange(chatReads);
 
         // Limpiar roles explícitamente
         var userRoles = await _context.UserRoles.Where(ur => ur.UserId == id).ToListAsync();
