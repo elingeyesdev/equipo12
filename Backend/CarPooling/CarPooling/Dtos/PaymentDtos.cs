@@ -10,19 +10,17 @@ public class PaymentMethodResponseDto
     public string Description { get; set; } = "";
     public PaymentMethodType Type { get; set; }
     public bool RequiresManualConfirmation { get; set; }
-    public bool SupportsRefunds { get; set; }
     public bool IsActive { get; set; }
 
-    public static PaymentMethodResponseDto FromEntity(PaymentMethod method) => new()
+    public static PaymentMethodResponseDto FromDefinition(PaymentMethodDefinition method) => new()
     {
         Id = method.Id,
         Code = method.Code,
         Name = method.Name,
-        Description = method.Description ?? "",
+        Description = method.Description,
         Type = method.Type,
         RequiresManualConfirmation = method.RequiresManualConfirmation,
-        SupportsRefunds = method.SupportsRefunds,
-        IsActive = method.IsActive
+        IsActive = true
     };
 }
 
@@ -45,6 +43,8 @@ public class UserPaymentMethodResponseDto
     public int PaymentMethodId { get; set; }
     public string PaymentMethodCode { get; set; } = "";
     public string PaymentMethodName { get; set; } = "";
+    public PaymentMethodType Type { get; set; }
+    public bool RequiresManualConfirmation { get; set; }
     public string Alias { get; set; } = "";
     public string MaskedValue { get; set; } = "";
     public string QrImageUrl { get; set; } = "";
@@ -58,8 +58,10 @@ public class UserPaymentMethodResponseDto
         Id = method.Id,
         UserId = method.UserId,
         PaymentMethodId = method.PaymentMethodId,
-        PaymentMethodCode = method.PaymentMethod?.Code ?? "",
-        PaymentMethodName = method.PaymentMethod?.Name ?? "",
+        PaymentMethodCode = method.PaymentMethodCode,
+        PaymentMethodName = method.PaymentMethodName,
+        Type = method.Type,
+        RequiresManualConfirmation = method.RequiresManualConfirmation,
         Alias = method.Alias ?? "",
         MaskedValue = method.MaskedValue ?? "",
         QrImageUrl = method.QrImageUrl ?? "",
@@ -92,17 +94,6 @@ public class SimulatePaymentDto
     public string? ResponseMessage { get; set; }
 }
 
-public class CreateRefundDto
-{
-    public decimal Amount { get; set; }
-    public string? Reason { get; set; }
-}
-
-public class ProcessRefundDto
-{
-    public string? Notes { get; set; }
-}
-
 public class PaymentResponseDto
 {
     public Guid Id { get; set; }
@@ -115,9 +106,8 @@ public class PaymentResponseDto
     public int PaymentMethodId { get; set; }
     public string PaymentMethodCode { get; set; } = "";
     public string PaymentMethodName { get; set; } = "";
-    public Guid? UserPaymentMethodId { get; set; }
+    public Guid UserPaymentMethodId { get; set; }
     public decimal Amount { get; set; }
-    public decimal RefundedAmount { get; set; }
     public string Currency { get; set; } = "";
     public PaymentStatus Status { get; set; }
     public string Description { get; set; } = "";
@@ -133,7 +123,6 @@ public class PaymentResponseDto
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public List<PaymentTransactionResponseDto> Transactions { get; set; } = [];
-    public List<RefundResponseDto> Refunds { get; set; } = [];
 
     public static PaymentResponseDto FromEntity(Payment payment) => new()
     {
@@ -144,12 +133,11 @@ public class PaymentResponseDto
         TripId = payment.Reservation?.TripId ?? Guid.Empty,
         DriverUserId = payment.Reservation?.Trip?.DriverUserId,
         DriverName = payment.Reservation?.Trip?.DriverName ?? "",
-        PaymentMethodId = payment.PaymentMethodId,
-        PaymentMethodCode = payment.PaymentMethod?.Code ?? "",
-        PaymentMethodName = payment.PaymentMethod?.Name ?? "",
+        PaymentMethodId = payment.UserPaymentMethod?.PaymentMethodId ?? 0,
+        PaymentMethodCode = payment.UserPaymentMethod?.PaymentMethodCode ?? "",
+        PaymentMethodName = payment.UserPaymentMethod?.PaymentMethodName ?? "",
         UserPaymentMethodId = payment.UserPaymentMethodId,
         Amount = payment.Amount,
-        RefundedAmount = payment.RefundedAmount,
         Currency = payment.Currency,
         Status = payment.Status,
         Description = payment.Description ?? "",
@@ -167,10 +155,6 @@ public class PaymentResponseDto
         Transactions = payment.Transactions
             .OrderByDescending(t => t.CreatedAt)
             .Select(PaymentTransactionResponseDto.FromEntity)
-            .ToList(),
-        Refunds = payment.Refunds
-            .OrderByDescending(r => r.RequestedAt)
-            .Select(RefundResponseDto.FromEntity)
             .ToList()
     };
 }
@@ -202,39 +186,5 @@ public class PaymentTransactionResponseDto
         ResponseMessage = transaction.ResponseMessage ?? "",
         ProcessedAt = transaction.ProcessedAt,
         CreatedAt = transaction.CreatedAt
-    };
-}
-
-public class RefundResponseDto
-{
-    public Guid Id { get; set; }
-    public Guid PaymentId { get; set; }
-    public decimal Amount { get; set; }
-    public RefundStatus Status { get; set; }
-    public Guid RequestedByUserId { get; set; }
-    public Guid? ProcessedByUserId { get; set; }
-    public string Reason { get; set; } = "";
-    public string RejectionReason { get; set; } = "";
-    public bool IsWithinCancellationWindow { get; set; }
-    public DateTime? CancellationDeadline { get; set; }
-    public int? MinutesBeforeTripStart { get; set; }
-    public DateTime RequestedAt { get; set; }
-    public DateTime? ProcessedAt { get; set; }
-
-    public static RefundResponseDto FromEntity(Refund refund) => new()
-    {
-        Id = refund.Id,
-        PaymentId = refund.PaymentId,
-        Amount = refund.Amount,
-        Status = refund.Status,
-        RequestedByUserId = refund.RequestedByUserId,
-        ProcessedByUserId = refund.ProcessedByUserId,
-        Reason = refund.Reason ?? "",
-        RejectionReason = refund.RejectionReason ?? "",
-        IsWithinCancellationWindow = refund.IsWithinCancellationWindow,
-        CancellationDeadline = refund.CancellationDeadline,
-        MinutesBeforeTripStart = refund.MinutesBeforeTripStart,
-        RequestedAt = refund.RequestedAt,
-        ProcessedAt = refund.ProcessedAt
     };
 }

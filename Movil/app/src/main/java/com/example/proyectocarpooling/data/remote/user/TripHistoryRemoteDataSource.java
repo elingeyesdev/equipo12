@@ -51,8 +51,15 @@ public class TripHistoryRemoteDataSource {
         return String.format(Locale.US, "%s/api/users/%s/history", apiBaseUrl, userId.trim());
     }
 
+    private static String optionalPassengerNameQuery(String passengerName) {
+        if (passengerName == null || passengerName.trim().isEmpty()) {
+            return "";
+        }
+        return "?passengerName=" + URLEncoder.encode(passengerName.trim(), StandardCharsets.UTF_8);
+    }
+
     public TripHistoryListResult listHistory(String userId, String passengerName) throws IOException, JSONException {
-        String url = basePath(userId) + "?passengerName=" + URLEncoder.encode(passengerName, StandardCharsets.UTF_8);
+        String url = basePath(userId) + optionalPassengerNameQuery(passengerName);
         Request request = new Request.Builder().url(url).get().build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -77,7 +84,7 @@ public class TripHistoryRemoteDataSource {
     }
 
     public TripHistoryDetailItem getHistoryDetail(String userId, String tripId, String passengerName) throws IOException, JSONException {
-        String url = basePath(userId) + "/" + tripId.trim() + "?passengerName=" + URLEncoder.encode(passengerName, StandardCharsets.UTF_8);
+        String url = basePath(userId) + "/" + tripId.trim() + optionalPassengerNameQuery(passengerName);
         Request request = new Request.Builder().url(url).get().build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {

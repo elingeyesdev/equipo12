@@ -18,6 +18,7 @@ public class SessionManager {
     private static final String KEY_PHONE = "phone";
     private static final String KEY_ROLE = "role";
     private static final String KEY_PROFILE_PICTURE = "profile_picture";
+    private static final String KEY_CREATED_AT = "created_at";
     private static final String KEY_EXPIRES_AT = "expires_at";
     /** Viaje activo del conductor en este dispositivo (clave por usuario). */
     private static final String KEY_DRIVER_ACTIVE_TRIP_PREFIX = "driver_active_trip_";
@@ -46,6 +47,7 @@ public class SessionManager {
                 .putString(KEY_PHONE, user.phoneNumber)
                 .putString(KEY_ROLE, user.role)
                 .putString(KEY_PROFILE_PICTURE, user.profilePicture)
+                .putString(KEY_CREATED_AT, user.createdAt)
                 .putLong(KEY_EXPIRES_AT, expiresAt)
                 .commit();
     }
@@ -93,6 +95,10 @@ public class SessionManager {
 
     public String getProfilePicture() {
         return preferences.getString(KEY_PROFILE_PICTURE, "");
+    }
+
+    public String getCreatedAt() {
+        return preferences.getString(KEY_CREATED_AT, "");
     }
 
     public boolean isDriver() {

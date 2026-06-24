@@ -100,6 +100,9 @@ public class BrowseSchedulesActivity extends BaseActivity {
             public void onScheduleClick(TripSchedule schedule) {
                 openPreview(schedule);
             }
+
+            @Override
+            public void onSubscriptionClick(RecurringReservation subscription) {}
         });
         recyclerView.setAdapter(adapter);
     }

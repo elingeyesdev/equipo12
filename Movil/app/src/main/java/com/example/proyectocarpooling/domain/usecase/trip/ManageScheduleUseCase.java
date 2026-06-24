@@ -63,4 +63,8 @@ public class ManageScheduleUseCase {
     public boolean rejectSubscription(String id) throws IOException {
         return repository.rejectSubscription(id);
     }
+
+    public TripSchedule getScheduleById(String id) throws IOException {
+        return repository.getScheduleById(id);
+    }
 }

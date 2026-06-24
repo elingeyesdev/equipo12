@@ -318,7 +318,7 @@ public class TripsRemoteDataSource {
     public boolean verifyBoardingCode(String tripId, String reservationId, String code) throws IOException {
         JSONObject body = new JSONObject();
         try {
-            body.put("code", code);
+            body.put("Code", code);
         } catch (JSONException e) {
             throw new IOException("No se pudo construir verificacion de codigo", e);
         }
@@ -327,7 +327,14 @@ public class TripsRemoteDataSource {
                 .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
                 .build();
         try (Response response = httpClient.newCall(request).execute()) {
-            return response.isSuccessful();
+            if (response.isSuccessful()) {
+                return true;
+            }
+            String errorBody = response.body() != null ? response.body().string() : "";
+            if (response.code() == 400 && errorBody.toLowerCase(java.util.Locale.US).contains("codigo invalido")) {
+                return false;
+            }
+            throw new IOException("Error verificando codigo: " + response.code() + " " + errorBody);
         }
     }
 

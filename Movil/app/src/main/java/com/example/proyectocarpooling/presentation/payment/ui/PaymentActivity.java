@@ -25,7 +25,6 @@ import com.example.proyectocarpooling.data.local.SessionManager;
 import com.example.proyectocarpooling.data.model.payment.PaymentItem;
 import com.example.proyectocarpooling.data.model.payment.PaymentMethodItem;
 import com.example.proyectocarpooling.data.model.payment.UserPaymentMethodItem;
-import com.example.proyectocarpooling.data.model.payment.RefundItem;
 import com.example.proyectocarpooling.data.remote.payment.PaymentRemoteDataSource;
 import com.example.proyectocarpooling.data.model.trip.TripResponse;
 import com.example.proyectocarpooling.presentation.auth.ui.LoginActivity;
@@ -44,6 +43,7 @@ public class PaymentActivity extends BaseActivity {
     public static final String EXTRA_RESERVATION_ID = "extra_payment_reservation_id";
     public static final String EXTRA_TRIP_ID = "extra_payment_trip_id";
     public static final String EXTRA_DRIVER_NAME = "extra_payment_driver_name";
+    public static final String EXTRA_REQUIRE_PAYMENT_SELECTION = "extra_require_payment_selection";
 
     private static final String METHOD_CASH = "CASH";
     private static final String METHOD_QR = "QR_BANK";
@@ -67,6 +67,11 @@ public class PaymentActivity extends BaseActivity {
     private CardView cashCard;
     private CardView qrCard;
     private CardView cardSimCard;
+    private LinearLayout cardFieldsContainer;
+    private EditText cardNumberInput;
+    private EditText cardNameInput;
+    private EditText cardExpiryInput;
+    private EditText cardCvvInput;
     private TextView cashSubtitle;
     private TextView qrSubtitle;
     private TextView cardSubtitle;
@@ -75,9 +80,10 @@ public class PaymentActivity extends BaseActivity {
     private ImageView qrImage;
     private TextView warningText;
     private TextView historyHeader;
-    private Button refundButton;
     private Button cancelButton;
     private PaymentItem activePayment;
+    private boolean requirePaymentSelection;
+    private boolean loading;
 
     private String reservationId;
     private String tripId;
@@ -132,7 +138,25 @@ public class PaymentActivity extends BaseActivity {
         warningText = findViewById(R.id.paymentWarningText);
         historyHeader = findViewById(R.id.paymentHistoryHeader);
         cancelButton = findViewById(R.id.paymentCancelButton);
-        refundButton = findViewById(R.id.paymentRefundButton);
+
+        cardFieldsContainer = findViewById(R.id.paymentCardFieldsContainer);
+        cardNumberInput = findViewById(R.id.paymentCardNumber);
+        cardNameInput = findViewById(R.id.paymentCardName);
+        cardExpiryInput = findViewById(R.id.paymentCardExpiry);
+        cardCvvInput = findViewById(R.id.paymentCardCvv);
+
+        if (cardExpiryInput != null) {
+            cardExpiryInput.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+                @Override public void afterTextChanged(android.text.Editable s) {
+                    String input = s.toString();
+                    if (input.length() == 2 && !input.contains("/")) {
+                        s.append("/");
+                    }
+                }
+            });
+        }
     }
 
     private void setupToolbar() {
@@ -141,7 +165,7 @@ public class PaymentActivity extends BaseActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
-        toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setNavigationOnClickListener(v -> attemptExit());
     }
 
     private void readExtras() {
@@ -149,6 +173,7 @@ public class PaymentActivity extends BaseActivity {
         reservationId = emptyToNull(intent.getStringExtra(EXTRA_RESERVATION_ID));
         tripId = emptyToNull(intent.getStringExtra(EXTRA_TRIP_ID));
         driverName = emptyToNull(intent.getStringExtra(EXTRA_DRIVER_NAME));
+        requirePaymentSelection = intent.getBooleanExtra(EXTRA_REQUIRE_PAYMENT_SELECTION, false);
 
         if (reservationId == null) {
             reservationId = emptyToNull(sessionManager.getPassengerBookedReservationId());
@@ -167,7 +192,6 @@ public class PaymentActivity extends BaseActivity {
         cardSimCard.setOnClickListener(v -> selectMethod(METHOD_CARD));
         payButton.setOnClickListener(v -> submitPayment());
         cancelButton.setOnClickListener(v -> cancelPayment());
-        refundButton.setOnClickListener(v -> requestRefund());
     }
 
     private void loadScreen() {
@@ -279,7 +303,6 @@ public class PaymentActivity extends BaseActivity {
     private void renderReservationPaymentStatus(List<PaymentItem> payments) {
         activePayment = null;
         cancelButton.setVisibility(View.GONE);
-        refundButton.setVisibility(View.GONE);
 
         // Render history list
         historyContainer.removeAllViews();
@@ -311,38 +334,20 @@ public class PaymentActivity extends BaseActivity {
             return;
         }
 
-        // We have an active payment (Pending, Approved, Refunded, PartiallyRefunded)
+        // We have an active payment (Pending or Approved)
         // Hide checkout methods since there is already an active payment flow
         checkoutContent.setVisibility(View.GONE);
 
         if (activePayment.status == PaymentItem.STATUS_APPROVED) {
             if (METHOD_CASH.equalsIgnoreCase(activePayment.paymentMethodCode)) {
                 receiptText.setText("Pago en efectivo · Paga en persona al finalizar el viaje");
-                refundButton.setVisibility(View.GONE);
             } else {
                 String receiptNum = activePayment.receiptNumber.isEmpty() ? activePayment.externalReference : activePayment.receiptNumber;
                 receiptText.setText("Viaje pagado · Comprobante: " + receiptNum);
-                refundButton.setVisibility(View.VISIBLE);
             }
         } else if (activePayment.status == PaymentItem.STATUS_PENDING) {
             receiptText.setText("Pago en revisión · Espera confirmación del conductor");
             cancelButton.setVisibility(View.VISIBLE);
-        } else if (activePayment.status == PaymentItem.STATUS_REFUNDED) {
-            receiptText.setText("Pago devuelto en su totalidad");
-        } else if (activePayment.status == PaymentItem.STATUS_PARTIALLY_REFUNDED) {
-            receiptText.setText(String.format(Locale.US, "Pago devuelto parcialmente (%.2f BOB devueltos)", activePayment.refundedAmount));
-            refundButton.setVisibility(View.VISIBLE); // Can request refund of the remainder
-        }
-
-        // Check if there are active refund requests to update text
-        if (activePayment.refunds != null && !activePayment.refunds.isEmpty()) {
-            for (RefundItem refund : activePayment.refunds) {
-                if (refund.status == 1) { // Requested
-                    receiptText.setText(String.format(Locale.US, "Devolución en revisión: %.2f BOB", refund.amount));
-                    refundButton.setVisibility(View.GONE);
-                    break;
-                }
-            }
         }
     }
 
@@ -380,6 +385,10 @@ public class PaymentActivity extends BaseActivity {
         applyCardState(qrCard, METHOD_QR.equals(code));
         applyCardState(cardSimCard, METHOD_CARD.equals(code));
 
+        if (cardFieldsContainer != null) {
+            cardFieldsContainer.setVisibility(METHOD_CARD.equals(code) ? View.VISIBLE : View.GONE);
+        }
+
         if (METHOD_QR.equals(code) && selectedDriverMethod == null) {
             warningText.setText("El conductor aún no cuenta con QR. Por favor, selecciona Efectivo o Tarjeta.");
             warningText.setVisibility(View.VISIBLE);
@@ -395,6 +404,35 @@ public class PaymentActivity extends BaseActivity {
             Toast.makeText(this, "Selecciona un metodo de pago.", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        if (selectedMethod.isSimulatedCard()) {
+            if (cardNumberInput == null || cardNameInput == null || cardExpiryInput == null || cardCvvInput == null) {
+                Toast.makeText(this, "Error de inicialización de campos", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String num = cardNumberInput.getText().toString().trim();
+            String name = cardNameInput.getText().toString().trim();
+            String exp = cardExpiryInput.getText().toString().trim();
+            String cvv = cardCvvInput.getText().toString().trim();
+
+            if (num.length() < 15) {
+                Toast.makeText(this, "Número de tarjeta inválido (15-16 dígitos)", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (name.isEmpty()) {
+                Toast.makeText(this, "Ingresa el nombre del titular", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (exp.length() < 5) {
+                Toast.makeText(this, "Fecha de vencimiento inválida (MM/AA)", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (cvv.length() < 3) {
+                Toast.makeText(this, "CVV inválido", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
         String selectedUserMethodId = selectedMethod.isQr() && selectedDriverMethod != null
                 ? selectedDriverMethod.id
                 : null;
@@ -417,6 +455,7 @@ public class PaymentActivity extends BaseActivity {
                 runOnUiThread(() -> {
                     setLoading(false);
                     payButton.setEnabled(true);
+                    activePayment = result;
                     showPaymentResult(result);
                     loadScreen();
                 });
@@ -465,6 +504,7 @@ public class PaymentActivity extends BaseActivity {
     }
 
     private void setLoading(boolean loading) {
+        this.loading = loading;
         progress.setVisibility(loading ? View.VISIBLE : View.GONE);
     }
 
@@ -503,68 +543,28 @@ public class PaymentActivity extends BaseActivity {
                 .show();
     }
 
-    private void requestRefund() {
-        if (activePayment == null) return;
-        final double remaining = activePayment.amount - activePayment.refundedAmount;
+    @Override
+    public void onBackPressed() {
+        attemptExit();
+    }
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(20);
-        layout.setPadding(pad, pad, pad, pad);
+    private void attemptExit() {
+        if (requirePaymentSelection && !hasSelectedOrPaid()) {
+            Toast.makeText(this, "Primero selecciona un metodo de pago para tu reserva.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (loading) {
+            Toast.makeText(this, "Espera a que termine la operacion de pago.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        finish();
+    }
 
-        final EditText amountInput = new EditText(this);
-        amountInput.setHint("Monto a devolver (Máx. " + remaining + ")");
-        amountInput.setText(String.format(Locale.US, "%.2f", remaining));
-        amountInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        layout.addView(amountInput);
-
-        final EditText reasonInput = new EditText(this);
-        reasonInput.setHint("Motivo del reembolso");
-        layout.addView(reasonInput);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Solicitar devolución")
-                .setView(layout)
-                .setPositiveButton("Enviar solicitud", (dialog, which) -> {
-                    String reason = reasonInput.getText().toString().trim();
-                    String amtStr = amountInput.getText().toString().trim();
-                    if (reason.isEmpty()) {
-                        Toast.makeText(PaymentActivity.this, "Debes ingresar un motivo.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    double amt;
-                    try {
-                        amt = Double.parseDouble(amtStr);
-                    } catch (NumberFormatException e) {
-                        Toast.makeText(PaymentActivity.this, "Monto no válido.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (amt <= 0 || amt > remaining) {
-                        Toast.makeText(PaymentActivity.this, "El monto debe ser entre 0 y " + remaining, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    final double finalAmt = amt;
-                    final String finalReason = reason;
-                    setLoading(true);
-                    executor.execute(() -> {
-                        try {
-                            paymentRemote.requestRefund(sessionManager.getUserId(), activePayment.id, finalAmt, finalReason);
-                            runOnUiThread(() -> {
-                                setLoading(false);
-                                Toast.makeText(PaymentActivity.this, "Reembolso solicitado.", Toast.LENGTH_SHORT).show();
-                                loadScreen();
-                            });
-                        } catch (IOException e) {
-                            runOnUiThread(() -> {
-                                setLoading(false);
-                                showError(e.getMessage());
-                            });
-                        }
-                    });
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
+    private boolean hasSelectedOrPaid() {
+        return activePayment != null
+                && activePayment.status != PaymentItem.STATUS_CANCELLED
+                && activePayment.status != PaymentItem.STATUS_REJECTED
+                && activePayment.status != PaymentItem.STATUS_EXPIRED;
     }
 
     private int dp(int value) {

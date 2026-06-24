@@ -18,4 +18,5 @@ public sealed class DriverTripMatchResponse
     public string VehicleBrand { get; init; } = "";
     public string VehicleColor { get; init; } = "";
     public string VehiclePlate { get; init; } = "";
+    public double DriverRating { get; init; }
 }

@@ -120,9 +120,11 @@ public class TripService(
 
         var oldValues = AuditService.SnapshotTrip(trip);
 
+        var now = DateTime.UtcNow;
         trip.StatusId = 5; // cancelled
-        trip.CancelledAt = DateTime.UtcNow;
+        trip.CancelledAt = now;
         trip.UpdatedAt = trip.CancelledAt;
+        await CancelPendingPaymentsForTripAsync(trip.Id, now);
         await _context.SaveChangesAsync();
 
         await _auditService.RecordAsync(
@@ -303,6 +305,13 @@ public class TripService(
                 && t.AvailableSeats > 0)
             .ToListAsync();
 
+        var driverIds = trips.Where(t => t.DriverUserId.HasValue).Select(t => t.DriverUserId!.Value).Distinct().ToList();
+        var ratings = await _context.TripRatings.AsNoTracking()
+            .Where(tr => driverIds.Contains(tr.EvaluatedUserId) && tr.RatingRole == RatingRole.PassengerToDriver)
+            .GroupBy(tr => tr.EvaluatedUserId)
+            .Select(g => new { DriverUserId = g.Key, AvgScore = g.Average(tr => tr.Score) })
+            .ToDictionaryAsync(x => x.DriverUserId, x => x.AvgScore);
+
         return trips.Select(t =>
         {
             var destLat = t.DestinationLocation.Latitude;
@@ -324,6 +333,12 @@ public class TripService(
 
             var name = string.IsNullOrWhiteSpace(t.DriverName) ? "Conductor" : t.DriverName.Trim();
             if (name.Length > 100) name = name[..100];
+
+            double driverRating = 5.0;
+            if (t.DriverUserId.HasValue && ratings.TryGetValue(t.DriverUserId.Value, out var avgScore))
+            {
+                driverRating = Math.Round(avgScore, 1);
+            }
 
             return new DriverTripMatchResponse
             {
@@ -352,6 +367,7 @@ public class TripService(
                 VehicleBrand = t.Vehicle?.Brand ?? "",
                 VehicleColor = t.Vehicle?.Color ?? "",
                 VehiclePlate = t.Vehicle?.LicensePlate ?? "",
+                DriverRating = driverRating,
             };
         })
         .OrderBy(r => r.DistanceKm)
@@ -440,5 +456,35 @@ public class TripService(
                 + Math.Cos(ToRad(lat1)) * Math.Cos(ToRad(lat2)) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
         var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
         return earthRadiusKm * c;
+    }
+
+    private async Task CancelPendingPaymentsForTripAsync(Guid tripId, DateTime now)
+    {
+        var pendingPayments = await _context.Payments
+            .Include(p => p.Reservation)
+            .Include(p => p.UserPaymentMethod)
+            .Where(p => p.Reservation.TripId == tripId && p.Status == PaymentStatus.Pending)
+            .ToListAsync();
+
+        foreach (var payment in pendingPayments)
+        {
+            payment.Status = PaymentStatus.Cancelled;
+            payment.UpdatedAt = now;
+            payment.FailureReason = "Pago cancelado automaticamente porque el viaje fue cancelado.";
+            payment.Transactions.Add(new PaymentTransaction
+            {
+                Id = Guid.NewGuid(),
+                PaymentId = payment.Id,
+                TransactionType = PaymentTransactionType.Cancellation,
+                Status = PaymentTransactionStatus.Cancelled,
+                Amount = payment.Amount,
+                Provider = payment.UserPaymentMethod.PaymentMethodCode,
+                ProviderTransactionId = $"TX-CANCEL-{now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}",
+                ResponseCode = "TRIP_CANCELLED",
+                ResponseMessage = "Pago cancelado automaticamente porque el viaje fue cancelado.",
+                ProcessedAt = now,
+                CreatedAt = now
+            });
+        }
     }
 }

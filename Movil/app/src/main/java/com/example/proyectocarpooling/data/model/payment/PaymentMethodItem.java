@@ -9,17 +9,15 @@ public class PaymentMethodItem {
     public final String description;
     public final int type;
     public final boolean requiresManualConfirmation;
-    public final boolean supportsRefunds;
 
     public PaymentMethodItem(int id, String code, String name, String description,
-                             int type, boolean requiresManualConfirmation, boolean supportsRefunds) {
+                             int type, boolean requiresManualConfirmation) {
         this.id = id;
         this.code = code;
         this.name = name;
         this.description = description;
         this.type = type;
         this.requiresManualConfirmation = requiresManualConfirmation;
-        this.supportsRefunds = supportsRefunds;
     }
 
     public static PaymentMethodItem fromJson(JSONObject obj) {
@@ -29,8 +27,7 @@ public class PaymentMethodItem {
                 obj.optString("name", ""),
                 obj.optString("description", ""),
                 obj.optInt("type", 0),
-                obj.optBoolean("requiresManualConfirmation", false),
-                obj.optBoolean("supportsRefunds", true)
+                obj.optBoolean("requiresManualConfirmation", false)
         );
     }
 

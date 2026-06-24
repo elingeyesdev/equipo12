@@ -187,47 +187,6 @@ public class PaymentRemoteDataSource {
         }
     }
 
-    public PaymentItem requestRefund(String userId, String paymentId, double amount, String reason) throws IOException {
-        JSONObject body = new JSONObject();
-        try {
-            body.put("amount", amount);
-            body.put("reason", reason);
-        } catch (JSONException e) {
-            throw new IOException("No se pudo construir la solicitud de reembolso", e);
-        }
-        Request request = authedBuilder(userId)
-                .url(apiBaseUrl + "/api/payments/" + paymentId + "/refunds")
-                .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
-                .build();
-        try {
-            return PaymentItem.fromJson(executeObject(request));
-        } catch (JSONException e) {
-            throw new IOException("Respuesta invalida de reembolso", e);
-        }
-    }
-
-    public void approveRefund(String userId, String refundId) throws IOException {
-        Request request = authedBuilder(userId)
-                .url(apiBaseUrl + "/api/refunds/" + refundId + "/approve")
-                .post(RequestBody.create("", JSON_MEDIA_TYPE))
-                .build();
-        executeString(request);
-    }
-
-    public void rejectRefund(String userId, String refundId, String notes) throws IOException {
-        JSONObject body = new JSONObject();
-        try {
-            body.put("notes", notes);
-        } catch (JSONException e) {
-            throw new IOException("No se pudo construir rechazo de reembolso", e);
-        }
-        Request request = authedBuilder(userId)
-                .url(apiBaseUrl + "/api/refunds/" + refundId + "/reject")
-                .post(RequestBody.create(body.toString(), JSON_MEDIA_TYPE))
-                .build();
-        executeString(request);
-    }
-
     public PaymentItem cancelPayment(String userId, String paymentId) throws IOException {
         Request request = authedBuilder(userId)
                 .url(apiBaseUrl + "/api/payments/" + paymentId + "/cancel")

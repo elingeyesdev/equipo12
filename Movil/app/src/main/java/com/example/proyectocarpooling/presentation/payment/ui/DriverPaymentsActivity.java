@@ -57,8 +57,6 @@ public class DriverPaymentsActivity extends BaseActivity {
     private LinearLayout currentQrContainer;
     private LinearLayout pendingContainer;
     private TextView pendingEmptyText;
-    private LinearLayout refundsContainer;
-    private TextView refundsEmptyText;
     private int qrPaymentMethodId;
     private String selectedQrImageBase64;
 
@@ -100,8 +98,6 @@ public class DriverPaymentsActivity extends BaseActivity {
         currentQrContainer = findViewById(R.id.driverPaymentCurrentQrContainer);
         pendingContainer = findViewById(R.id.driverPaymentPendingContainer);
         pendingEmptyText = findViewById(R.id.driverPaymentPendingEmpty);
-        refundsContainer = findViewById(R.id.driverPaymentRefundsContainer);
-        refundsEmptyText = findViewById(R.id.driverPaymentRefundsEmpty);
     }
 
     private void setupToolbar() {
@@ -133,7 +129,6 @@ public class DriverPaymentsActivity extends BaseActivity {
                     setLoading(false);
                     renderSavedQr(userMethods);
                     renderPendingPayments(payments);
-                    renderPendingRefunds(payments);
                 });
             } catch (IOException e) {
                 runOnUiThread(() -> {
@@ -174,147 +169,6 @@ public class DriverPaymentsActivity extends BaseActivity {
         }
         pendingEmptyText.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
     }
-
-    private void renderPendingRefunds(List<PaymentItem> payments) {
-        refundsContainer.removeAllViews();
-        int count = 0;
-        if (payments != null) {
-            for (PaymentItem payment : payments) {
-                if (payment.refunds != null) {
-                    for (com.example.proyectocarpooling.data.model.payment.RefundItem refund : payment.refunds) {
-                        if (refund.status == 1) { // Requested
-                            count++;
-                            refundsContainer.addView(buildPendingRefundCard(payment, refund));
-                        }
-                    }
-                }
-            }
-        }
-        refundsEmptyText.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
-    }
-
-    private View buildPendingRefundCard(PaymentItem payment, com.example.proyectocarpooling.data.model.payment.RefundItem refund) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundResource(R.drawable.bg_info_field);
-        int pad = dp(14);
-        card.setPadding(pad, pad, pad, pad);
-        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        cardLp.setMargins(0, 0, 0, dp(10));
-        card.setLayoutParams(cardLp);
-
-        TextView title = new TextView(this);
-        title.setText(String.format(Locale.US, "Reembolso: %s · %.2f %s", payment.passengerName, refund.amount, payment.currency));
-        title.setTextColor(ContextCompat.getColor(this, R.color.carpool_text_primary));
-        title.setTextSize(15);
-        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-        card.addView(title);
-
-        TextView subtitle = new TextView(this);
-        subtitle.setText("Motivo: " + refund.reason + "\nReserva " + shortId(payment.reservationId));
-        subtitle.setTextColor(ContextCompat.getColor(this, R.color.carpool_text_secondary));
-        subtitle.setTextSize(13);
-        subtitle.setPadding(0, dp(6), 0, dp(10));
-        card.addView(subtitle);
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(0, dp(40), 1f);
-
-        Button approve = new Button(this);
-        approve.setText("Aprobar");
-        approve.setTextColor(ContextCompat.getColor(this, R.color.button_text_color));
-        approve.setTextSize(13);
-        approve.setTypeface(approve.getTypeface(), android.graphics.Typeface.BOLD);
-        approve.setBackgroundResource(R.drawable.bg_primary_action);
-        approve.setOnClickListener(v -> processRefund(refund.id, true));
-        buttons.addView(approve, btnLp);
-
-        View spacer = new View(this);
-        LinearLayout.LayoutParams spacerLp = new LinearLayout.LayoutParams(dp(10), dp(40));
-        buttons.addView(spacer, spacerLp);
-
-        Button reject = new Button(this);
-        reject.setText("Rechazar");
-        reject.setTextColor(ContextCompat.getColor(this, R.color.carpool_text_primary));
-        reject.setTextSize(13);
-        reject.setTypeface(reject.getTypeface(), android.graphics.Typeface.BOLD);
-        reject.setBackgroundResource(R.drawable.bg_info_field);
-        reject.setOnClickListener(v -> processRefund(refund.id, false));
-        buttons.addView(reject, btnLp);
-
-        card.addView(buttons);
-        return card;
-    }
-
-    private void processRefund(String refundId, boolean approve) {
-        if (approve) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Aprobar reembolso")
-                    .setMessage("¿Estás seguro de que deseas aprobar esta solicitud de reembolso?")
-                    .setPositiveButton("Sí, aprobar", (d, w) -> {
-                        setLoading(true);
-                        executor.execute(() -> {
-                            try {
-                                paymentRemote.approveRefund(sessionManager.getUserId(), refundId);
-                                runOnUiThread(() -> {
-                                    setLoading(false);
-                                    Toast.makeText(this, "Reembolso aprobado.", Toast.LENGTH_SHORT).show();
-                                    loadScreen();
-                                });
-                            } catch (IOException e) {
-                                runOnUiThread(() -> {
-                                    setLoading(false);
-                                    showError(e.getMessage());
-                                });
-                            }
-                        });
-                    })
-                    .setNegativeButton("Cancelar", null)
-                    .show();
-        } else {
-            final EditText input = new EditText(this);
-            input.setHint("Ej. El viaje sí se realizó correctamente.");
-            int pad = dp(20);
-            LinearLayout container = new LinearLayout(this);
-            container.setOrientation(LinearLayout.VERTICAL);
-            container.setPadding(pad, pad, pad, pad);
-            container.addView(input);
-
-            new AlertDialog.Builder(this)
-                    .setTitle("Rechazar reembolso")
-                    .setMessage("Ingresa el motivo del rechazo:")
-                    .setView(container)
-                    .setPositiveButton("Rechazar", (d, w) -> {
-                        String notes = input.getText().toString().trim();
-                        if (notes.isEmpty()) {
-                            Toast.makeText(this, "Debes ingresar un motivo.", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        setLoading(true);
-                        executor.execute(() -> {
-                            try {
-                                paymentRemote.rejectRefund(sessionManager.getUserId(), refundId, notes);
-                                runOnUiThread(() -> {
-                                    setLoading(false);
-                                    Toast.makeText(this, "Reembolso rechazado.", Toast.LENGTH_SHORT).show();
-                                    loadScreen();
-                                });
-                            } catch (IOException e) {
-                                runOnUiThread(() -> {
-                                    setLoading(false);
-                                    showError(e.getMessage());
-                                });
-                            }
-                        });
-                    })
-                    .setNegativeButton("Cancelar", null)
-                    .show();
-        }
-    }
-
     private View buildPendingPaymentCard(PaymentItem payment) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);

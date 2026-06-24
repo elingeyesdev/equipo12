@@ -126,17 +126,23 @@ public class TripSchedulePreviewActivity extends BaseActivity {
         tvDriver.setText("Conductor: " + (driverName != null ? driverName : ""));
         tvDetails.setText("Asientos: " + seats + " | Tarifa: " + fare + " Bs.");
 
-        btnSubscribe.setOnClickListener(v -> {
-            if (scheduleId != null) {
-                TripSchedule dummy = new TripSchedule(
-                        scheduleId, driverId, driverName,
-                        originLat, originLng, originAddress,
-                        destLat, destLng, destAddress,
-                        time, days, "", null, null, seats, fare, true
-                );
-                viewModel.subscribeToSchedule(dummy, sessionManager.getUserId(), 1);
-            }
-        });
+        boolean previewOnly = getIntent().getBooleanExtra("EXTRA_PREVIEW_ONLY", false);
+        if (previewOnly) {
+            btnSubscribe.setVisibility(View.GONE);
+        } else {
+            btnSubscribe.setVisibility(View.VISIBLE);
+            btnSubscribe.setOnClickListener(v -> {
+                if (scheduleId != null) {
+                    TripSchedule dummy = new TripSchedule(
+                            scheduleId, driverId, driverName,
+                            originLat, originLng, originAddress,
+                            destLat, destLng, destAddress,
+                            time, days, "", null, null, seats, fare, true
+                    );
+                    viewModel.subscribeToSchedule(dummy, sessionManager.getUserId(), 1);
+                }
+            });
+        }
     }
 
     private void initializeMap() {

@@ -382,20 +382,11 @@ public class UnitTests
             Email = "qr@test.com",
             PasswordHash = "hash"
         });
-        context.PaymentMethods.Add(new PaymentMethod
-        {
-            Id = 10,
-            Code = "BANK_QR",
-            Name = "QR Bancario",
-            Type = PaymentMethodType.BankQr,
-            RequiresManualConfirmation = true,
-            IsActive = true
-        });
         await context.SaveChangesAsync();
 
         var dto = new CreateUserPaymentMethodDto
         {
-            PaymentMethodId = 10,
+            PaymentMethodId = 3,
             Alias = "QR personal",
             QrImageUrl = "https://example.com/qr.png",
             IsDefault = true

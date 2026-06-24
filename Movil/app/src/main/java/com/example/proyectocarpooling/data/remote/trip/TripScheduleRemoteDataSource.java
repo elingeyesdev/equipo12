@@ -261,4 +261,22 @@ public class TripScheduleRemoteDataSource {
             return response.isSuccessful();
         }
     }
+
+    public TripSchedule getScheduleById(String id) throws IOException {
+        Request request = new Request.Builder()
+                .url(apiBaseUrl + "/api/TripSchedule/" + id)
+                .get()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Unexpected response: " + response.code() + " " + errorBody);
+            }
+            if (response.body() == null) throw new IOException("Server returned empty body");
+            return TripSchedule.fromJson(new JSONObject(response.body().string()));
+        } catch (org.json.JSONException e) {
+            throw new IOException("Invalid JSON response", e);
+        }
+    }
 }

@@ -24,11 +24,9 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
-    public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<UserPaymentMethod> UserPaymentMethods => Set<UserPaymentMethod>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
-    public DbSet<Refund> Refunds => Set<Refund>();
     public DbSet<UserDevice> UserDevices => Set<UserDevice>();
     public DbSet<UserBookmark> UserBookmarks => Set<UserBookmark>();
     public DbSet<TripSchedule> TripSchedules => Set<TripSchedule>();
@@ -56,11 +54,9 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         ConfigurePermission(modelBuilder);
         ConfigureUserRole(modelBuilder);
         ConfigureRolePermission(modelBuilder);
-        ConfigurePaymentMethod(modelBuilder);
         ConfigureUserPaymentMethod(modelBuilder);
         ConfigurePayment(modelBuilder);
         ConfigurePaymentTransaction(modelBuilder);
-        ConfigureRefund(modelBuilder);
         ConfigureUserDevice(modelBuilder);
         ConfigureUserBookmark(modelBuilder);
         ConfigureTripSchedule(modelBuilder);
@@ -69,7 +65,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
 
         SeedTripStatuses(modelBuilder);
         SeedReservationStatuses(modelBuilder);
-        SeedPaymentMethods(modelBuilder);
     }
 
     private static void ConfigureTrip(ModelBuilder modelBuilder)
@@ -526,25 +521,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         });
     }
 
-    private static void ConfigurePaymentMethod(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<PaymentMethod>(entity =>
-        {
-            entity.ToTable("PaymentMethods");
-            entity.HasKey(m => m.Id);
-            entity.HasIndex(m => m.Code).IsUnique();
-            entity.Property(m => m.Code).IsRequired().HasMaxLength(30);
-            entity.Property(m => m.Name).IsRequired().HasMaxLength(80);
-            entity.Property(m => m.Description).HasMaxLength(300);
-            entity.Property(m => m.Type).HasConversion<int>().IsRequired();
-            entity.Property(m => m.RequiresManualConfirmation).HasDefaultValue(false).IsRequired();
-            entity.Property(m => m.SupportsRefunds).HasDefaultValue(true).IsRequired();
-            entity.Property(m => m.IsActive).HasDefaultValue(true).IsRequired();
-            entity.Property(m => m.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-            entity.Property(m => m.UpdatedAt);
-        });
-    }
-
     private static void ConfigureUserPaymentMethod(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<UserPaymentMethod>(entity =>
@@ -558,16 +534,16 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
 
-            entity.HasOne(m => m.PaymentMethod)
-                .WithMany(p => p.UserPaymentMethods)
-                .HasForeignKey(m => m.PaymentMethodId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired();
-
+            entity.Property(m => m.PaymentMethodId).IsRequired();
+            entity.Property(m => m.PaymentMethodCode).IsRequired().HasMaxLength(30);
+            entity.Property(m => m.PaymentMethodName).IsRequired().HasMaxLength(80);
+            entity.Property(m => m.PaymentMethodDescription).HasMaxLength(300);
+            entity.Property(m => m.Type).HasConversion<int>().IsRequired();
+            entity.Property(m => m.RequiresManualConfirmation).HasDefaultValue(false).IsRequired();
             entity.Property(m => m.Alias).HasMaxLength(80);
             entity.Property(m => m.MaskedValue).HasMaxLength(80);
             entity.Property(m => m.ProviderToken).HasMaxLength(120);
-            entity.Property(m => m.QrImageUrl).HasMaxLength(300);
+            entity.Property(m => m.QrImageUrl).HasColumnType("nvarchar(max)");
             entity.Property(m => m.BankName).HasMaxLength(120);
             entity.Property(m => m.AccountHolderName).HasMaxLength(120);
             entity.Property(m => m.IsDefault).HasDefaultValue(false).IsRequired();
@@ -577,6 +553,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
 
             entity.HasIndex(m => m.UserId);
             entity.HasIndex(m => new { m.UserId, m.PaymentMethodId });
+            entity.HasIndex(m => new { m.UserId, m.PaymentMethodId, m.IsDefault });
         });
     }
 
@@ -593,16 +570,11 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired();
 
-            entity.HasOne(p => p.PaymentMethod)
+            entity.HasOne(p => p.UserPaymentMethod)
                 .WithMany(m => m.Payments)
-                .HasForeignKey(p => p.PaymentMethodId)
+                .HasForeignKey(p => p.UserPaymentMethodId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired();
-
-            entity.HasOne(p => p.UserPaymentMethod)
-                .WithMany()
-                .HasForeignKey(p => p.UserPaymentMethodId)
-                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(p => p.ConfirmedByUser)
                 .WithMany()
@@ -610,7 +582,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.Property(p => p.Amount).HasColumnType("decimal(10,2)").IsRequired();
-            entity.Property(p => p.RefundedAmount).HasColumnType("decimal(10,2)").HasDefaultValue(0m).IsRequired();
             entity.Property(p => p.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("BOB");
             entity.Property(p => p.Status).HasConversion<int>().HasDefaultValue(PaymentStatus.Pending).IsRequired();
             entity.Property(p => p.Description).HasMaxLength(300);
@@ -622,6 +593,7 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
             entity.Property(p => p.UpdatedAt);
 
             entity.HasIndex(p => p.ReservationId);
+            entity.HasIndex(p => p.UserPaymentMethodId);
             entity.HasIndex(p => p.Status);
             entity.HasIndex(p => p.CreatedAt);
         });
@@ -656,99 +628,6 @@ public class CarPoolingContext(DbContextOptions<CarPoolingContext> options) : Db
         });
     }
 
-
-    private static void ConfigureRefund(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Refund>(entity =>
-        {
-            entity.ToTable("Refunds");
-            entity.HasKey(r => r.Id);
-
-            entity.HasOne(r => r.Payment)
-                .WithMany(p => p.Refunds)
-                .HasForeignKey(r => r.PaymentId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .IsRequired();
-
-            entity.HasOne(r => r.RequestedByUser)
-                .WithMany()
-                .HasForeignKey(r => r.RequestedByUserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired();
-
-            entity.HasOne(r => r.ProcessedByUser)
-                .WithMany()
-                .HasForeignKey(r => r.ProcessedByUserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            entity.Property(r => r.Amount).HasColumnType("decimal(10,2)").IsRequired();
-            entity.Property(r => r.Status).HasConversion<int>().HasDefaultValue(RefundStatus.Requested).IsRequired();
-            entity.Property(r => r.Reason).HasMaxLength(500);
-            entity.Property(r => r.RejectionReason).HasMaxLength(500);
-            entity.Property(r => r.IsWithinCancellationWindow).HasDefaultValue(true).IsRequired();
-            entity.Property(r => r.RequestedAt).HasDefaultValueSql("GETUTCDATE()");
-            entity.Property(r => r.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-
-            entity.HasIndex(r => r.PaymentId);
-            entity.HasIndex(r => r.RequestedByUserId);
-            entity.HasIndex(r => r.Status);
-            entity.HasIndex(r => r.RequestedAt);
-        });
-    }
-
-    private static void SeedPaymentMethods(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<PaymentMethod>().HasData(
-            new PaymentMethod
-            {
-                Id = 1,
-                Code = "CASH",
-                Name = "Efectivo",
-                Description = "Pago en efectivo confirmado por el conductor.",
-                Type = PaymentMethodType.Cash,
-                RequiresManualConfirmation = true,
-                SupportsRefunds = false,
-                IsActive = true,
-                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            },
-            new PaymentMethod
-            {
-                Id = 2,
-                Code = "CARD_SIM",
-                Name = "Tarjeta simulada",
-                Description = "Pago con tarjeta en ambiente simulado para fines academicos.",
-                Type = PaymentMethodType.Simulated,
-                RequiresManualConfirmation = false,
-                SupportsRefunds = true,
-                IsActive = true,
-                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            },
-            new PaymentMethod
-            {
-                Id = 3,
-                Code = "QR_BANK",
-                Name = "QR bancario",
-                Description = "Pago mediante QR bancario del conductor, confirmado manualmente.",
-                Type = PaymentMethodType.BankQr,
-                RequiresManualConfirmation = true,
-                SupportsRefunds = true,
-                IsActive = true,
-                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            },
-            new PaymentMethod
-            {
-                Id = 4,
-                Code = "WALLET_SIM",
-                Name = "Billetera simulada",
-                Description = "Saldo interno simulado para fines academicos.",
-                Type = PaymentMethodType.Wallet,
-                RequiresManualConfirmation = false,
-                SupportsRefunds = true,
-                IsActive = true,
-                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            }
-        );
-    }
 
     private static void ConfigureUserDevice(ModelBuilder modelBuilder)
     {

@@ -75,4 +75,9 @@ public class TripScheduleRepositoryImpl implements TripScheduleRepository {
     public boolean rejectSubscription(String id) throws IOException {
         return remoteDataSource.rejectSubscription(id);
     }
+
+    @Override
+    public TripSchedule getScheduleById(String id) throws IOException {
+        return remoteDataSource.getScheduleById(id);
+    }
 }

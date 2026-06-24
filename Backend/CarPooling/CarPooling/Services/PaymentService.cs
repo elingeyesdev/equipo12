@@ -10,15 +10,14 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
     private readonly CarPoolingContext _context = context;
     private readonly INotificationService _notificationService = notificationService;
 
-    public async Task<List<PaymentMethodResponseDto>> ListMethodsAsync()
+    public Task<List<PaymentMethodResponseDto>> ListMethodsAsync()
     {
-        var methods = await _context.PaymentMethods
-            .AsNoTracking()
-            .Where(m => m.IsActive)
+        var methods = PaymentMethodCatalog.All
             .OrderBy(m => m.Id)
-            .ToListAsync();
+            .Select(PaymentMethodResponseDto.FromDefinition)
+            .ToList();
 
-        return methods.Select(PaymentMethodResponseDto.FromEntity).ToList();
+        return Task.FromResult(methods);
     }
 
     public async Task<UserPaymentMethodResponseDto> CreateUserPaymentMethodAsync(
@@ -27,9 +26,7 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
     {
         await EnsureUserExistsAsync(userId);
 
-        var method = await _context.PaymentMethods.FirstOrDefaultAsync(m => m.Id == dto.PaymentMethodId && m.IsActive)
-            ?? throw new KeyNotFoundException("Metodo de pago no encontrado.");
-
+        var method = ResolvePaymentMethod(dto.PaymentMethodId);
         if (method.Type == PaymentMethodType.BankQr && string.IsNullOrWhiteSpace(dto.QrImageUrl))
         {
             throw new InvalidOperationException("Debes registrar una imagen del QR bancario.");
@@ -43,29 +40,20 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
 
         if (dto.IsDefault)
         {
-            await ClearDefaultUserPaymentMethodsAsync(userId, dto.PaymentMethodId);
+            await ClearDefaultUserPaymentMethodsAsync(userId, method.Id);
         }
 
-        var userMethod = new UserPaymentMethod
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            PaymentMethodId = dto.PaymentMethodId,
-            Alias = dto.Alias?.Trim(),
-            MaskedValue = dto.MaskedValue?.Trim(),
-            ProviderToken = dto.ProviderToken?.Trim(),
-            QrImageUrl = dto.QrImageUrl?.Trim(),
-            BankName = dto.BankName?.Trim(),
-            AccountHolderName = dto.AccountHolderName?.Trim(),
-            IsDefault = dto.IsDefault,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
+        var userMethod = BuildUserPaymentMethod(userId, method, dto.IsDefault);
+        userMethod.Alias = dto.Alias?.Trim();
+        userMethod.MaskedValue = dto.MaskedValue?.Trim();
+        userMethod.ProviderToken = dto.ProviderToken?.Trim();
+        userMethod.QrImageUrl = dto.QrImageUrl?.Trim();
+        userMethod.BankName = dto.BankName?.Trim();
+        userMethod.AccountHolderName = dto.AccountHolderName?.Trim();
 
         _context.UserPaymentMethods.Add(userMethod);
         await _context.SaveChangesAsync();
 
-        userMethod.PaymentMethod = method;
         return UserPaymentMethodResponseDto.FromEntity(userMethod);
     }
 
@@ -75,7 +63,6 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
 
         var methods = await _context.UserPaymentMethods
             .AsNoTracking()
-            .Include(m => m.PaymentMethod)
             .Where(m => m.UserId == userId && m.IsActive)
             .OrderByDescending(m => m.IsDefault)
             .ThenByDescending(m => m.CreatedAt)
@@ -106,12 +93,9 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
 
         var methods = await _context.UserPaymentMethods
             .AsNoTracking()
-            .Include(m => m.PaymentMethod)
             .Where(m => m.UserId == reservation.Trip.DriverUserId.Value &&
                         m.IsActive &&
-                        m.PaymentMethod.IsActive &&
-                        (m.PaymentMethod.Type == PaymentMethodType.BankQr ||
-                         m.PaymentMethod.Type == PaymentMethodType.Cash))
+                        (m.Type == PaymentMethodType.BankQr || m.Type == PaymentMethodType.Cash))
             .OrderByDescending(m => m.IsDefault)
             .ThenByDescending(m => m.CreatedAt)
             .ToListAsync();
@@ -122,7 +106,6 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
     public async Task<UserPaymentMethodResponseDto> DisableUserPaymentMethodAsync(Guid userId, Guid methodId)
     {
         var method = await _context.UserPaymentMethods
-            .Include(m => m.PaymentMethod)
             .FirstOrDefaultAsync(m => m.Id == methodId && m.UserId == userId)
             ?? throw new KeyNotFoundException("Metodo de pago del usuario no encontrado.");
 
@@ -163,12 +146,10 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
             throw new InvalidOperationException("No se puede pagar un viaje finalizado o cancelado.");
         }
 
-        var method = await _context.PaymentMethods.FirstOrDefaultAsync(m => m.Id == dto.PaymentMethodId && m.IsActive)
-            ?? throw new KeyNotFoundException("Metodo de pago no encontrado.");
-
-        await ValidateUserPaymentMethodAsync(dto.UserPaymentMethodId, method, reservation, userId);
+        var method = ResolvePaymentMethod(dto.PaymentMethodId);
 
         var existingPending = await _context.Payments
+            .Include(p => p.UserPaymentMethod)
             .Where(p => p.ReservationId == dto.ReservationId && p.Status == PaymentStatus.Pending)
             .ToListAsync();
         await CheckAndExpirePaymentsAsync(existingPending);
@@ -177,28 +158,28 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
             p.ReservationId == dto.ReservationId &&
             p.Status != PaymentStatus.Rejected &&
             p.Status != PaymentStatus.Cancelled &&
-            p.Status != PaymentStatus.Expired &&
-            p.Status != PaymentStatus.Refunded);
+            p.Status != PaymentStatus.Expired);
 
         if (hasOpenPayment)
         {
             throw new InvalidOperationException("La reserva ya tiene un pago activo.");
         }
 
+        var userMethod = await ResolveUserPaymentMethodAsync(dto.UserPaymentMethodId, method, reservation, userId);
         var isCash = method.Type == PaymentMethodType.Cash;
 
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
             ReservationId = dto.ReservationId,
-            PaymentMethodId = dto.PaymentMethodId,
-            UserPaymentMethodId = dto.UserPaymentMethodId,
+            UserPaymentMethodId = userMethod.Id,
+            UserPaymentMethod = userMethod,
             Amount = reservation.Trip.FareAmount * reservation.SeatsReserved,
             Currency = currency,
             Status = method.RequiresManualConfirmation ? PaymentStatus.Pending : PaymentStatus.Approved,
             Description = dto.Description?.Trim(),
             ExternalReference = $"PAY-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}",
-            ExpiresAt = method.RequiresManualConfirmation ? (isCash ? null : DateTime.UtcNow.AddMinutes(60)) : (method.Type == PaymentMethodType.Simulated ? DateTime.UtcNow.AddMinutes(15) : null),
+            ExpiresAt = method.RequiresManualConfirmation && !isCash ? DateTime.UtcNow.AddMinutes(60) : null,
             PaidAt = method.RequiresManualConfirmation ? null : DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = method.RequiresManualConfirmation ? null : DateTime.UtcNow
@@ -220,12 +201,10 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
             CreatedAt = DateTime.UtcNow
         });
 
-
         _context.Payments.Add(payment);
         await _context.SaveChangesAsync();
 
         payment.Reservation = reservation;
-        payment.PaymentMethod = method;
         if (payment.Status == PaymentStatus.Pending && reservation.Trip.DriverUserId.HasValue)
         {
             await _notificationService.SendNotificationAsync(
@@ -322,7 +301,7 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
             throw new InvalidOperationException("Solo se pueden simular pagos pendientes.");
         }
 
-        if (payment.PaymentMethod.RequiresManualConfirmation)
+        if (payment.UserPaymentMethod.RequiresManualConfirmation)
         {
             throw new InvalidOperationException("Este metodo requiere confirmacion manual del conductor.");
         }
@@ -339,7 +318,6 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
             "SIMULATED_GATEWAY",
             dto.ResponseCode ?? (dto.Approve ? "APPROVED" : "REJECTED"),
             dto.ResponseMessage ?? (dto.Approve ? "Pago aprobado en ambiente simulado." : "Pago rechazado en ambiente simulado."));
-
 
         await _context.SaveChangesAsync();
 
@@ -367,7 +345,7 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
     public async Task<PaymentResponseDto> ConfirmManualPaymentAsync(Guid userId, Guid paymentId, ConfirmPaymentDto dto)
     {
         var payment = await _context.Payments
-            .Include(p => p.PaymentMethod)
+            .Include(p => p.UserPaymentMethod)
             .Include(p => p.Reservation).ThenInclude(r => r.Trip)
             .FirstOrDefaultAsync(p => p.Id == paymentId)
             ?? throw new KeyNotFoundException("Pago no encontrado.");
@@ -387,7 +365,7 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
             throw new InvalidOperationException("Solo se pueden confirmar pagos pendientes.");
         }
 
-        if (!payment.PaymentMethod.RequiresManualConfirmation)
+        if (!payment.UserPaymentMethod.RequiresManualConfirmation)
         {
             throw new InvalidOperationException("Este metodo no requiere confirmacion manual.");
         }
@@ -421,7 +399,7 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
             TransactionType = PaymentTransactionType.Confirmation,
             Status = PaymentTransactionStatus.Success,
             Amount = payment.Amount,
-            Provider = payment.PaymentMethod.Code,
+            Provider = payment.UserPaymentMethod.PaymentMethodCode,
             ProviderTransactionId = $"TX-{now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}",
             ResponseCode = "CONFIRMED",
             ResponseMessage = "Pago confirmado manualmente por el conductor.",
@@ -457,7 +435,7 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
         payment.Status = PaymentStatus.Cancelled;
         payment.UpdatedAt = DateTime.UtcNow;
         AddTransaction(payment, PaymentTransactionType.Cancellation, PaymentTransactionStatus.Success,
-            payment.Amount, payment.PaymentMethod.Code, "CANCELLED", "Pago cancelado.");
+            payment.Amount, payment.UserPaymentMethod.PaymentMethodCode, "CANCELLED", "Pago cancelado.");
 
         await _context.SaveChangesAsync();
         var otherUserId = payment.Reservation.PassengerUserId == userId
@@ -475,153 +453,25 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
         return PaymentResponseDto.FromEntity(payment);
     }
 
-    public async Task<PaymentResponseDto> RequestRefundAsync(Guid userId, Guid paymentId, CreateRefundDto dto)
+    public async Task<List<PaymentResponseDto>> ListAllPaymentsAsync()
     {
-        var payment = await PaymentDetailsQuery().FirstOrDefaultAsync(p => p.Id == paymentId)
-            ?? throw new KeyNotFoundException("Pago no encontrado.");
+        var payments = await PaymentDetailsQuery()
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
 
-        if (payment.Reservation.PassengerUserId != userId)
-        {
-            throw new InvalidOperationException("Solo el pasajero puede solicitar devolucion.");
-        }
+        await CheckAndExpirePaymentsAsync(payments);
 
-        if (payment.Status is not PaymentStatus.Approved and not PaymentStatus.PartiallyRefunded)
-        {
-            throw new InvalidOperationException("Solo se puede solicitar devolucion de pagos aprobados.");
-        }
-
-        if (!payment.PaymentMethod.SupportsRefunds)
-        {
-            throw new InvalidOperationException("Este metodo de pago no admite devoluciones.");
-        }
-
-        if (payment.Reservation.Trip.StartedAt.HasValue || payment.Reservation.Trip.StatusId == 3)
-        {
-            throw new InvalidOperationException("El viaje ya inicio; el pago no puede ser devuelto.");
-        }
-
-        var remainingAmount = payment.Amount - payment.RefundedAmount;
-        if (dto.Amount <= 0 || dto.Amount > remainingAmount)
-        {
-            throw new InvalidOperationException("El monto de devolucion no es valido.");
-        }
-
-        var refund = new Refund
-        {
-            Id = Guid.NewGuid(),
-            PaymentId = payment.Id,
-            Amount = dto.Amount,
-            Status = RefundStatus.Requested,
-            RequestedByUserId = userId,
-            Reason = dto.Reason?.Trim(),
-            IsWithinCancellationWindow = true,
-            RequestedAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        payment.Refunds.Add(refund);
-        payment.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
-
-        if (payment.Reservation.Trip.DriverUserId.HasValue)
-        {
-            await _notificationService.SendNotificationAsync(
-                payment.Reservation.Trip.DriverUserId.Value,
-                "Solicitud de devolucion",
-                $"El pasajero solicito una devolucion de {refund.Amount:0.00} {payment.Currency}.",
-                BuildPaymentData(payment, "refund_requested"));
-        }
-
-        return await GetPaymentForUserAsync(userId, paymentId);
-    }
-
-    public async Task<RefundResponseDto> ApproveRefundAsync(Guid userId, Guid refundId)
-    {
-        var refund = await RefundDetailsQuery().FirstOrDefaultAsync(r => r.Id == refundId)
-            ?? throw new KeyNotFoundException("Devolucion no encontrada.");
-
-        EnsureCanProcessRefund(userId, refund);
-
-        if (refund.Status != RefundStatus.Requested)
-        {
-            throw new InvalidOperationException("Solo se pueden aprobar devoluciones solicitadas.");
-        }
-
-        var payment = refund.Payment;
-        var remainingAmount = payment.Amount - payment.RefundedAmount;
-        if (refund.Amount > remainingAmount)
-        {
-            throw new InvalidOperationException("El monto de devolucion excede el saldo disponible.");
-        }
-
-        refund.Status = RefundStatus.Processed;
-        refund.ProcessedByUserId = userId;
-        refund.ProcessedAt = DateTime.UtcNow;
-
-        payment.RefundedAmount += refund.Amount;
-        payment.Status = payment.RefundedAmount >= payment.Amount
-            ? PaymentStatus.Refunded
-            : PaymentStatus.PartiallyRefunded;
-        payment.UpdatedAt = DateTime.UtcNow;
-
-        AddTransaction(payment, PaymentTransactionType.Refund, PaymentTransactionStatus.Success,
-            refund.Amount, payment.PaymentMethod.Code, "REFUNDED", "Devolucion procesada.");
-
-        await _context.SaveChangesAsync();
-        await _notificationService.SendNotificationAsync(
-            payment.Reservation.PassengerUserId,
-            "Devolucion aprobada",
-            $"Tu devolucion de {refund.Amount:0.00} {payment.Currency} fue procesada.",
-            BuildPaymentData(payment, "refund_approved"));
-
-        return RefundResponseDto.FromEntity(refund);
-    }
-
-    public async Task<RefundResponseDto> RejectRefundAsync(Guid userId, Guid refundId, ProcessRefundDto dto)
-    {
-        var refund = await RefundDetailsQuery().FirstOrDefaultAsync(r => r.Id == refundId)
-            ?? throw new KeyNotFoundException("Devolucion no encontrada.");
-
-        EnsureCanProcessRefund(userId, refund);
-
-        if (refund.Status != RefundStatus.Requested)
-        {
-            throw new InvalidOperationException("Solo se pueden rechazar devoluciones solicitadas.");
-        }
-
-        refund.Status = RefundStatus.Rejected;
-        refund.ProcessedByUserId = userId;
-        refund.ProcessedAt = DateTime.UtcNow;
-        refund.RejectionReason = dto.Notes?.Trim() ?? "Devolucion rechazada.";
-
-        await _context.SaveChangesAsync();
-        await _notificationService.SendNotificationAsync(
-            refund.Payment.Reservation.PassengerUserId,
-            "Devolucion rechazada",
-            refund.RejectionReason,
-            BuildPaymentData(refund.Payment, "refund_rejected"));
-
-        return RefundResponseDto.FromEntity(refund);
+        return payments.Select(PaymentResponseDto.FromEntity).ToList();
     }
 
     private IQueryable<Payment> PaymentDetailsQuery()
     {
         return _context.Payments
             .Include(p => p.ConfirmedByUser)
-            .Include(p => p.PaymentMethod)
             .Include(p => p.UserPaymentMethod)
             .Include(p => p.Reservation).ThenInclude(r => r.Trip)
             .Include(p => p.Reservation).ThenInclude(r => r.PassengerUser)
-            .Include(p => p.Transactions)
-            .Include(p => p.Refunds);
-    }
-
-    private IQueryable<Refund> RefundDetailsQuery()
-    {
-        return _context.Refunds
-            .Include(r => r.Payment).ThenInclude(p => p.Reservation).ThenInclude(r => r.Trip)
-            .Include(r => r.Payment).ThenInclude(p => p.PaymentMethod)
-            .Include(r => r.Payment).ThenInclude(p => p.Transactions);
+            .Include(p => p.Transactions);
     }
 
     private async Task EnsureUserExistsAsync(Guid userId)
@@ -646,28 +496,54 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
         }
     }
 
-    private async Task ValidateUserPaymentMethodAsync(
+    private async Task<UserPaymentMethod> ResolveUserPaymentMethodAsync(
         Guid? userPaymentMethodId,
-        PaymentMethod method,
+        PaymentMethodDefinition method,
         Reservation reservation,
         Guid passengerUserId)
     {
-        if (!userPaymentMethodId.HasValue)
+        if (userPaymentMethodId.HasValue)
         {
-            return;
+            var userMethod = await _context.UserPaymentMethods
+                .FirstOrDefaultAsync(m => m.Id == userPaymentMethodId.Value && m.IsActive)
+                ?? throw new KeyNotFoundException("Metodo de pago guardado no encontrado.");
+
+            ValidateUserPaymentMethodOwner(userMethod, method, reservation, passengerUserId);
+            return userMethod;
         }
 
-        var userMethod = await _context.UserPaymentMethods
-            .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Id == userPaymentMethodId.Value && m.IsActive)
-            ?? throw new KeyNotFoundException("Metodo de pago guardado no encontrado.");
+        if (method.Type == PaymentMethodType.BankQr)
+        {
+            var driverUserId = reservation.Trip.DriverUserId
+                ?? throw new InvalidOperationException("La reserva no tiene conductor asignado.");
 
+            return await _context.UserPaymentMethods
+                .Where(m => m.UserId == driverUserId && m.PaymentMethodId == method.Id && m.IsActive)
+                .OrderByDescending(m => m.IsDefault)
+                .ThenByDescending(m => m.CreatedAt)
+                .FirstOrDefaultAsync()
+                ?? throw new InvalidOperationException("El conductor aun no registro un QR bancario.");
+        }
+
+        var ownerUserId = method.Type == PaymentMethodType.Cash
+            ? reservation.Trip.DriverUserId ?? throw new InvalidOperationException("La reserva no tiene conductor asignado.")
+            : passengerUserId;
+
+        return await GetOrCreateRuntimeUserPaymentMethodAsync(ownerUserId, method);
+    }
+
+    private static void ValidateUserPaymentMethodOwner(
+        UserPaymentMethod userMethod,
+        PaymentMethodDefinition method,
+        Reservation reservation,
+        Guid passengerUserId)
+    {
         if (userMethod.PaymentMethodId != method.Id)
         {
             throw new InvalidOperationException("El metodo guardado no coincide con el metodo de pago seleccionado.");
         }
 
-        var expectedOwnerId = method.Type == PaymentMethodType.BankQr
+        var expectedOwnerId = method.Type is PaymentMethodType.BankQr or PaymentMethodType.Cash
             ? reservation.Trip.DriverUserId
             : passengerUserId;
 
@@ -675,6 +551,50 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
         {
             throw new InvalidOperationException("El metodo de pago guardado no pertenece al usuario correspondiente.");
         }
+    }
+
+    private async Task<UserPaymentMethod> GetOrCreateRuntimeUserPaymentMethodAsync(Guid userId, PaymentMethodDefinition method)
+    {
+        var existing = await _context.UserPaymentMethods
+            .Where(m => m.UserId == userId && m.PaymentMethodId == method.Id && m.IsActive)
+            .OrderByDescending(m => m.IsDefault)
+            .ThenByDescending(m => m.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var created = BuildUserPaymentMethod(userId, method, isDefault: false);
+        created.Alias = method.Name;
+        _context.UserPaymentMethods.Add(created);
+        await _context.SaveChangesAsync();
+        return created;
+    }
+
+    private static UserPaymentMethod BuildUserPaymentMethod(Guid userId, PaymentMethodDefinition method, bool isDefault)
+    {
+        return new UserPaymentMethod
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PaymentMethodId = method.Id,
+            PaymentMethodCode = method.Code,
+            PaymentMethodName = method.Name,
+            PaymentMethodDescription = method.Description,
+            Type = method.Type,
+            RequiresManualConfirmation = method.RequiresManualConfirmation,
+            IsDefault = isDefault,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    private static PaymentMethodDefinition ResolvePaymentMethod(int paymentMethodId)
+    {
+        return PaymentMethodCatalog.Find(paymentMethodId)
+            ?? throw new KeyNotFoundException("Metodo de pago no encontrado.");
     }
 
     private static void EnsureCanAccessPayment(Guid userId, Payment payment)
@@ -687,16 +607,6 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
         }
 
         throw new InvalidOperationException("No tienes permisos para ver este pago.");
-    }
-
-    private static void EnsureCanProcessRefund(Guid userId, Refund refund)
-    {
-        if (refund.Payment.Reservation.Trip.DriverUserId == userId || refund.Payment.ConfirmedByUserId == userId)
-        {
-            return;
-        }
-
-        throw new InvalidOperationException("Solo el conductor puede procesar esta devolucion.");
     }
 
     private static string NormalizeCurrency(string? currency)
@@ -752,22 +662,10 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
         });
     }
 
-
-    public async Task<List<PaymentResponseDto>> ListAllPaymentsAsync()
-    {
-        var payments = await PaymentDetailsQuery()
-            .OrderByDescending(p => p.CreatedAt)
-            .ToListAsync();
-
-        await CheckAndExpirePaymentsAsync(payments);
-
-        return payments.Select(PaymentResponseDto.FromEntity).ToList();
-    }
-
     private async Task CheckAndExpirePaymentsAsync(List<Payment> payments)
     {
         var now = DateTime.UtcNow;
-        bool changed = false;
+        var changed = false;
         foreach (var payment in payments)
         {
             if (payment.Status == PaymentStatus.Pending && payment.ExpiresAt.HasValue && payment.ExpiresAt.Value < now)
@@ -781,16 +679,17 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
                     TransactionType = PaymentTransactionType.Cancellation,
                     Status = PaymentTransactionStatus.Failed,
                     Amount = payment.Amount,
-                    Provider = payment.PaymentMethod?.Code ?? "SYSTEM",
+                    Provider = payment.UserPaymentMethod?.PaymentMethodCode ?? "SYSTEM",
                     ProviderTransactionId = $"TX-EXP-{now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8]}",
                     ResponseCode = "EXPIRED",
-                    ResponseMessage = "Pago expirado automáticamente por límite de tiempo.",
+                    ResponseMessage = "Pago expirado automaticamente por limite de tiempo.",
                     ProcessedAt = now,
                     CreatedAt = now
                 });
                 changed = true;
             }
         }
+
         if (changed)
         {
             try
@@ -799,7 +698,7 @@ public class PaymentService(CarPoolingContext context, INotificationService noti
             }
             catch (DbUpdateConcurrencyException)
             {
-                // Concurrency conflicts during auto-expiration can be safely ignored
+                // Concurrency conflicts during auto-expiration can be safely ignored.
             }
         }
     }

@@ -240,6 +240,8 @@ public class MainActivity extends BaseActivity {
     private String passengerReservedDriverName;
     private int passengerReservationStatusId;
     private String passengerPaymentStatusLabel = "Pago: pendiente de confirmacion";
+    private String paymentGateOpenedReservationId;
+    private boolean paymentGateCheckInFlight;
     private int activeTripPendingCount;
 
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
@@ -276,14 +278,14 @@ public class MainActivity extends BaseActivity {
                         String driverName = matchData.getStringExtra(DriverMatchActivity.EXTRA_RESULT_DRIVER_NAME);
                         if (driverName == null) driverName = "Conductor";
                         Toast.makeText(MainActivity.this, R.string.toast_passenger_reserved_with_driver, Toast.LENGTH_LONG).show();
-                        String code = String.format("%04d", (int)(Math.random() * 10000));
-                        sessionManager.savePassengerBookedTrip(tripId, code, driverName);
+                        sessionManager.savePassengerBookedTrip(tripId, null, "", driverName);
                         hasActivePassengerReservation = true;
                         passengerReservedTripId = tripId;
-                        passengerBoardingCode = code;
+                        passengerBoardingCode = "";
                         passengerReservedDriverName = driverName;
                         passengerReservationStatusId = 1;
                         refreshForPassengerReservation();
+                        checkPassengerReservationOnStart();
                     }
                     double oLat = matchData.getDoubleExtra(DriverMatchActivity.EXTRA_RESULT_ORIGIN_LAT, Double.NaN);
                     double oLng = matchData.getDoubleExtra(DriverMatchActivity.EXTRA_RESULT_ORIGIN_LNG, Double.NaN);
@@ -541,11 +543,7 @@ public class MainActivity extends BaseActivity {
         driverRoutePreviewBannerBody = findViewById(R.id.driverRoutePreviewBannerBody);
         bannerAcceptButton = findViewById(R.id.driverRoutePreviewBannerAccept);
         bannerRejectButton = findViewById(R.id.driverRoutePreviewBannerReject);
-        View dismissBanner = findViewById(R.id.driverRoutePreviewBannerDismiss);
         View closeBanner = findViewById(R.id.driverRoutePreviewBannerClose);
-        if (dismissBanner != null) {
-            dismissBanner.setOnClickListener(v -> discardRoutePreview());
-        }
         if (closeBanner != null) {
             closeBanner.setOnClickListener(v -> discardRoutePreview());
         }
@@ -744,6 +742,7 @@ public class MainActivity extends BaseActivity {
                             }
                             refreshForPassengerReservation();
                             refreshButtons();
+                            maybeOpenRequiredPaymentScreen();
                         });
                         return;
                     }
@@ -1147,7 +1146,7 @@ public class MainActivity extends BaseActivity {
                     openDriverMatchScreen();
                 } else if (id == R.id.nav_my_reservation) {
                     if (hasActivePassengerReservation) {
-                        showBoardingCodeDialog(passengerReservedDriverName, passengerBoardingCode);
+                        showLatestBoardingCodeDialog();
                     }
                 } else if (id == R.id.nav_pay_reservation) {
                     openPaymentScreen();
@@ -1166,10 +1165,15 @@ public class MainActivity extends BaseActivity {
     }
 
     private void openPaymentScreen() {
+        openPaymentScreen(false);
+    }
+
+    private void openPaymentScreen(boolean requirePaymentSelection) {
         Intent intent = new Intent(this, PaymentActivity.class);
         intent.putExtra(PaymentActivity.EXTRA_RESERVATION_ID, sessionManager.getPassengerBookedReservationId());
         intent.putExtra(PaymentActivity.EXTRA_TRIP_ID, passengerReservedTripId);
         intent.putExtra(PaymentActivity.EXTRA_DRIVER_NAME, passengerReservedDriverName);
+        intent.putExtra(PaymentActivity.EXTRA_REQUIRE_PAYMENT_SELECTION, requirePaymentSelection);
         startActivity(intent);
     }
 
@@ -1216,6 +1220,53 @@ public class MainActivity extends BaseActivity {
                 });
             } catch (IOException ignored) {
             }
+        });
+    }
+
+    private void maybeOpenRequiredPaymentScreen() {
+        if (isDriverUser || !hasActivePassengerReservation || !isPassengerReservationAccepted()) {
+            return;
+        }
+        final String reservationId = sessionManager.getPassengerBookedReservationId();
+        final String userId = sessionManager.getUserId();
+        if (reservationId == null || reservationId.isEmpty() || userId == null || userId.isEmpty()) {
+            return;
+        }
+        if (reservationId.equals(paymentGateOpenedReservationId) || paymentGateCheckInFlight) {
+            return;
+        }
+
+        paymentGateCheckInFlight = true;
+        backgroundExecutor.execute(() -> {
+            boolean hasActivePayment = false;
+            try {
+                List<PaymentItem> payments = ((CarPoolingApplication) getApplication())
+                        .getPaymentRemoteDataSource()
+                        .getReservationPayments(userId, reservationId);
+                for (PaymentItem payment : payments) {
+                    if (payment.status != PaymentItem.STATUS_CANCELLED
+                            && payment.status != PaymentItem.STATUS_REJECTED
+                            && payment.status != PaymentItem.STATUS_EXPIRED) {
+                        hasActivePayment = true;
+                        break;
+                    }
+                }
+            } catch (IOException ignored) {
+            }
+
+            final boolean shouldOpen = !hasActivePayment;
+            runOnUiThread(() -> {
+                paymentGateCheckInFlight = false;
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                if (shouldOpen && hasActivePassengerReservation && isPassengerReservationAccepted()
+                        && reservationId.equals(sessionManager.getPassengerBookedReservationId())) {
+                    paymentGateOpenedReservationId = reservationId;
+                    Toast.makeText(this, "Tu reserva fue aceptada. Selecciona un metodo de pago para continuar.", Toast.LENGTH_LONG).show();
+                    openPaymentScreen(true);
+                }
+            });
         });
     }
 
@@ -2423,14 +2474,14 @@ public class MainActivity extends BaseActivity {
             public void onSuccess() {
                 backgroundExecutor.execute(() -> {
                     String resId = null;
-                    String code = String.format(Locale.US, "%04d", (int)(Math.random() * 10000));
+                    String code = "";
                     String finalDriverName = driverName != null ? driverName : "Conductor";
                     try {
                         CarPoolingApplication app = (CarPoolingApplication) getApplication();
                         JSONObject activeRes = app.getUserRepository().getActiveReservation(passengerUserId);
                         if (activeRes != null) {
                             resId = activeRes.optString("reservationId", null);
-                            code = activeRes.optString("boardingCode", code);
+                            code = activeRes.optString("boardingCode", "");
                             finalDriverName = activeRes.optString("driverName", finalDriverName);
                             passengerReservationStatusId = activeRes.optInt("statusId", 1);
                         }
@@ -2618,6 +2669,52 @@ public class MainActivity extends BaseActivity {
                 .setView(dialogView)
                 .setPositiveButton(R.string.dialog_button_close, null)
                 .show();
+    }
+
+    private void showLatestBoardingCodeDialog() {
+        final String userId = sessionManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            Toast.makeText(this, "Sesion invalida.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        setProgressVisible(true);
+        backgroundExecutor.execute(() -> {
+            try {
+                JSONObject activeRes = ((CarPoolingApplication) getApplication())
+                        .getUserRepository()
+                        .getActiveReservation(userId);
+                if (activeRes == null) {
+                    runOnUiThread(() -> {
+                        setProgressVisible(false);
+                        Toast.makeText(this, "No encontramos una reserva activa.", Toast.LENGTH_SHORT).show();
+                    });
+                    return;
+                }
+
+                final String tripId = activeRes.optString("tripId", passengerReservedTripId);
+                final String reservationId = activeRes.optString("reservationId", sessionManager.getPassengerBookedReservationId());
+                final String boardingCode = activeRes.optString("boardingCode", "");
+                final String driverName = activeRes.optString("driverName", passengerReservedDriverName);
+                final int statusId = activeRes.optInt("statusId", passengerReservationStatusId);
+
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    passengerReservedTripId = tripId;
+                    passengerBoardingCode = boardingCode;
+                    passengerReservedDriverName = driverName;
+                    passengerReservationStatusId = statusId;
+                    sessionManager.savePassengerBookedTrip(tripId, reservationId, boardingCode, driverName);
+                    refreshForPassengerReservation();
+                    showBoardingCodeDialog(driverName, boardingCode);
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    Toast.makeText(this, "No se pudo actualizar el codigo. Verifica conexion.", Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     private boolean isTripReadyToStart() {
@@ -3512,6 +3609,7 @@ public class MainActivity extends BaseActivity {
                         updateDrawerReservationMenu();
                         refreshPassengerPaymentStateAsync();
                         refreshDrawerUserInfo();
+                        maybeOpenRequiredPaymentScreen();
                     } else {
                         // El servidor retornó 404/null (la reserva ya no está activa, ej: el viaje finalizó)
                         if (pointAnnotationManager != null && passengerCarMarkerAnnotation != null) {
@@ -3593,8 +3691,7 @@ public class MainActivity extends BaseActivity {
             }
             if ("payment_pending".equals(type) || "payment_approved".equals(type)
                     || "payment_rejected".equals(type) || "payment_confirmed".equals(type)
-                    || "payment_cancelled".equals(type) || "refund_requested".equals(type)
-                    || "refund_approved".equals(type) || "refund_rejected".equals(type)) {
+                    || "payment_cancelled".equals(type)) {
                 refreshDrawerUserInfo();
                 updateStatusText();
                 return;
@@ -3610,8 +3707,7 @@ public class MainActivity extends BaseActivity {
                 || "trip_cancelled".equals(type) || "trip_started".equals(type)
                 || "trip_finished".equals(type) || "payment_approved".equals(type)
                 || "payment_rejected".equals(type) || "payment_confirmed".equals(type)
-                || "payment_cancelled".equals(type) || "refund_approved".equals(type)
-                || "refund_rejected".equals(type)) {
+                || "payment_cancelled".equals(type)) {
             if (hasActivePassengerReservation) {
                 pollPassengerReservationStatus();
             } else {
@@ -3667,18 +3763,38 @@ public class MainActivity extends BaseActivity {
         if (finishedTripId == null || finishedTripId.isEmpty()) {
             return;
         }
-        mainViewModel.getBoardedPassengers(finishedTripId, new MainViewModel.ResultCallback<List<ReservationResponse>>() {
-            @Override
-            public void onSuccess(List<ReservationResponse> boarded) {
-                if (boarded == null || boarded.isEmpty()) {
-                    return;
-                }
-                showDriverRatingQueueDialog(finishedTripId, boarded, 0);
-            }
+        setProgressVisible(true);
+        backgroundExecutor.execute(() -> {
+            try {
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                List<ReservationResponse> confirmed = app.getTripRepository().getConfirmedReservations(finishedTripId);
+                List<ReservationResponse> boarded = app.getTripRepository().getBoardedPassengers(finishedTripId);
 
-            @Override
-            public void onError(String message) {
-                // Falla silenciosa
+                java.util.Map<String, ReservationResponse> combinedMap = new java.util.LinkedHashMap<>();
+                if (confirmed != null) {
+                    for (ReservationResponse r : confirmed) {
+                        if (r.passengerUserId != null && !r.passengerUserId.isEmpty()) {
+                            combinedMap.put(r.passengerUserId, r);
+                        }
+                    }
+                }
+                if (boarded != null) {
+                    for (ReservationResponse r : boarded) {
+                        if (r.passengerUserId != null && !r.passengerUserId.isEmpty()) {
+                            combinedMap.put(r.passengerUserId, r);
+                        }
+                    }
+                }
+
+                List<ReservationResponse> allToRate = new java.util.ArrayList<>(combinedMap.values());
+                runOnUiThread(() -> {
+                    setProgressVisible(false);
+                    if (!allToRate.isEmpty()) {
+                        showDriverRatingQueueDialog(finishedTripId, allToRate, 0);
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> setProgressVisible(false));
             }
         });
     }
@@ -4028,12 +4144,54 @@ public class MainActivity extends BaseActivity {
             return;
         }
 
-        if (btnSimulateTrip != null) {
-            btnSimulateTrip.setEnabled(false);
-            btnSimulateTrip.setText("Simulando...");
+        if (simulationRunnable != null) {
+            // "Finalizar Simulación" click: arrive at destination immediately
+            Point finalPoint = cachedRoutePreviewPoints.get(cachedRoutePreviewPoints.size() - 1);
+            if (pointAnnotationManager != null) {
+                if (carSimulationAnnotation == null) {
+                    PointAnnotationOptions options = new PointAnnotationOptions()
+                            .withPoint(finalPoint)
+                            .withIconImage(carMarkerBitmap);
+                    carSimulationAnnotation = pointAnnotationManager.create(options);
+                } else {
+                    carSimulationAnnotation.setPoint(finalPoint);
+                    pointAnnotationManager.update(carSimulationAnnotation);
+                }
+            }
+
+            if (mapView != null) {
+                mapView.getMapboxMap().setCamera(
+                        new CameraOptions.Builder()
+                                .center(finalPoint)
+                                .zoom(16.0)
+                                .build()
+                );
+            }
+
+            mainViewModel.updateTripLocation(activeTripId, finalPoint.latitude(), finalPoint.longitude(), new MainViewModel.ResultCallback<TripResponse>() {
+                @Override
+                public void onSuccess(TripResponse result) {
+                    stopSimulation();
+                    Toast.makeText(MainActivity.this, "¡Simulación completada! Destino alcanzado.", Toast.LENGTH_LONG).show();
+                    finishTrip();
+                }
+
+                @Override
+                public void onError(String message) {
+                    stopSimulation();
+                    Toast.makeText(MainActivity.this, "¡Simulación completada! Destino alcanzado.", Toast.LENGTH_LONG).show();
+                    finishTrip();
+                }
+            });
+            return;
         }
 
         stopSimulation();
+
+        if (btnSimulateTrip != null) {
+            btnSimulateTrip.setEnabled(true);
+            btnSimulateTrip.setText("Finalizar Simulación");
+        }
 
         simulationIndex = 0;
         simulationRunnable = new Runnable() {
@@ -4101,7 +4259,7 @@ public class MainActivity extends BaseActivity {
         simulationIndex = 0;
         if (btnSimulateTrip != null) {
             btnSimulateTrip.setEnabled(true);
-            btnSimulateTrip.setText("Simular");
+            btnSimulateTrip.setText("Iniciar Simulación de Recorrido");
         }
     }
 

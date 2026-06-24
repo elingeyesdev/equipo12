@@ -12,6 +12,8 @@
     <string name="safe_zone_purpose_pickup">Solo recogida</string>
     <string name="safe_zone_purpose_dropoff">Solo destino</string>
     <string name="safe_zone_center_map_button">Centrar en mapa</string>
+    <string name="safe_zone_select_pickup_button">Elegir como punto de recogida</string>
+    <string name="safe_zone_select_destination_button">Elegir como destino</string>
     <string name="safe_zone_suggestion_title">Punto seguro cercano</string>
     <string name="safe_zone_suggestion_message">Tu ruta pasa cerca de %1$s (%2$s).\n\n¿Quieres agregar una parada en este punto seguro? El origen y destino no cambiaran.</string>
     <string name="safe_zone_suggestion_add_stop">Agregar parada</string>
@@ -119,7 +121,7 @@
     <string name="driver_match_view_route_unavailable">Este viaje no tiene ruta completa para mostrar.</string>
     <string name="driver_match_default_driver_name">este conductor</string>
     <string name="main_driver_route_banner_title">Vista previa del trayecto</string>
-    <string name="main_driver_route_banner_body">La línea azul es la ruta que %1$s tiene entre su punto de salida y su destino (calculada por calles). Los marcadores azul y rojo son inicio y fin de ese viaje.</string>
+    <string name="main_driver_route_banner_body">La línea azul es la ruta que %1$s tiene entre su punto de salida y su destino.</string>
     <string name="main_driver_route_banner_legend">Tip: mueve el mapa con un dedo y pellizca para hacer zoom y revisar tu zona.</string>
     <string name="main_driver_route_banner_back_hint">Para seguir comparando conductores, usa el botón Atrás.</string>
     <string name="main_driver_route_banner_dismiss">Entendido</string>

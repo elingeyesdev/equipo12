@@ -104,12 +104,24 @@ public class ReservationService(
             actorUserId: reservation.Trip.DriverUserId,
             description: $"Conductor acepto la reserva {reservation.Id}.");
 
-        await _notificationService.SendNotificationAsync(
-            reservation.PassengerUserId,
-            "Reserva Confirmada",
-            $"Tu solicitud de viaje con {reservation.Trip.DriverName} ha sido aceptada.",
-            new Dictionary<string, string> { { "type", "reservation_accepted" }, { "tripId", reservation.TripId.ToString() } }
-        );
+        try
+        {
+            await _notificationService.SendNotificationAsync(
+                reservation.PassengerUserId,
+                "Reserva Confirmada",
+                $"Tu solicitud de viaje con {reservation.Trip.DriverName} ha sido aceptada.",
+                new Dictionary<string, string>
+                {
+                    { "type", "reservation_accepted" },
+                    { "tripId", reservation.TripId.ToString() },
+                    { "reservationId", reservation.Id.ToString() }
+                }
+            );
+        }
+        catch
+        {
+            // La reserva ya fue aceptada; un fallo de push no debe revertir la operacion principal.
+        }
 
         return reservation;
     }
@@ -176,16 +188,23 @@ public class ReservationService(
             actorUserId: reservation.PassengerUserId,
             description: $"Pasajero abordo el viaje {reservation.TripId}.");
 
-        await _notificationService.SendNotificationAsync(
-            reservation.PassengerUserId,
-            "Abordaje confirmado",
-            $"Tu abordaje al viaje con {reservation.Trip.DriverName} fue confirmado.",
-            new Dictionary<string, string>
-            {
-                { "type", "reservation_boarded" },
-                { "tripId", reservation.TripId.ToString() },
-                { "reservationId", reservation.Id.ToString() }
-            });
+        try
+        {
+            await _notificationService.SendNotificationAsync(
+                reservation.PassengerUserId,
+                "Abordaje confirmado",
+                $"Tu abordaje al viaje con {reservation.Trip.DriverName} fue confirmado.",
+                new Dictionary<string, string>
+                {
+                    { "type", "reservation_boarded" },
+                    { "tripId", reservation.TripId.ToString() },
+                    { "reservationId", reservation.Id.ToString() }
+                });
+        }
+        catch
+        {
+            // El abordaje ya fue confirmado; un fallo de push no debe revertir la operacion principal.
+        }
 
         return reservation;
     }
@@ -283,7 +302,10 @@ public class ReservationService(
     public async Task<bool> VerifyBoardingCodeAsync(Guid reservationId, string code)
     {
         var r = await _context.Reservations.FirstOrDefaultAsync(r => r.Id == reservationId);
-        return r != null && r.BoardingCode == code;
+        if (r == null) return false;
+        string expected = (r.BoardingCode ?? "").Trim();
+        string actual = (code ?? "").Trim();
+        return string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<int> GetPendingCountForTripAsync(Guid tripId)

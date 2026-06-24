@@ -13,16 +13,19 @@ import com.example.proyectocarpooling.data.local.SessionManager;
 
 public class AccountOverviewActivity extends BaseActivity {
 
+    private SessionManager sessionManager;
+    private final java.util.concurrent.ExecutorService backgroundExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
     private org.json.JSONObject mSummary = null;
     private org.json.JSONArray mRatings = null;
     private boolean mShowingDriver = true;
+    private volatile boolean statsLoading = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_account_overview);
 
-        SessionManager sessionManager = ((CarPoolingApplication) getApplication()).getSessionManager();
+        sessionManager = ((CarPoolingApplication) getApplication()).getSessionManager();
 
         TextView nameValue = findViewById(R.id.accountNameValue);
         TextView emailValue = findViewById(R.id.accountEmailValue);
@@ -56,6 +59,11 @@ public class AccountOverviewActivity extends BaseActivity {
         String roleText = isDriver ? getString(R.string.user_role_driver) : getString(R.string.user_role_passenger);
         userRole.setText(roleText);
 
+        TextView memberSinceValue = findViewById(R.id.accountMemberSinceValue);
+        if (memberSinceValue != null) {
+            memberSinceValue.setText(formatMemberSince(sessionManager.getCreatedAt()));
+        }
+
         backButton.setOnClickListener(v -> finish());
         closeButton.setOnClickListener(v -> finish());
 
@@ -86,22 +94,54 @@ public class AccountOverviewActivity extends BaseActivity {
             }
         }
 
-        // Cargar estadísticas y calificaciones reales del servidor
-        final String userId = sessionManager.getUserId();
-        if (userId != null && !userId.isEmpty()) {
-            java.util.concurrent.Executor backgroundExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
-            backgroundExecutor.execute(() -> {
-                try {
-                    CarPoolingApplication app = (CarPoolingApplication) getApplication();
-                    mSummary = app.getRatingRemoteDataSource().getUserRatingSummary(userId, userId);
-                    mRatings = app.getRatingRemoteDataSource().getUserRatings(userId, userId);
+    }
 
-                    runOnUiThread(() -> {
-                        renderSegmentData();
-                    });
-                } catch (Exception ignored) {}
-            });
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadRemoteStats();
+    }
+
+    @Override
+    protected void onDestroy() {
+        backgroundExecutor.shutdownNow();
+        super.onDestroy();
+    }
+
+    private void loadRemoteStats() {
+        final String userId = sessionManager != null ? sessionManager.getUserId() : null;
+        if (userId == null || userId.isEmpty() || statsLoading) {
+            return;
         }
+
+        statsLoading = true;
+        backgroundExecutor.execute(() -> {
+            try {
+                CarPoolingApplication app = (CarPoolingApplication) getApplication();
+                mSummary = app.getRatingRemoteDataSource().getUserRatingSummary(userId, userId);
+                mRatings = app.getRatingRemoteDataSource().getUserRatings(userId, userId);
+
+                int tripsCount = 0;
+                try {
+                    com.example.proyectocarpooling.data.model.history.TripHistoryListResult historyResult = app.getTripHistoryRepository().listHistory(userId, null);
+                    if (historyResult != null && historyResult.summary != null) {
+                        tripsCount = historyResult.summary.totalTripsCount;
+                    }
+                } catch (Exception ignored) {}
+
+                final int totalTripsCount = tripsCount;
+                runOnUiThread(() -> {
+                    TextView totalTripsValue = findViewById(R.id.accountTotalTripsValue);
+                    if (totalTripsValue != null) {
+                        totalTripsValue.setText(String.valueOf(totalTripsCount));
+                    }
+                    renderSegmentData();
+                });
+            } catch (Exception ignored) {
+            } finally {
+                statsLoading = false;
+            }
+        });
     }
 
     private void updateTabUI(TextView activeTab, TextView inactiveTab) {
@@ -327,5 +367,31 @@ public class AccountOverviewActivity extends BaseActivity {
             if (parts[i].length() > 0) initials.append(parts[i].charAt(0));
         }
         return initials.length() > 0 ? initials.toString().toUpperCase() : "UI";
+    }
+
+    private static String formatMemberSince(String rawDate) {
+        if (rawDate == null || rawDate.isBlank()) {
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            java.text.SimpleDateFormat monthFormatter = new java.text.SimpleDateFormat("MMMM yyyy", new java.util.Locale("es", "ES"));
+            String fallback = monthFormatter.format(cal.getTime());
+            return fallback.substring(0, 1).toUpperCase() + fallback.substring(1);
+        }
+        try {
+            java.text.SimpleDateFormat parser = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US);
+            parser.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            java.util.Date date = parser.parse(rawDate);
+            
+            java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat("MMMM yyyy", new java.util.Locale("es", "ES"));
+            String result = date != null ? formatter.format(date) : "";
+            if (!result.isEmpty()) {
+                return result.substring(0, 1).toUpperCase() + result.substring(1);
+            }
+            return result;
+        } catch (java.text.ParseException e) {
+            if (rawDate.length() >= 7) {
+                return rawDate.substring(0, 7);
+            }
+            return rawDate;
+        }
     }
 }

@@ -3269,8 +3269,6 @@ function renderPaymentsTable(payments) {
       case 3: statusLabel = "Rechazado"; statusClass = "rejected"; break;
       case 4: statusLabel = "Cancelado"; statusClass = "cancelled"; break;
       case 5: statusLabel = "Expirado"; statusClass = "expired"; break;
-      case 6: statusLabel = "Devuelto"; statusClass = "refunded"; break;
-      case 7: statusLabel = "Devuelto parcial"; statusClass = "partially-refunded"; break;
     }
 
     return `
@@ -3323,56 +3321,7 @@ function renderPaymentDetails(payment) {
     case 3: statusLabel = "Rechazado"; statusClass = "rejected"; break;
     case 4: statusLabel = "Cancelado"; statusClass = "cancelled"; break;
     case 5: statusLabel = "Expirado"; statusClass = "expired"; break;
-    case 6: statusLabel = "Devuelto"; statusClass = "refunded"; break;
-    case 7: statusLabel = "Devuelto parcial"; statusClass = "partially-refunded"; break;
   }
-
-  let refundsHtml = "";
-  if (payment.refunds && payment.refunds.length > 0) {
-    refundsHtml = `
-      <div class="detail-section" style="margin-top: 16px;">
-        <h5 style="margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Historial de Reembolsos</h5>
-        <div class="table-wrap">
-          <table class="admin-table" style="font-size: 13px;">
-            <thead>
-              <tr>
-                <th>Monto</th>
-                <th>Estado</th>
-                <th>Motivo</th>
-                <th>Rechazo Motivo</th>
-                <th>Solicitado</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${payment.refunds.map(refund => {
-                let rStatus = "Desconocido";
-                if (refund.status === 1) rStatus = "Solicitado";
-                else if (refund.status === 2) rStatus = "Aprobado";
-                else if (refund.status === 3) rStatus = "Rechazado";
-                return `
-                  <tr>
-                    <td>${escapeHtml(refund.amount.toFixed(2))} ${escapeHtml(payment.currency)}</td>
-                    <td>${escapeHtml(rStatus)}</td>
-                    <td>${escapeHtml(refund.reason || "-")}</td>
-                    <td>${escapeHtml(refund.rejectionReason || "-")}</td>
-                    <td>${escapeHtml(formatDateTime(refund.requestedAt))}</td>
-                  </tr>
-                `;
-              }).join("")}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  } else {
-    refundsHtml = `
-      <div class="detail-section" style="margin-top: 16px;">
-        <h5 style="margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Historial de Reembolsos</h5>
-        <p style="color: var(--text-secondary); font-size: 13px;">No hay reembolsos registrados para este pago.</p>
-      </div>
-    `;
-  }
-
   return `
     <article class="detail-card">
       <div class="detail-card__header">
@@ -3387,7 +3336,6 @@ function renderPaymentDetails(payment) {
 
       <div class="detail-grid">
         <div><strong>Monto:</strong> ${escapeHtml(payment.amount.toFixed(2))} ${escapeHtml(payment.currency)}</div>
-        <div><strong>Monto Devuelto:</strong> ${escapeHtml(payment.refundedAmount.toFixed(2))} ${escapeHtml(payment.currency)}</div>
         <div><strong>Pasajero:</strong> ${escapeHtml(payment.passengerName || "-")}</div>
         <div><strong>Conductor:</strong> ${escapeHtml(payment.driverName || "-")}</div>
         <div><strong>Método de Pago:</strong> ${escapeHtml(payment.paymentMethodName || "-")}</div>
@@ -3397,8 +3345,6 @@ function renderPaymentDetails(payment) {
         <div><strong>Fecha Creación:</strong> ${escapeHtml(formatDateTime(payment.createdAt))}</div>
         <div><strong>Fecha Confirmación:</strong> ${escapeHtml(formatDateTime(payment.confirmedAt))}</div>
       </div>
-
-      ${refundsHtml}
     </article>
   `;
 }

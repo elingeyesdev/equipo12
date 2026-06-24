@@ -375,9 +375,10 @@
                     android:layout_marginEnd="8dp">
 
                     <TextView
+                        android:id="@+id/accountTotalTripsValue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="12"
+                        android:text="--"
                         android:textColor="?attr/colorPrimary"
                         android:textSize="28sp"
                         android:textStyle="bold" />
@@ -477,10 +478,11 @@
                     android:letterSpacing="0.06" />
 
                 <TextView
+                    android:id="@+id/accountMemberSinceValue"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="Enero 2024"
+                    android:text="--"
                     android:textColor="@color/carpool_text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />

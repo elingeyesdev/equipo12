@@ -90,7 +90,8 @@ public class ReservationsController(ReservationService reservationService) : Con
     {
         try
         {
-            var ok = await reservationService.VerifyBoardingCodeAsync(reservationId, dto.Code);
+            var codeToVerify = (dto.Code ?? "").Trim();
+            var ok = await reservationService.VerifyBoardingCodeAsync(reservationId, codeToVerify);
             if (!ok) return BadRequest("Codigo invalido.");
             await reservationService.BoardAsync(reservationId);
             return Ok(new { message = "Abordaje confirmado" });
@@ -119,6 +120,7 @@ public class ActiveReservationDto
     public string DriverName { get; set; } = "";
     public string StatusLabel { get; set; } = "";
     public int StatusId { get; set; }
+    public int TripStatusId { get; set; }
     public string BoardingCode { get; set; } = "";
     public string OriginAddress { get; set; } = "";
     public string DestinationAddress { get; set; } = "";
@@ -141,6 +143,7 @@ public class ActiveReservationDto
             DriverName = r.Trip.DriverName,
             StatusLabel = r.StatusEntity?.LabelEs ?? "",
             StatusId = r.StatusId,
+            TripStatusId = r.Trip.StatusId,
             BoardingCode = r.BoardingCode ?? "",
             OriginAddress = r.Trip.OriginLocation?.AddressLabel ?? "",
             DestinationAddress = r.Trip.DestinationLocation?.AddressLabel ?? "",

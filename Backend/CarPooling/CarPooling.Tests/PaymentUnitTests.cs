@@ -28,6 +28,7 @@ public class PaymentUnitTests
         var tripId = Guid.NewGuid();
         var reservationId = Guid.NewGuid();
         var paymentId = Guid.NewGuid();
+        var userPaymentMethodId = Guid.NewGuid();
         var originId = Guid.NewGuid();
         var destinationId = Guid.NewGuid();
 
@@ -55,11 +56,13 @@ public class PaymentUnitTests
             StatusId = 3,
             SeatsReserved = 1
         });
-        context.PaymentMethods.Add(new PaymentMethod
+        context.UserPaymentMethods.Add(new UserPaymentMethod
         {
-            Id = 1,
-            Code = "CASH",
-            Name = "Efectivo",
+            Id = userPaymentMethodId,
+            UserId = driverId,
+            PaymentMethodId = 1,
+            PaymentMethodCode = "CASH",
+            PaymentMethodName = "Efectivo",
             Type = PaymentMethodType.Cash,
             RequiresManualConfirmation = true,
             IsActive = true
@@ -68,7 +71,7 @@ public class PaymentUnitTests
         {
             Id = paymentId,
             ReservationId = reservationId,
-            PaymentMethodId = 1,
+            UserPaymentMethodId = userPaymentMethodId,
             Amount = 10m,
             Currency = "BOB",
             Status = PaymentStatus.Pending,

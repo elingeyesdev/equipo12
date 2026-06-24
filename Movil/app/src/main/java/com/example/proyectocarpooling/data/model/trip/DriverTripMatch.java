@@ -22,13 +22,14 @@ public final class DriverTripMatch {
     public final String vehicleColor;
     public final String vehiclePlate;
     public final String driverProfilePicture;
+    public final double driverRating;
 
     public DriverTripMatch(
             String tripId, String driverName,
             double originLatitude, double originLongitude, String originAddress,
             double destinationLatitude, double destinationLongitude, String destinationAddress,
             String statusLabel, int availableSeats, double fareAmount, double distanceKm, int etaMinutes,
-            String vehicleBrand, String vehicleColor, String vehiclePlate, String driverProfilePicture) {
+            String vehicleBrand, String vehicleColor, String vehiclePlate, String driverProfilePicture, double driverRating) {
         this.tripId = tripId;
         this.driverName = driverName;
         this.originLatitude = originLatitude;
@@ -46,6 +47,7 @@ public final class DriverTripMatch {
         this.vehicleColor = vehicleColor;
         this.vehiclePlate = vehiclePlate;
         this.driverProfilePicture = driverProfilePicture;
+        this.driverRating = driverRating;
     }
 
     public static DriverTripMatch fromJson(JSONObject o) throws JSONException {
@@ -69,6 +71,7 @@ public final class DriverTripMatch {
                 o.optString("vehicleBrand", ""),
                 o.optString("vehicleColor", ""),
                 o.optString("vehiclePlate", ""),
-                o.optString("driverProfilePicture", ""));
+                o.optString("driverProfilePicture", ""),
+                o.optDouble("driverRating", 5.0));
     }
 }

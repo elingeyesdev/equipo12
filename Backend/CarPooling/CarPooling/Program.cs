@@ -65,11 +65,17 @@ if (!Path.IsPathRooted(pathToFirebaseKey))
 
 if (File.Exists(pathToFirebaseKey))
 {
-    FirebaseApp.Create(new AppOptions
+    lock (typeof(Program))
     {
-        Credential = GoogleCredential.FromFile(pathToFirebaseKey)
-    });
-    Console.WriteLine($"Firebase inicializado con credenciales en: {pathToFirebaseKey}");
+        if (FirebaseApp.DefaultInstance is null)
+        {
+            FirebaseApp.Create(new AppOptions
+            {
+                Credential = GoogleCredential.FromFile(pathToFirebaseKey)
+            });
+            Console.WriteLine($"Firebase inicializado con credenciales en: {pathToFirebaseKey}");
+        }
+    }
 }
 else
 {

@@ -1,7 +1,7 @@
 package com.example.proyectocarpooling.data.model.payment;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONArray;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,8 +12,6 @@ public class PaymentItem {
     public static final int STATUS_REJECTED = 3;
     public static final int STATUS_CANCELLED = 4;
     public static final int STATUS_EXPIRED = 5;
-    public static final int STATUS_REFUNDED = 6;
-    public static final int STATUS_PARTIALLY_REFUNDED = 7;
 
     public final String id;
     public final String reservationId;
@@ -24,7 +22,6 @@ public class PaymentItem {
     public final String paymentMethodCode;
     public final String paymentMethodName;
     public final double amount;
-    public final double refundedAmount;
     public final String currency;
     public final int status;
     public final String description;
@@ -35,14 +32,13 @@ public class PaymentItem {
     public final String paidAt;
     public final String createdAt;
     public final String receiptNumber;
-    public final List<RefundItem> refunds;
 
     public PaymentItem(String id, String reservationId, String passengerUserId, String passengerName,
                        String tripId, String driverName, String paymentMethodCode, String paymentMethodName,
-                       double amount, double refundedAmount, String currency, int status,
+                       double amount, String currency, int status,
                        String description, String externalReference, String failureReason,
                        String confirmedByName, String confirmedAt, String paidAt,
-                       String createdAt, String receiptNumber, List<RefundItem> refunds) {
+                       String createdAt, String receiptNumber) {
         this.id = id;
         this.reservationId = reservationId;
         this.passengerUserId = passengerUserId;
@@ -52,7 +48,6 @@ public class PaymentItem {
         this.paymentMethodCode = paymentMethodCode;
         this.paymentMethodName = paymentMethodName;
         this.amount = amount;
-        this.refundedAmount = refundedAmount;
         this.currency = currency;
         this.status = status;
         this.description = description;
@@ -63,13 +58,10 @@ public class PaymentItem {
         this.paidAt = paidAt;
         this.createdAt = createdAt;
         this.receiptNumber = receiptNumber;
-        this.refunds = refunds;
     }
 
     public static PaymentItem fromJson(JSONObject obj) {
         JSONObject receipt = obj.optJSONObject("receipt");
-        JSONArray refundsArr = obj.optJSONArray("refunds");
-        List<RefundItem> refundsList = RefundItem.listFromJson(refundsArr);
         return new PaymentItem(
                 obj.optString("id", ""),
                 obj.optString("reservationId", ""),
@@ -80,7 +72,6 @@ public class PaymentItem {
                 obj.optString("paymentMethodCode", ""),
                 obj.optString("paymentMethodName", ""),
                 obj.optDouble("amount", 0.0),
-                obj.optDouble("refundedAmount", 0.0),
                 obj.optString("currency", "BOB"),
                 obj.optInt("status", 0),
                 obj.optString("description", ""),
@@ -90,8 +81,7 @@ public class PaymentItem {
                 obj.optString("confirmedAt", ""),
                 obj.optString("paidAt", ""),
                 obj.optString("createdAt", ""),
-                receipt != null ? receipt.optString("receiptNumber", "") : "",
-                refundsList
+                receipt != null ? receipt.optString("receiptNumber", "") : ""
         );
     }
 
@@ -117,8 +107,6 @@ public class PaymentItem {
             case STATUS_REJECTED: return "Rechazado";
             case STATUS_CANCELLED: return "Cancelado";
             case STATUS_EXPIRED: return "Expirado";
-            case STATUS_REFUNDED: return "Devuelto";
-            case STATUS_PARTIALLY_REFUNDED: return "Devuelto parcial";
             default: return "Sin estado";
         }
     }

@@ -147,6 +147,16 @@
                             android:textStyle="bold"
                             android:text="Tarifa: -- Bs."/>
 
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnViewRouteMap"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:text="Ver Ruta en Mapa"
+                            android:textColor="@color/carpool_primary"
+                            app:strokeColor="@color/carpool_primary" />
+
                     </LinearLayout>
 
                 </com.google.android.material.card.MaterialCardView>

@@ -50,15 +50,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
             holder.sentText.setText(message.messageText);
             holder.sentTime.setText(formatTime(message.createdAt));
 
-            // Marcar doble check si hay más lectores en el chat grupal
-            boolean isReadByOthers = message.readByUserIds.size() > 1;
-            if (isReadByOthers) {
-                holder.sentReadCheck.setImageResource(android.R.drawable.checkbox_on_background); // Check verde/azul en estilo premium
-                holder.sentReadCheck.setVisibility(View.VISIBLE);
-            } else {
-                holder.sentReadCheck.setImageResource(android.R.drawable.checkbox_off_background); // Check simple
-                holder.sentReadCheck.setVisibility(View.VISIBLE);
-            }
+            holder.sentReadCheck.setVisibility(View.GONE);
         } else {
             holder.sentContainer.setVisibility(View.GONE);
             holder.receivedContainer.setVisibility(View.VISIBLE);
@@ -92,26 +84,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
             }
         }
 
-        View.OnClickListener clickListener = v -> {
-            if (message.readers == null || message.readers.isEmpty()) {
-                return;
-            }
-            java.util.List<String> names = new java.util.ArrayList<>();
-            for (com.example.proyectocarpooling.data.model.chat.ChatMessage.Reader reader : message.readers) {
-                names.add(reader.fullName);
-            }
-            if (names.isEmpty()) return;
 
-            CharSequence[] items = names.toArray(new CharSequence[0]);
-            new com.google.android.material.dialog.MaterialAlertDialogBuilder(v.getContext())
-                    .setTitle("Leído por")
-                    .setItems(items, null)
-                    .setPositiveButton("Aceptar", null)
-                    .show();
-        };
-
-        holder.sentContainer.setOnClickListener(clickListener);
-        holder.receivedContainer.setOnClickListener(clickListener);
     }
 
     @Override

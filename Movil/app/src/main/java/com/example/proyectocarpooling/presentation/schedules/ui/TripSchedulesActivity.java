@@ -278,6 +278,48 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
     }
 
     @Override
+    public void onSubscriptionClick(RecurringReservation subscription) {
+        loadingProgress.setVisibility(View.VISIBLE);
+        new Thread(() -> {
+            try {
+                com.example.proyectocarpooling.domain.repository.trip.TripScheduleRepository repo =
+                        ((com.example.proyectocarpooling.CarPoolingApplication) getApplication()).getTripScheduleRepository();
+                TripSchedule schedule = repo.getScheduleById(subscription.tripScheduleId);
+                runOnUiThread(() -> {
+                    loadingProgress.setVisibility(View.GONE);
+                    if (isFinishing() || isDestroyed()) return;
+                    if (schedule != null) {
+                        Intent intent = new Intent(this, TripSchedulePreviewActivity.class);
+                        intent.putExtra("EXTRA_SCHEDULE_ID", schedule.id);
+                        intent.putExtra("EXTRA_DRIVER_ID", schedule.driverUserId);
+                        intent.putExtra("EXTRA_DRIVER_NAME", schedule.driverName);
+                        intent.putExtra("EXTRA_ORIGIN_LAT", schedule.originLatitude);
+                        intent.putExtra("EXTRA_ORIGIN_LNG", schedule.originLongitude);
+                        intent.putExtra("EXTRA_ORIGIN_ADDRESS", schedule.originAddress);
+                        intent.putExtra("EXTRA_DEST_LAT", schedule.destinationLatitude);
+                        intent.putExtra("EXTRA_DEST_LNG", schedule.destinationLongitude);
+                        intent.putExtra("EXTRA_DEST_ADDRESS", schedule.destinationAddress);
+                        intent.putExtra("EXTRA_TIME", schedule.departureTime);
+                        intent.putExtra("EXTRA_DAYS", schedule.daysOfWeek);
+                        intent.putExtra("EXTRA_SEATS", schedule.offeredSeats);
+                        intent.putExtra("EXTRA_FARE", schedule.fareAmount);
+                        intent.putExtra("EXTRA_PREVIEW_ONLY", true);
+                        startActivity(intent);
+                    } else {
+                        Toast.makeText(this, "No se pudo obtener la ruta del viaje programado.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    loadingProgress.setVisibility(View.GONE);
+                    if (isFinishing() || isDestroyed()) return;
+                    Toast.makeText(this, "Error al cargar la ruta: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
+    @Override
     public void onScheduleClick(TripSchedule schedule) {
         Intent intent = new Intent(this, TripScheduleDetailActivity.class);
         intent.putExtra("EXTRA_SCHEDULE_ID", schedule.id);
@@ -287,6 +329,12 @@ public class TripSchedulesActivity extends BaseActivity implements TripSchedules
         intent.putExtra("EXTRA_DAYS", schedule.daysOfWeek);
         intent.putExtra("EXTRA_SEATS", schedule.offeredSeats);
         intent.putExtra("EXTRA_FARE", schedule.fareAmount);
+        intent.putExtra("EXTRA_ORIGIN_LAT", schedule.originLatitude);
+        intent.putExtra("EXTRA_ORIGIN_LNG", schedule.originLongitude);
+        intent.putExtra("EXTRA_DEST_LAT", schedule.destinationLatitude);
+        intent.putExtra("EXTRA_DEST_LNG", schedule.destinationLongitude);
+        intent.putExtra("EXTRA_DRIVER_ID", schedule.driverUserId);
+        intent.putExtra("EXTRA_DRIVER_NAME", schedule.driverName);
         startActivity(intent);
     }
 

@@ -407,7 +407,7 @@ public class DriverMatchActivity extends BaseActivity {
         applyTripStatusChip(current.tripStatusKey);
         distanceHeroValue.setText(String.format(Locale.US, "%.1f", current.distanceKm));
         distanceHeroHint.setText(R.string.driver_match_distance_hint);
-        driverNameText.setText(current.driverName);
+        driverNameText.setText(String.format(Locale.US, "%s  ⭐ %.1f", current.driverName, current.driverRating));
         
         String initial = current.driverName != null && !current.driverName.isEmpty() ? String.valueOf(current.driverName.charAt(0)).toUpperCase() : "D";
         if (driverInitialText != null) {
@@ -420,7 +420,7 @@ public class DriverMatchActivity extends BaseActivity {
         driverVehicleText.setText(current.vehicleInfo);
         driverVehicleText.setVisibility(current.vehicleInfo != null && !current.vehicleInfo.isEmpty() ? View.VISIBLE : View.GONE);
         driverSeatsText.setText(getString(R.string.driver_match_seats_format, current.availableSeats));
-        driverTimeText.setText(getString(R.string.driver_match_time_format, current.etaMinutes));
+        driverTimeText.setText(String.format(Locale.US, "%.2f Bs", current.fareAmount));
         cardCounterText.setText(getString(R.string.driver_match_counter_format, currentIndex + 1, candidates.size()));
         rejectButton.setEnabled(!swipeAnimating);
         acceptButton.setEnabled(!swipeAnimating);
@@ -430,7 +430,7 @@ public class DriverMatchActivity extends BaseActivity {
             viewRouteButton.setEnabled(hasRoute && !swipeAnimating);
         }
         if (viewRouteHintText != null) {
-            viewRouteHintText.setVisibility(current.hasRouteEndpoints() ? View.VISIBLE : View.GONE);
+            viewRouteHintText.setVisibility(View.GONE);
         }
     }
 

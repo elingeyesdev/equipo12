@@ -1650,16 +1650,6 @@ input[type="date"]::-webkit-datetime-edit {
   color: var(--muted);
 }
 
-.status-badge--refunded {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
-
-.status-badge--partially-refunded {
-  background: #faf5ff;
-  color: #7e22ce;
-}
-
 .status-pill.pending {
   background: #fff4e6;
   color: #b35c00;
@@ -1683,16 +1673,6 @@ input[type="date"]::-webkit-datetime-edit {
 .status-pill.expired {
   background: #f2efe8;
   color: var(--muted);
-}
-
-.status-pill.refunded {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
-
-.status-pill.partially-refunded {
-  background: #faf5ff;
-  color: #7e22ce;
 }
 
 /* --- Dropdown para Opciones de Exportar --- */

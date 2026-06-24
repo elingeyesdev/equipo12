@@ -210,12 +210,11 @@ public class AdminController(
             return BadRequest("No se puede eliminar el usuario porque tiene calificaciones asociadas.");
         }
 
-        // Comprobar si tiene pagos o reembolsos asociados
-        var hasPayments = await _context.Payments.AnyAsync(p => p.Reservation.PassengerUserId == id || p.ConfirmedByUserId == id) ||
-                          await _context.Refunds.AnyAsync(r => r.RequestedByUserId == id || r.ProcessedByUserId == id);
+        // Comprobar si tiene pagos asociados
+        var hasPayments = await _context.Payments.AnyAsync(p => p.Reservation.PassengerUserId == id || p.ConfirmedByUserId == id);
         if (hasPayments)
         {
-            return BadRequest("No se puede eliminar el usuario porque tiene pagos o reembolsos asociados.");
+            return BadRequest("No se puede eliminar el usuario porque tiene pagos asociados.");
         }
 
         // Comprobar si tiene mensajes de chat o soporte asociados

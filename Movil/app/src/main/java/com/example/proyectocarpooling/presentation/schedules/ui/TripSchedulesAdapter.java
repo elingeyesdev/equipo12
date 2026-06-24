@@ -28,6 +28,7 @@ public class TripSchedulesAdapter extends RecyclerView.Adapter<TripSchedulesAdap
         void onCancelSubscription(RecurringReservation subscription);
         void onSubscribeToSchedule(TripSchedule schedule);
         void onScheduleClick(TripSchedule schedule);
+        void onSubscriptionClick(RecurringReservation subscription);
     }
 
     private final List<Object> items = new ArrayList<>();
@@ -112,6 +113,12 @@ public class TripSchedulesAdapter extends RecyclerView.Adapter<TripSchedulesAdap
                 }
             });
             holder.btnSubscribeAction.setVisibility(View.GONE);
+
+            holder.itemView.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onSubscriptionClick(sub);
+                }
+            });
 
         } else if (viewTypeMode == TYPE_BROWSE_SCHEDULE && item instanceof TripSchedule) {
             TripSchedule schedule = (TripSchedule) item;

@@ -79,6 +79,11 @@ public class ChatActivity extends BaseActivity {
         chatHeaderTitle = findViewById(R.id.chatHeaderTitle);
         ImageButton chatBackButton = findViewById(R.id.chatBackButton);
 
+        android.view.View chatAvatarCard = findViewById(R.id.chatAvatarCard);
+        if (chatAvatarCard != null) {
+            chatAvatarCard.setVisibility(android.view.View.GONE);
+        }
+
         // Cabecera premium
         if (chatTitle != null && !chatTitle.isBlank()) {
             chatHeaderTitle.setText(chatTitle);

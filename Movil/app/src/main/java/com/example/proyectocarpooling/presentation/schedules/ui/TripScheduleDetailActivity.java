@@ -42,6 +42,20 @@ public class TripScheduleDetailActivity extends BaseActivity {
 
     private PassengersAdapter adapter;
 
+    // Fields to hold coordinate and driver details for preview
+    private double originLat;
+    private double originLng;
+    private double destLat;
+    private double destLng;
+    private String driverId;
+    private String driverName;
+    private String originAddress;
+    private String destinationAddress;
+    private String time;
+    private String days;
+    private int seats;
+    private double fare;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,6 +68,27 @@ public class TripScheduleDetailActivity extends BaseActivity {
         setupToolbar();
         parseIntentExtras();
         setupRecyclerView();
+
+        // Wire Ver Ruta en Mapa button
+        MaterialButton btnViewRouteMap = findViewById(R.id.btnViewRouteMap);
+        btnViewRouteMap.setOnClickListener(v -> {
+            Intent previewIntent = new Intent(this, TripSchedulePreviewActivity.class);
+            previewIntent.putExtra("EXTRA_SCHEDULE_ID", scheduleId);
+            previewIntent.putExtra("EXTRA_DRIVER_ID", driverId);
+            previewIntent.putExtra("EXTRA_DRIVER_NAME", driverName);
+            previewIntent.putExtra("EXTRA_ORIGIN_LAT", originLat);
+            previewIntent.putExtra("EXTRA_ORIGIN_LNG", originLng);
+            previewIntent.putExtra("EXTRA_ORIGIN_ADDRESS", originAddress);
+            previewIntent.putExtra("EXTRA_DEST_LAT", destLat);
+            previewIntent.putExtra("EXTRA_DEST_LNG", destLng);
+            previewIntent.putExtra("EXTRA_DEST_ADDRESS", destinationAddress);
+            previewIntent.putExtra("EXTRA_TIME", time);
+            previewIntent.putExtra("EXTRA_DAYS", days);
+            previewIntent.putExtra("EXTRA_SEATS", seats);
+            previewIntent.putExtra("EXTRA_FARE", fare);
+            previewIntent.putExtra("EXTRA_PREVIEW_ONLY", true);
+            startActivity(previewIntent);
+        });
 
         loadSubscriptions();
     }
@@ -83,15 +118,21 @@ public class TripScheduleDetailActivity extends BaseActivity {
         Intent intent = getIntent();
         if (intent != null) {
             scheduleId = intent.getStringExtra("EXTRA_SCHEDULE_ID");
-            String origin = intent.getStringExtra("EXTRA_ORIGIN");
-            String dest = intent.getStringExtra("EXTRA_DESTINATION");
-            String time = intent.getStringExtra("EXTRA_TIME");
-            String days = intent.getStringExtra("EXTRA_DAYS");
-            int seats = intent.getIntExtra("EXTRA_SEATS", 4);
-            double fare = intent.getDoubleExtra("EXTRA_FARE", 10.0);
+            originAddress = intent.getStringExtra("EXTRA_ORIGIN");
+            destinationAddress = intent.getStringExtra("EXTRA_DESTINATION");
+            time = intent.getStringExtra("EXTRA_TIME");
+            days = intent.getStringExtra("EXTRA_DAYS");
+            seats = intent.getIntExtra("EXTRA_SEATS", 4);
+            fare = intent.getDoubleExtra("EXTRA_FARE", 10.0);
+            originLat = intent.getDoubleExtra("EXTRA_ORIGIN_LAT", 0.0);
+            originLng = intent.getDoubleExtra("EXTRA_ORIGIN_LNG", 0.0);
+            destLat = intent.getDoubleExtra("EXTRA_DEST_LAT", 0.0);
+            destLng = intent.getDoubleExtra("EXTRA_DEST_LNG", 0.0);
+            driverId = intent.getStringExtra("EXTRA_DRIVER_ID");
+            driverName = intent.getStringExtra("EXTRA_DRIVER_NAME");
 
-            tvOrigin.setText("Origen: " + (origin != null ? origin : "--"));
-            tvDestination.setText("Destino: " + (dest != null ? dest : "--"));
+            tvOrigin.setText("Origen: " + (originAddress != null ? originAddress : "--"));
+            tvDestination.setText("Destino: " + (destinationAddress != null ? destinationAddress : "--"));
             tvTime.setText("Hora de salida: " + (time != null ? formatTime(time) : "--"));
             tvDays.setText("Días: " + formatDaysOfWeek(days));
             tvSeats.setText("Asientos ofrecidos: " + seats);

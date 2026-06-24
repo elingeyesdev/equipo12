@@ -61,7 +61,7 @@ public static class DevelopmentDataSeeder
     private static readonly Guid TripInProgressId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3");
     private static readonly Guid TripFinishedId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4");
     private static readonly Guid TripCancelledId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb5");
-    private static readonly Guid TripRefundableId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb6");
+    private static readonly Guid TripExtraPaymentId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb6");
     private static readonly Guid TripFullId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb7");
     private static readonly Guid TripMorningFinishedId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb8");
     private static readonly Guid BookmarkPlaceId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbf1");
@@ -87,6 +87,10 @@ public static class DevelopmentDataSeeder
     private static readonly Guid DriverTwoQrMethodId = Guid.Parse("abab2222-2222-2222-2222-222222222222");
     private static readonly Guid PassengerCardMethodId = Guid.Parse("abab3333-3333-3333-3333-333333333333");
     private static readonly Guid PassengerWalletMethodId = Guid.Parse("abab4444-4444-4444-4444-444444444444");
+    private static readonly Guid DriverOneCashMethodId = Guid.Parse("abab5555-5555-5555-5555-555555555555");
+    private static readonly Guid DriverTwoCashMethodId = Guid.Parse("abab6666-6666-6666-6666-666666666666");
+    private static readonly Guid PassengerSixCardMethodId = Guid.Parse("abab7777-7777-7777-7777-777777777777");
+    private static readonly Guid PassengerFiveCardMethodId = Guid.Parse("abab8888-8888-8888-8888-888888888888");
 
     private static readonly Guid PayOneId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd1");
     private static readonly Guid PayTwoId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd2");
@@ -95,7 +99,6 @@ public static class DevelopmentDataSeeder
     private static readonly Guid PayFiveId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd5");
     private static readonly Guid PaySixId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd6");
     private static readonly Guid PaySevenId = Guid.Parse("dddddddd-dddd-dddd-dddd-ddddddddddd7");
-    private static readonly Guid RefundOneId = Guid.Parse("dadadada-dada-dada-dada-dadadadada01");
 
     private static readonly Guid ChatActiveId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1");
     private static readonly Guid ChatFinishedId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2");
@@ -577,7 +580,7 @@ public static class DevelopmentDataSeeder
             },
             new Trip
             {
-                Id = TripRefundableId,
+                Id = TripExtraPaymentId,
                 OriginLocationId = LocVenturaId,
                 DestinationLocationId = LocUnivalleId,
                 StatusId = 2, // ready
@@ -662,7 +665,7 @@ public static class DevelopmentDataSeeder
             new Reservation { Id = ResSixId, TripId = TripFinishedId, PassengerUserId = PassengerOneId, SeatsReserved = 1, StatusId = 3, BoardingCode = "6666", CreatedAt = now.AddHours(-3).AddMinutes(-30) },
             new Reservation { Id = ResSevenId, TripId = TripFinishedId, PassengerUserId = PassengerThreeId, SeatsReserved = 1, StatusId = 3, BoardingCode = "7777", CreatedAt = now.AddHours(-3).AddMinutes(-10) },
             new Reservation { Id = ResEightId, TripId = TripFinishedId, PassengerUserId = PassengerTwoId, SeatsReserved = 1, StatusId = 4, BoardingCode = "8888", CreatedAt = now.AddHours(-3).AddMinutes(-5) },
-            new Reservation { Id = ResNineId, TripId = TripRefundableId, PassengerUserId = PassengerFourId, SeatsReserved = 1, StatusId = 2, BoardingCode = "9090", CreatedAt = now.AddMinutes(-28) },
+            new Reservation { Id = ResNineId, TripId = TripExtraPaymentId, PassengerUserId = PassengerFourId, SeatsReserved = 1, StatusId = 2, BoardingCode = "9090", CreatedAt = now.AddMinutes(-28) },
             new Reservation { Id = ResTenId, TripId = TripFullId, PassengerUserId = PassengerEightId, SeatsReserved = 1, StatusId = 2, BoardingCode = "1010", CreatedAt = now.AddHours(-1).AddMinutes(-18) },
             new Reservation { Id = ResElevenId, TripId = TripFullId, PassengerUserId = PassengerNineId, SeatsReserved = 1, StatusId = 2, BoardingCode = "1110", CreatedAt = now.AddHours(-1).AddMinutes(-17) },
             new Reservation { Id = ResTwelveId, TripId = TripFullId, PassengerUserId = PassengerTenId, SeatsReserved = 1, StatusId = 2, BoardingCode = "1212", CreatedAt = now.AddHours(-1).AddMinutes(-16) },
@@ -674,58 +677,20 @@ public static class DevelopmentDataSeeder
     private static void SeedPaymentMethodsForUsers(CarPoolingContext context, DateTime now)
     {
         const string demoQr = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+        var cash = PaymentMethodCatalog.Find(1)!;
+        var card = PaymentMethodCatalog.Find(2)!;
+        var qr = PaymentMethodCatalog.Find(3)!;
+        var wallet = PaymentMethodCatalog.Find(4)!;
 
         context.UserPaymentMethods.AddRange(
-            new UserPaymentMethod
-            {
-                Id = DriverOneQrMethodId,
-                UserId = DriverOneId,
-                PaymentMethodId = 3,
-                Alias = "QR Banco Union",
-                QrImageUrl = demoQr,
-                BankName = "Banco Union",
-                AccountHolderName = "Juan Perez",
-                IsDefault = true,
-                IsActive = true,
-                CreatedAt = now.AddDays(-15)
-            },
-            new UserPaymentMethod
-            {
-                Id = DriverTwoQrMethodId,
-                UserId = DriverTwoId,
-                PaymentMethodId = 3,
-                Alias = "QR BNB Personal",
-                QrImageUrl = demoQr,
-                BankName = "Banco Nacional de Bolivia",
-                AccountHolderName = "Maria Gomez Vaca",
-                IsDefault = true,
-                IsActive = true,
-                CreatedAt = now.AddDays(-14)
-            },
-            new UserPaymentMethod
-            {
-                Id = PassengerCardMethodId,
-                UserId = PassengerFourId,
-                PaymentMethodId = 2,
-                Alias = "Tarjeta demo",
-                MaskedValue = "**** **** **** 4242",
-                ProviderToken = "tok_demo_4242",
-                IsDefault = true,
-                IsActive = true,
-                CreatedAt = now.AddDays(-5)
-            },
-            new UserPaymentMethod
-            {
-                Id = PassengerWalletMethodId,
-                UserId = PassengerEightId, // Asociado a Miguel Angel para evitar solapamientos
-                PaymentMethodId = 4,
-                Alias = "Billetera Univalle",
-                MaskedValue = "Saldo demo 75 BOB",
-                ProviderToken = "wallet_demo_miguel",
-                IsDefault = true,
-                IsActive = true,
-                CreatedAt = now.AddDays(-6)
-            });
+            DemoUserPaymentMethod(DriverOneQrMethodId, DriverOneId, qr, "QR Banco Union", null, null, demoQr, "Banco Union", "Juan Perez", true, now.AddDays(-15)),
+            DemoUserPaymentMethod(DriverTwoQrMethodId, DriverTwoId, qr, "QR BNB Personal", null, null, demoQr, "Banco Nacional de Bolivia", "Maria Gomez Vaca", true, now.AddDays(-14)),
+            DemoUserPaymentMethod(DriverOneCashMethodId, DriverOneId, cash, "Efectivo conductor", null, null, null, null, "Juan Perez", false, now.AddDays(-14)),
+            DemoUserPaymentMethod(DriverTwoCashMethodId, DriverTwoId, cash, "Efectivo conductora", null, null, null, null, "Maria Gomez Vaca", false, now.AddDays(-14)),
+            DemoUserPaymentMethod(PassengerCardMethodId, PassengerFourId, card, "Tarjeta demo", "**** **** **** 4242", "tok_demo_4242", null, null, null, true, now.AddDays(-5)),
+            DemoUserPaymentMethod(PassengerSixCardMethodId, PassengerSixId, card, "Tarjeta demo", "**** **** **** 1111", "tok_demo_1111", null, null, null, true, now.AddDays(-5)),
+            DemoUserPaymentMethod(PassengerFiveCardMethodId, PassengerFiveId, card, "Tarjeta demo", "**** **** **** 5555", "tok_demo_5555", null, null, null, true, now.AddDays(-6)),
+            DemoUserPaymentMethod(PassengerWalletMethodId, PassengerEightId, wallet, "Billetera Univalle", "Saldo demo 75 BOB", "wallet_demo_miguel", null, null, null, true, now.AddDays(-6)));
     }
 
     private static void SeedPayments(CarPoolingContext context, DateTime now)
@@ -735,7 +700,7 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayOneId,
                 ReservationId = ResFourId,
-                PaymentMethodId = 2,
+                UserPaymentMethodId = PassengerSixCardMethodId,
                 Amount = 10m,
                 Currency = "BOB",
                 Status = PaymentStatus.Approved,
@@ -749,7 +714,7 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayTwoId,
                 ReservationId = ResFiveId,
-                PaymentMethodId = 1,
+                UserPaymentMethodId = DriverOneCashMethodId,
                 Amount = 10m,
                 Currency = "BOB",
                 Status = PaymentStatus.Pending,
@@ -762,7 +727,6 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayThreeId,
                 ReservationId = ResSixId,
-                PaymentMethodId = 3,
                 UserPaymentMethodId = DriverTwoQrMethodId,
                 Amount = 12m,
                 Currency = "BOB",
@@ -780,7 +744,7 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayFourId,
                 ReservationId = ResSevenId,
-                PaymentMethodId = 1,
+                UserPaymentMethodId = DriverTwoCashMethodId,
                 Amount = 12m,
                 Currency = "BOB",
                 Status = PaymentStatus.Approved,
@@ -796,23 +760,20 @@ public static class DevelopmentDataSeeder
             {
                 Id = PayFiveId,
                 ReservationId = ResNineId,
-                PaymentMethodId = 2,
                 UserPaymentMethodId = PassengerCardMethodId,
                 Amount = 9m,
                 Currency = "BOB",
-                RefundedAmount = 4m,
-                Status = PaymentStatus.PartiallyRefunded,
-                Description = "Pago parcial con devolucion solicitada antes de iniciar",
-                ExternalReference = "PAY-DEMO-REFUND-0005",
+                Status = PaymentStatus.Approved,
+                Description = "Pago simulado aprobado antes de iniciar",
+                ExternalReference = "PAY-DEMO-CARD-0005",
                 PaidAt = now.AddMinutes(-24),
                 CreatedAt = now.AddMinutes(-26),
-                UpdatedAt = now.AddMinutes(-8)
+                UpdatedAt = now.AddMinutes(-24)
             },
             new Payment
             {
                 Id = PaySixId,
                 ReservationId = ResTenId,
-                PaymentMethodId = 4,
                 UserPaymentMethodId = PassengerWalletMethodId,
                 Amount = 11m,
                 Currency = "BOB",
@@ -827,14 +788,12 @@ public static class DevelopmentDataSeeder
             {
                 Id = PaySevenId,
                 ReservationId = ResFifteenId,
-                PaymentMethodId = 2,
+                UserPaymentMethodId = PassengerFiveCardMethodId,
                 Amount = 10m,
                 Currency = "BOB",
-                RefundedAmount = 10m,
-                Status = PaymentStatus.Refunded,
-                Description = "Pago devuelto por cancelacion del viaje",
+                Status = PaymentStatus.Cancelled,
+                Description = "Pago cancelado por cancelacion del viaje",
                 ExternalReference = "PAY-DEMO-CANCEL-0007",
-                PaidAt = now.AddHours(-5).AddMinutes(-35),
                 CreatedAt = now.AddHours(-5).AddMinutes(-40),
                 UpdatedAt = now.AddHours(-5)
             });
@@ -845,26 +804,43 @@ public static class DevelopmentDataSeeder
             DemoTransaction(PayThreeId, PaymentTransactionType.Payment, PaymentTransactionStatus.Success, 12m, "QR_BANK", "TX-QR-112233", "CONFIRMED", "Verificacion manual de QR exitosa", now.AddHours(-2).AddMinutes(-30)),
             DemoTransaction(PayFourId, PaymentTransactionType.Confirmation, PaymentTransactionStatus.Success, 12m, "CASH", "TX-CASH-445566", "CONFIRMED", "Pago en efectivo confirmado", now.AddHours(-2)),
             DemoTransaction(PayFiveId, PaymentTransactionType.Payment, PaymentTransactionStatus.Success, 9m, "SIMULATED_GATEWAY", "TX-CARD-REFUND", "00", "Pago aprobado en simulador", now.AddMinutes(-24)),
-            DemoTransaction(PayFiveId, PaymentTransactionType.Refund, PaymentTransactionStatus.Success, 4m, "CARD_SIM", "TX-REFUND-PARTIAL", "REFUNDED", "Devolucion parcial procesada", now.AddMinutes(-8)),
             DemoTransaction(PaySixId, PaymentTransactionType.Payment, PaymentTransactionStatus.Success, 11m, "WALLET_SIM", "TX-WALLET-0006", "00", "Debito de billetera simulado", now.AddHours(-1)),
-            DemoTransaction(PaySevenId, PaymentTransactionType.Refund, PaymentTransactionStatus.Success, 10m, "SIMULATED_GATEWAY", "TX-REFUND-CANCEL", "REFUNDED", "Devolucion completa por cancelacion", now.AddHours(-5)));
+            DemoTransaction(PaySevenId, PaymentTransactionType.Cancellation, PaymentTransactionStatus.Success, 10m, "SIMULATED_GATEWAY", "TX-CANCEL-0007", "CANCELLED", "Pago cancelado por viaje cancelado", now.AddHours(-5)));
+    }
 
-        context.Refunds.Add(new Refund
+    private static UserPaymentMethod DemoUserPaymentMethod(
+        Guid id,
+        Guid userId,
+        PaymentMethodDefinition method,
+        string alias,
+        string? maskedValue,
+        string? providerToken,
+        string? qrImageUrl,
+        string? bankName,
+        string? accountHolderName,
+        bool isDefault,
+        DateTime createdAt)
+    {
+        return new UserPaymentMethod
         {
-            Id = RefundOneId,
-            PaymentId = PayFiveId,
-            Amount = 4m,
-            Status = RefundStatus.Processed,
-            RequestedByUserId = PassengerFourId,
-            ProcessedByUserId = DriverThreeId,
-            Reason = "El pasajero cambio a un punto de encuentro mas cercano.",
-            IsWithinCancellationWindow = true,
-            CancellationDeadline = now.AddMinutes(20),
-            MinutesBeforeTripStart = 40,
-            RequestedAt = now.AddMinutes(-10),
-            ProcessedAt = now.AddMinutes(-8),
-            CreatedAt = now.AddMinutes(-10)
-        });
+            Id = id,
+            UserId = userId,
+            PaymentMethodId = method.Id,
+            PaymentMethodCode = method.Code,
+            PaymentMethodName = method.Name,
+            PaymentMethodDescription = method.Description,
+            Type = method.Type,
+            RequiresManualConfirmation = method.RequiresManualConfirmation,
+            Alias = alias,
+            MaskedValue = maskedValue,
+            ProviderToken = providerToken,
+            QrImageUrl = qrImageUrl,
+            BankName = bankName,
+            AccountHolderName = accountHolderName,
+            IsDefault = isDefault,
+            IsActive = true,
+            CreatedAt = createdAt
+        };
     }
 
     private static PaymentTransaction DemoTransaction(
@@ -1028,8 +1004,8 @@ public static class DevelopmentDataSeeder
                 UserId = PassengerFourId,
                 ReservationId = ResNineId,
                 Category = SupportTicketCategory.Payment,
-                Subject = "Consulta sobre devolucion parcial",
-                Description = "Solicite una devolucion parcial y quiero confirmar que quedo registrada.",
+                Subject = "Consulta sobre pago registrado",
+                Description = "Solicite una revision del pago y quiero confirmar que quedo registrada.",
                 Status = SupportTicketStatus.InReview,
                 AssignedAdminUserId = AdminId,
                 CreatedAt = now.AddMinutes(-18),
@@ -1043,7 +1019,7 @@ public static class DevelopmentDataSeeder
             new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990002"), TicketId = TicketTwoId, SenderUserId = PassengerTwoId, SenderKind = SupportMessageSenderKind.User, MessageText = "Ayer hice la recarga pero no se refleja en mi balance.", CreatedAt = now.AddDays(-3).AddHours(1) },
             new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990003"), TicketId = TicketTwoId, SenderUserId = AdminId, SenderKind = SupportMessageSenderKind.Admin, MessageText = "Hola Ana. Verificamos la transaccion y acreditamos manualmente los 50 BOB.", CreatedAt = now.AddDays(-2) },
             new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990004"), TicketId = TicketTwoId, SenderUserId = PassengerTwoId, SenderKind = SupportMessageSenderKind.User, MessageText = "Ya aparece el saldo correcto. Muchas gracias.", CreatedAt = now.AddDays(-1) },
-            new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990005"), TicketId = TicketThreeId, SenderUserId = PassengerFourId, SenderKind = SupportMessageSenderKind.User, MessageText = "La devolucion parcial aparece en el detalle del pago, pero quiero confirmar el estado.", CreatedAt = now.AddMinutes(-16) },
+            new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990005"), TicketId = TicketThreeId, SenderUserId = PassengerFourId, SenderKind = SupportMessageSenderKind.User, MessageText = "La revision aparece en el detalle del pago, pero quiero confirmar el estado.", CreatedAt = now.AddMinutes(-16) },
             new SupportTicketMessage { Id = Guid.Parse("33334444-5555-6666-7777-888899990006"), TicketId = TicketThreeId, SenderUserId = AdminId, SenderKind = SupportMessageSenderKind.Admin, MessageText = "Estamos revisando el movimiento. El estado figura como procesado por el conductor.", CreatedAt = now.AddMinutes(-12) }
         };
 

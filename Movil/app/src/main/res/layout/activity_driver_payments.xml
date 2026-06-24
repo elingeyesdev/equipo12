@@ -197,32 +197,6 @@
                 android:layout_marginTop="10dp"
                 android:orientation="vertical" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="Reembolsos solicitados"
-                android:textColor="@color/carpool_text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/driverPaymentRefundsEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_info_field"
-                android:padding="16dp"
-                android:text="No tienes solicitudes de reembolso."
-                android:textColor="@color/carpool_text_secondary"
-                android:textSize="14sp" />
-
-            <LinearLayout
-                android:id="@+id/driverPaymentRefundsContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="vertical" />
         </LinearLayout>
     </ScrollView>
 

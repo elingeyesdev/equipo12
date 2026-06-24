@@ -14,19 +14,12 @@ public class Payment
     public Reservation Reservation { get; set; } = null!;
 
     [Required]
-    public int PaymentMethodId { get; set; }
+    public Guid UserPaymentMethodId { get; set; }
 
-    public PaymentMethod PaymentMethod { get; set; } = null!;
-
-    public Guid? UserPaymentMethodId { get; set; }
-
-    public UserPaymentMethod? UserPaymentMethod { get; set; }
+    public UserPaymentMethod UserPaymentMethod { get; set; } = null!;
 
     [Column(TypeName = "decimal(10,2)")]
     public decimal Amount { get; set; }
-
-    [Column(TypeName = "decimal(10,2)")]
-    public decimal RefundedAmount { get; set; }
 
     [Required]
     [MaxLength(3)]
@@ -65,7 +58,4 @@ public class Payment
     public DateTime? UpdatedAt { get; set; }
 
     public ICollection<PaymentTransaction> Transactions { get; set; } = [];
-
-
-    public ICollection<Refund> Refunds { get; set; } = [];
 }

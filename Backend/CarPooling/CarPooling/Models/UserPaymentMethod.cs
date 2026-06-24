@@ -16,7 +16,20 @@ public class UserPaymentMethod
     [Required]
     public int PaymentMethodId { get; set; }
 
-    public PaymentMethod PaymentMethod { get; set; } = null!;
+    [Required]
+    [MaxLength(30)]
+    public string PaymentMethodCode { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(80)]
+    public string PaymentMethodName { get; set; } = string.Empty;
+
+    [MaxLength(300)]
+    public string? PaymentMethodDescription { get; set; }
+
+    public PaymentMethodType Type { get; set; } = PaymentMethodType.Simulated;
+
+    public bool RequiresManualConfirmation { get; set; }
 
     [MaxLength(80)]
     public string? Alias { get; set; }
@@ -43,4 +56,6 @@ public class UserPaymentMethod
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    public ICollection<Payment> Payments { get; set; } = [];
 }

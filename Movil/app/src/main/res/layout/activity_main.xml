@@ -135,17 +135,10 @@
                     android:layout_marginTop="6dp"
                     android:text="@string/main_driver_route_banner_legend"
                     android:textColor="@color/carpool_text_secondary"
-                    android:textSize="11sp" />
+                    android:textSize="11sp"
+                    android:visibility="gone" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/driverRoutePreviewBannerDismiss"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="end"
-                    android:text="@string/main_driver_route_banner_dismiss"
-                    android:textAllCaps="false"
-                    android:textColor="?attr/colorPrimary" />
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
