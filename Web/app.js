@@ -156,7 +156,6 @@ const createEntityType = document.getElementById("createEntityType");
 const createModalFields = document.getElementById("createModalFields");
 const supportDataMessage = document.getElementById("supportDataMessage");
 const adminSupportBody = document.getElementById("adminSupportBody");
-const auditLogsBody = document.getElementById("auditLogsBody");
 const auditDataMessage = document.getElementById("auditDataMessage");
 const auditSearchInput = document.getElementById("auditSearchInput");
 const auditTypeFilter = document.getElementById("auditTypeFilter");
@@ -2557,7 +2556,7 @@ function applyAuditPreset(preset) {
     if (auditActorFilter) auditActorFilter.value = "driver";
     setAuditTab("investigate");
   } else {
-    setAuditTab("logs");
+    setAuditTab("investigate");
   }
 
   loadAuditData();
@@ -2587,7 +2586,6 @@ async function loadAuditData() {
     setMessage(auditDataMessage, `Actualizado ${new Date().toLocaleTimeString()}. Logs: ${state.auditLogs.length}`, "success");
   } catch (error) {
     state.auditLogs = [];
-    renderAuditTable([]);
     renderAuditTimeline([]);
     renderAuditInvestigationSummary([]);
     setMessage(auditDataMessage, `No se pudo cargar auditoria: ${error.message}`, "error");
@@ -2602,11 +2600,6 @@ function renderAuditDashboard(data) {
     if (element) element.textContent = String(value ?? 0);
   };
 
-  setText("auditLogsCount", data.totalLogs);
-  setText("auditActiveUsersCount", (data.activeDrivers || 0) + (data.activePassengers || 0));
-  setText("auditActiveDriversCount", data.activeDrivers);
-  setText("auditReportsResolvedCount", data.reportsResolved);
-  setText("auditBlockedUsersCount", data.blockedOrInactiveUsers);
   setText("auditTripsCompletedCount", data.tripsCompleted);
   setText("auditTripsCancelledCount", data.tripsCancelled);
   setText("auditReportsUnresolvedCount", data.reportsUnresolved);
@@ -2667,32 +2660,6 @@ function renderAuditAnalysisList(containerId, items, emptyText, options = {}) {
         </div>
         ${showCount ? `<em>${escapeHtml(count)}</em>` : ""}
       </${tagName}>
-    `;
-  }).join("");
-}
-
-function renderAuditTable(logs) {
-  if (!auditLogsBody) {
-    return;
-  }
-
-  if (!logs.length) {
-    auditLogsBody.innerHTML = '<tr><td colspan="7">Sin logs de auditoria.</td></tr>';
-    return;
-  }
-
-  auditLogsBody.innerHTML = logs.map((log) => {
-    const actor = log.actorEmail || log.actorName || "Sistema";
-    return `
-      <tr data-created-at="${escapeHtml(log.createdAt || "")}" data-module="${escapeHtml(log.module || "")}" data-entity="${escapeHtml(log.entityName || "")}">
-        <td>${escapeHtml(formatDateTime(log.createdAt))}</td>
-        <td>${escapeHtml(actor)}</td>
-        <td>${escapeHtml(formatAuditAction(log.actionType))}</td>
-        <td>${escapeHtml(formatAuditArea(log.module))}</td>
-        <td>${escapeHtml(formatAuditEntity(log.entityName))}<br><small>${escapeHtml(log.entityId || "-")}</small></td>
-        <td><span class="status-badge status-badge--${String(log.result || "").toLowerCase() === "success" ? "active" : "inactive"}">${escapeHtml(log.result || "-")}</span></td>
-        <td><button class="btn tiny secondary admin-view-details" data-type="audit" data-id="${escapeHtml(log.id)}">Ver detalle</button></td>
-      </tr>
     `;
   }).join("");
 }
@@ -2782,7 +2749,6 @@ function getAuditActorGroup(log) {
 
 function applyAuditFilter() {
   const filteredLogs = getFilteredAuditLogs();
-  renderAuditTable(filteredLogs);
   renderAuditTimeline(filteredLogs);
   renderAuditInvestigationSummary(filteredLogs);
 }

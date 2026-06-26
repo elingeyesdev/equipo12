@@ -14,6 +14,12 @@
     <string name="safe_zone_center_map_button">Centrar en mapa</string>
     <string name="safe_zone_select_pickup_button">Elegir como punto de recogida</string>
     <string name="safe_zone_select_destination_button">Elegir como destino</string>
+    <string name="safe_zone_selected_origin_toast">Punto seguro usado como recogida</string>
+    <string name="safe_zone_selected_destination_toast">Punto seguro usado como destino</string>
+    <string name="safe_zone_selection_locked_toast">No puedes cambiar los puntos de un viaje reservado</string>
+    <string name="safe_zone_pickup_not_allowed">Este punto seguro no esta habilitado para recogida</string>
+    <string name="safe_zone_destination_not_allowed">Este punto seguro no esta habilitado para destino</string>
+    <string name="safe_zone_fallback_name">Zona segura</string>
     <string name="safe_zone_suggestion_title">Punto seguro cercano</string>
     <string name="safe_zone_suggestion_message">Tu ruta pasa cerca de %1$s (%2$s).\n\n¿Quieres agregar una parada en este punto seguro? El origen y destino no cambiaran.</string>
     <string name="safe_zone_suggestion_add_stop">Agregar parada</string>

@@ -146,7 +146,6 @@
           <div class="audit-tabs" role="tablist" aria-label="Vistas de auditoria">
             <button type="button" class="audit-tab active" data-audit-tab="summary">Resumen</button>
             <button type="button" class="audit-tab" data-audit-tab="investigate">Investigar</button>
-            <button type="button" class="audit-tab" data-audit-tab="logs">Logs avanzados</button>
           </div>
 
           <div class="audit-panel" id="audit-panel-summary">
@@ -160,14 +159,6 @@
                 <button type="button" class="btn tiny secondary" data-audit-period="7d">7 dias</button>
                 <button type="button" class="btn tiny secondary" data-audit-period="month">Este mes</button>
               </div>
-            </div>
-
-            <div class="audit-kpi-grid">
-              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="all"><span>Logs</span><strong id="auditLogsCount">0</strong></button>
-              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="users"><span>Usuarios activos</span><strong id="auditActiveUsersCount">0</strong></button>
-              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="drivers"><span>Conductores activos</span><strong id="auditActiveDriversCount">0</strong></button>
-              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="reports"><span>Reportes resueltos</span><strong id="auditReportsResolvedCount">0</strong></button>
-              <button type="button" class="audit-kpi audit-kpi--button" data-audit-preset="users"><span>Usuarios inactivos</span><strong id="auditBlockedUsersCount">0</strong></button>
             </div>
 
             <div class="audit-question-grid">
@@ -284,40 +275,6 @@
             <p id="auditDataMessage" class="message" aria-live="polite"></p>
             <div class="audit-investigation-summary" id="auditInvestigationSummary"></div>
             <div class="audit-timeline" id="auditTimelineList"></div>
-          </div>
-
-          <div class="audit-panel hidden" id="audit-panel-logs">
-            <div class="audit-section-head">
-              <div>
-                <p class="eyebrow">Vista tecnica</p>
-                <h3>Logs avanzados</h3>
-              </div>
-              <div class="audit-head-actions">
-                <p class="audit-help-text">Esta tabla conserva el detalle completo para auditoria formal y revision tecnica.</p>
-                <div class="audit-export-inline">
-                  <span>Exportar tabla</span>
-                  <button type="button" class="btn tiny secondary" data-audit-export="pdf">PDF</button>
-                  <button type="button" class="btn tiny secondary" data-audit-export="excel">Excel</button>
-                  <button type="button" class="btn tiny secondary" data-audit-export="csv">CSV</button>
-                </div>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table class="admin-table" id="auditLogsTable">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Usuario</th>
-                    <th>Accion</th>
-                    <th>Area</th>
-                    <th>Registro afectado</th>
-                    <th>Resultado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="auditLogsBody"></tbody>
-              </table>
-            </div>
           </div>
 
         </article>
