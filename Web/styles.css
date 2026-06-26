@@ -827,33 +827,6 @@ input[type="date"]::-webkit-datetime-edit {
   border-radius: 12px;
 }
 
-.audit-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-}
-
-.audit-kpi {
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 14px;
-  background: var(--panel-alt);
-  display: grid;
-  gap: 6px;
-}
-
-.audit-kpi span {
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.audit-kpi strong {
-  color: var(--text);
-  font-size: 1.35rem;
-  line-height: 1;
-}
-
 .audit-workspace {
   display: grid;
   gap: 18px;
@@ -954,18 +927,6 @@ input[type="date"]::-webkit-datetime-edit {
 
 .audit-chip:hover {
   background: var(--panel-alt);
-}
-
-.audit-kpi--button {
-  width: 100%;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-
-.audit-kpi--button:hover {
-  border-color: var(--accent);
-  background: var(--panel);
 }
 
 .audit-question-grid {
