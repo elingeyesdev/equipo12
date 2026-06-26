@@ -78,7 +78,7 @@ async function reverseGeocode(lng, lat) {
 }
 
 const state = {
-  apiBaseUrl: localStorage.getItem("cp.apiBaseUrl") || "http://localhost:5005",
+  apiBaseUrl: localStorage.getItem("cp.apiBaseUrl") || "https://api-carpooling.onrender.com",
   currentUser: JSON.parse(localStorage.getItem("cp.adminUser") || "null"),
   section: "overview",
   adminData: {
