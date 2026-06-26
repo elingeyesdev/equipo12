@@ -1686,6 +1686,8 @@ public class MainActivity extends BaseActivity {
         TextView addressView = sheet.findViewById(R.id.safeZoneDetailAddress);
         TextView descriptionView = sheet.findViewById(R.id.safeZoneDetailDescription);
         MaterialButton centerMapButton = sheet.findViewById(R.id.safeZoneDetailCenterMapButton);
+        MaterialButton selectOriginButton = sheet.findViewById(R.id.safeZoneDetailSelectOriginButton);
+        MaterialButton selectDestinationButton = sheet.findViewById(R.id.safeZoneDetailSelectDestinationButton);
 
         String name = zone.name != null && !zone.name.trim().isEmpty()
                 ? zone.name.trim()
@@ -1708,6 +1710,23 @@ public class MainActivity extends BaseActivity {
             dialog.dismiss();
         });
 
+        boolean canUseAsOrigin = canUseSafeZoneForSelection(zone, SelectionMode.ORIGIN);
+        boolean canUseAsDestination = canUseSafeZoneForSelection(zone, SelectionMode.DESTINATION);
+        selectOriginButton.setEnabled(canUseAsOrigin);
+        selectDestinationButton.setEnabled(canUseAsDestination);
+
+        selectOriginButton.setOnClickListener(v -> {
+            if (selectSafeZoneAsTripPoint(zone, SelectionMode.ORIGIN)) {
+                dialog.dismiss();
+            }
+        });
+
+        selectDestinationButton.setOnClickListener(v -> {
+            if (selectSafeZoneAsTripPoint(zone, SelectionMode.DESTINATION)) {
+                dialog.dismiss();
+            }
+        });
+
         dialog.setContentView(sheet);
         dialog.show();
 
@@ -1728,6 +1747,59 @@ public class MainActivity extends BaseActivity {
             return getString(R.string.safe_zone_purpose_dropoff);
         }
         return getString(R.string.safe_zone_purpose_both);
+    }
+
+    private boolean canUseSafeZoneForSelection(SafeZoneItem zone, SelectionMode targetMode) {
+        if (zone == null) {
+            return false;
+        }
+        if (targetMode == SelectionMode.ORIGIN) {
+            return zone.purpose != 2;
+        }
+        if (targetMode == SelectionMode.DESTINATION) {
+            return zone.purpose != 1;
+        }
+        return false;
+    }
+
+    private boolean selectSafeZoneAsTripPoint(SafeZoneItem zone, SelectionMode targetMode) {
+        if (hasActivePassengerReservation && !isDriverUser) {
+            Toast.makeText(this, R.string.safe_zone_selection_locked_toast, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (!canUseSafeZoneForSelection(zone, targetMode)) {
+            int messageRes = targetMode == SelectionMode.ORIGIN
+                    ? R.string.safe_zone_pickup_not_allowed
+                    : R.string.safe_zone_destination_not_allowed;
+            Toast.makeText(this, messageRes, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        Point point = Point.fromLngLat(zone.longitude, zone.latitude);
+        String label = buildSafeZoneSelectionLabel(zone);
+        applySelectedTripPoint(targetMode, point, label, false);
+        centerMapOnSafeZone(zone);
+
+        int toastRes = targetMode == SelectionMode.ORIGIN
+                ? R.string.safe_zone_selected_origin_toast
+                : R.string.safe_zone_selected_destination_toast;
+        Toast.makeText(this, toastRes, Toast.LENGTH_SHORT).show();
+        return true;
+    }
+
+    private String buildSafeZoneSelectionLabel(SafeZoneItem zone) {
+        String name = zone.name != null ? zone.name.trim() : "";
+        String address = zone.addressLabel != null ? zone.addressLabel.trim() : "";
+        if (!name.isEmpty() && !address.isEmpty()) {
+            return name + " - " + address;
+        }
+        if (!address.isEmpty()) {
+            return address;
+        }
+        if (!name.isEmpty()) {
+            return name;
+        }
+        return getString(R.string.safe_zone_fallback_name);
     }
 
     private void centerMapOnSafeZone(SafeZoneItem zone) {
@@ -1799,19 +1871,39 @@ public class MainActivity extends BaseActivity {
         }
 
         if (selectionMode == SelectionMode.ORIGIN) {
-            setSelectedOrigin(point, null);
-            Toast.makeText(this, R.string.button_select_origin, Toast.LENGTH_SHORT).show();
+            applySelectedTripPoint(SelectionMode.ORIGIN, point, null, true);
         } else if (selectionMode == SelectionMode.DESTINATION) {
-            setSelectedDestination(point, null);
-            Toast.makeText(this, R.string.button_select_destination, Toast.LENGTH_SHORT).show();
+            applySelectedTripPoint(SelectionMode.DESTINATION, point, null, true);
+        }
+    }
+
+    private void applySelectedTripPoint(SelectionMode targetMode, Point point, String address, boolean showSelectionToast) {
+        if (targetMode == SelectionMode.ORIGIN) {
+            setSelectedOrigin(point, address);
+            if (showSelectionToast) {
+                Toast.makeText(this, R.string.button_select_origin, Toast.LENGTH_SHORT).show();
+            }
+        } else if (targetMode == SelectionMode.DESTINATION) {
+            setSelectedDestination(point, address);
+            if (showSelectionToast) {
+                Toast.makeText(this, R.string.button_select_destination, Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            return;
         }
 
         syncSelectionStateToViewModel();
-
+        clearRoute();
+        lastRouteTimeLabel = null;
+        updateRouteTimeText();
         updateCoordinateLabels();
         updateMapMarkers();
         refreshButtons();
         setSelectionMode(SelectionMode.NONE);
+
+        if (selectedOrigin != null && selectedDestination != null) {
+            fetchAndDrawRoutePreviewAsync(selectedOrigin, selectedDestination);
+        }
     }
 
     private void createTrip() {

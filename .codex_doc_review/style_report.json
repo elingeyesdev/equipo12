@@ -1,0 +1,170 @@
+{
+  "input": "C:\\Users\\andre\\Desktop\\Manual_Usuario_Carpooling_Univalle_v2.docx",
+  "fonts_by_char_count": {
+    "Times New Roman": 79172
+  },
+  "direct_run_formatting_runs": 1057,
+  "direct_paragraph_formatting_paragraphs": 552,
+  "heading_like_paragraphs_not_heading_style": [
+    {
+      "para_index": 2,
+      "text": "Tabla de Contenido",
+      "style": "Normal"
+    },
+    {
+      "para_index": 370,
+      "text": "Manual de Usuario",
+      "style": "Normal"
+    },
+    {
+      "para_index": 371,
+      "text": "Sistema de Carpooling Univalle",
+      "style": "Normal"
+    },
+    {
+      "para_index": 374,
+      "text": "Equipo 12 \u2014 Proyecto de Sistemas",
+      "style": "Normal"
+    },
+    {
+      "para_index": 378,
+      "text": "Rol",
+      "style": "Normal"
+    },
+    {
+      "para_index": 379,
+      "text": "Funciones principales",
+      "style": "Normal"
+    },
+    {
+      "para_index": 380,
+      "text": "Plataforma",
+      "style": "Normal"
+    },
+    {
+      "para_index": 412,
+      "text": "Funci\u00f3n",
+      "style": "Normal"
+    },
+    {
+      "para_index": 413,
+      "text": "Uso recomendado",
+      "style": "Normal"
+    },
+    {
+      "para_index": 437,
+      "text": "Funci\u00f3n",
+      "style": "Normal"
+    },
+    {
+      "para_index": 438,
+      "text": "Descripci\u00f3n",
+      "style": "Normal"
+    },
+    {
+      "para_index": 455,
+      "text": "Mensaje o situaci\u00f3n",
+      "style": "Normal"
+    },
+    {
+      "para_index": 456,
+      "text": "Qu\u00e9 significa",
+      "style": "Normal"
+    },
+    {
+      "para_index": 457,
+      "text": "Qu\u00e9 hacer",
+      "style": "Normal"
+    },
+    {
+      "para_index": 506,
+      "text": "Pregunta",
+      "style": "Normal"
+    },
+    {
+      "para_index": 507,
+      "text": "Respuesta",
+      "style": "Normal"
+    },
+    {
+      "para_index": 532,
+      "text": "T\u00e9rmino",
+      "style": "Normal"
+    },
+    {
+      "para_index": 533,
+      "text": "Definici\u00f3n",
+      "style": "Normal"
+    },
+    {
+      "para_index": 574,
+      "text": "Figura",
+      "style": "Normal"
+    },
+    {
+      "para_index": 575,
+      "text": "Descripci\u00f3n",
+      "style": "Normal"
+    }
+  ],
+  "examples": {
+    "direct_paragraph_formatting": [
+      {
+        "para_index": 2,
+        "text": "Tabla de Contenido",
+        "style": "Normal"
+      },
+      {
+        "para_index": 6,
+        "text": "Este manual explica, de manera ordenada y paso a paso, c\u00f3mo utilizar el Sistema de Carpooling Univalle. El documento est",
+        "style": "Normal"
+      },
+      {
+        "para_index": 7,
+        "text": "El sistema permite que los pasajeros soliciten viajes, los conductores publiquen trayectos y los administradores supervi",
+        "style": "Normal"
+      },
+      {
+        "para_index": 8,
+        "text": "El manual se organiza por roles: primero se explican los requisitos comunes a todos los usuarios y el ingreso al sistema",
+        "style": "Normal"
+      },
+      {
+        "para_index": 10,
+        "text": "El presente manual cubre las siguientes funcionalidades del Sistema de Carpooling Univalle:",
+        "style": "Normal"
+      }
+    ],
+    "direct_run_formatting": [
+      {
+        "para_index": 2,
+        "run_text": "Tabla de Contenido",
+        "style": "Normal"
+      },
+      {
+        "para_index": 5,
+        "run_text": "1. Introducci\u00f3n",
+        "style": "Heading 1"
+      },
+      {
+        "para_index": 6,
+        "run_text": "Este manual explica, de manera ordenada y paso a paso, c\u00f3mo utilizar el Sistema ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 6,
+        "run_text": "Carpooling",
+        "style": "Normal"
+      },
+      {
+        "para_index": 6,
+        "run_text": " ",
+        "style": "Normal"
+      }
+    ]
+  },
+  "notes": [
+    "Direct formatting is not always wrong, but it often causes inconsistent output when templates change.",
+    "Heading-like paragraphs not using Heading styles can break TOC and accessibility."
+  ]
+}
