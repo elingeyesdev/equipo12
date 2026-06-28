@@ -57,13 +57,8 @@ builder.Services.AddHttpClient<GeocodingService>();
 builder.Services.AddHostedService<TripSchedulerService>();
 
 // Initialize Firebase
-var pathToFirebaseKey = builder.Configuration["Firebase:CredentialsPath"] ?? "firebase-adminsdk.json";
-if (!Path.IsPathRooted(pathToFirebaseKey))
-{
-    pathToFirebaseKey = Path.Combine(builder.Environment.ContentRootPath, pathToFirebaseKey);
-}
-
-if (File.Exists(pathToFirebaseKey))
+var firebaseJson = builder.Configuration["Firebase:CredentialsJson"];
+if (!string.IsNullOrWhiteSpace(firebaseJson))
 {
     lock (typeof(Program))
     {
@@ -71,15 +66,38 @@ if (File.Exists(pathToFirebaseKey))
         {
             FirebaseApp.Create(new AppOptions
             {
-                Credential = GoogleCredential.FromFile(pathToFirebaseKey)
+                Credential = GoogleCredential.FromJson(firebaseJson)
             });
-            Console.WriteLine($"Firebase inicializado con credenciales en: {pathToFirebaseKey}");
+            Console.WriteLine("Firebase inicializado exitosamente desde variable de entorno.");
         }
     }
 }
 else
 {
-    Console.WriteLine("Advertencia: No se encontró el archivo de credenciales de Firebase. Las notificaciones push no funcionarán.");
+    var pathToFirebaseKey = builder.Configuration["Firebase:CredentialsPath"] ?? "firebase-adminsdk.json";
+    if (!Path.IsPathRooted(pathToFirebaseKey))
+    {
+        pathToFirebaseKey = Path.Combine(builder.Environment.ContentRootPath, pathToFirebaseKey);
+    }
+
+    if (File.Exists(pathToFirebaseKey))
+    {
+        lock (typeof(Program))
+        {
+            if (FirebaseApp.DefaultInstance is null)
+            {
+                FirebaseApp.Create(new AppOptions
+                {
+                    Credential = GoogleCredential.FromFile(pathToFirebaseKey)
+                });
+                Console.WriteLine($"Firebase inicializado con credenciales en: {pathToFirebaseKey}");
+            }
+        }
+    }
+    else
+    {
+        Console.WriteLine("Advertencia: No se encontró el archivo de credenciales de Firebase ni la variable de entorno. Las notificaciones push no funcionarán.");
+    }
 }
 
 builder.Services.AddCors(options =>
