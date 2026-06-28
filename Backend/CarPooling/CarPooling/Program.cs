@@ -137,7 +137,7 @@ app.UseAuthorization();
 app.MapControllers().RequireCors(AdminPanelCorsPolicy);
 app.MapHub<CarPooling.Hubs.TripChatHub>("/hubs/tripChat").RequireCors(AdminPanelCorsPolicy);
 
-app.MapGet("/", () => "API CarPooling is running! 🚀");
+app.Map("/", () => "API CarPooling is running! 🚀");
 
 app.Run();
 
