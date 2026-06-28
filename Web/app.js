@@ -212,8 +212,8 @@ function sanitizeWebError(rawError) {
 
   const lower = errorMsg.toLowerCase();
   if (lower.includes("fetch") || lower.includes("connect") || lower.includes("network") ||
-      lower.includes("timeout") || lower.includes("socket") || lower.includes("unable to resolve host") ||
-      lower.includes("http") || lower.includes("connection")) {
+    lower.includes("timeout") || lower.includes("socket") || lower.includes("unable to resolve host") ||
+    lower.includes("http") || lower.includes("connection")) {
     return "No se pudo establecer conexión con el servidor. Verifica que el backend esté corriendo en http://localhost:5005 o http://localhost:5000";
   }
   return errorMsg;
@@ -549,10 +549,10 @@ function renderUserDetails(user) {
   return `
     <article class="detail-card">
       <div class="detail-card__header" style="display: flex; align-items: center; gap: 1rem;">
-        ${profilePic 
-          ? `<img src="${profilePic}" alt="Foto de perfil" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />` 
-          : `<div style="width: 50px; height: 50px; border-radius: 50%; background-color: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${escapeHtml((user.fullName || 'U').charAt(0).toUpperCase())}</div>`
-        }
+        ${profilePic
+      ? `<img src="${profilePic}" alt="Foto de perfil" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />`
+      : `<div style="width: 50px; height: 50px; border-radius: 50%; background-color: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${escapeHtml((user.fullName || 'U').charAt(0).toUpperCase())}</div>`
+    }
         <div style="flex: 1;">
           <h4>${escapeHtml(user.fullName || "Usuario")}</h4>
           <p>${escapeHtml(user.email || "Sin email")}</p>
@@ -657,9 +657,9 @@ function renderTripDetails(trip) {
       </div>
 
       ${(() => {
-        const tripReservations = state.adminData.reservations?.filter(r => r.tripId === trip.id) || [];
-        if (!tripReservations.length) return "";
-        return `
+      const tripReservations = state.adminData.reservations?.filter(r => r.tripId === trip.id) || [];
+      if (!tripReservations.length) return "";
+      return `
           <div class="detail-card__section">
             <h5>Pasajeros de este viaje</h5>
             <div class="detail-stack">
@@ -675,7 +675,7 @@ function renderTripDetails(trip) {
             </div>
           </div>
         `;
-      })()}
+    })()}
     </article>
   `;
 }
@@ -916,7 +916,7 @@ function getSectionMeta(section) {
   const map = {
     overview: {
       name: "Resumen",
-      description: "Vista general del estado del panel." 
+      description: "Vista general del estado del panel."
     },
     audit: {
       name: "Auditoria",
@@ -924,11 +924,11 @@ function getSectionMeta(section) {
     },
     users: {
       name: "Usuarios",
-      description: "Consulta todas las cuentas registradas y agrega nuevos usuarios." 
+      description: "Consulta todas las cuentas registradas y agrega nuevos usuarios."
     },
     trips: {
       name: "Viajes",
-      description: "Consulta los viajes registrados y agrega nuevos viajes." 
+      description: "Consulta los viajes registrados y agrega nuevos viajes."
     },
     reservations: {
       name: "Reservas",
@@ -936,7 +936,7 @@ function getSectionMeta(section) {
     },
     reports: {
       name: "Reportes",
-      description: "Explora usuarios, viajes y reservas en una sola vista." 
+      description: "Explora usuarios, viajes y reservas en una sola vista."
     },
     support: {
       name: "Soporte",
@@ -952,7 +952,7 @@ function getSectionMeta(section) {
     },
     payments: {
       name: "Pagos",
-      description: "Consulta todos los pagos y reembolsos registrados en el sistema." 
+      description: "Consulta todos los pagos y reembolsos registrados en el sistema."
     },
     settings: {
       name: "Ajustes",
@@ -971,7 +971,7 @@ function applyTableFilter(containerId, searchTerm, startDateStr = null, endDateS
 
   const normalizedSearch = String(searchTerm || "").trim().toLowerCase();
   const rows = Array.from(tbody.querySelectorAll("tr"));
-  
+
   const start = startDateStr ? new Date(startDateStr) : null;
   const end = endDateStr ? new Date(endDateStr) : null;
   if (end) end.setHours(23, 59, 59, 999);
@@ -988,7 +988,7 @@ function applyTableFilter(containerId, searchTerm, startDateStr = null, endDateS
       const rowText = row.textContent?.toLowerCase() || "";
       matchesSearch = rowText.includes(normalizedSearch);
     }
-    
+
     let matchesDate = true;
     if (start || end) {
       const rowDateStr = row.getAttribute("data-created-at");
@@ -1274,7 +1274,7 @@ function updateCreateTripMapPanels() {
       originSummary.textContent = "Pendiente de selección";
     }
   }
-  
+
   if (destinationSummary) {
     if (state.tripDestination) {
       destinationSummary.textContent = "Obteniendo dirección...";
@@ -1350,13 +1350,13 @@ async function updateCreateTripMapLayers() {
     type: "FeatureCollection",
     features: coordinates.length > 0
       ? [{
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: coordinates
-          }
-        }]
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: coordinates
+        }
+      }]
       : []
   });
 
@@ -1759,13 +1759,13 @@ async function updateDetailTripMapLayers(trip) {
     type: "FeatureCollection",
     features: coordinates.length > 0
       ? [{
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: coordinates
-          }
-        }]
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: coordinates
+        }
+      }]
       : []
   });
 
@@ -1903,9 +1903,9 @@ function openDetailsModal(type, entity) {
         const ratingEl = document.getElementById(`userRatingDisplay-${entity.id}`);
         if (ratingEl) {
           if (res && res.averageRating !== undefined && res.totalRatings > 0) {
-             ratingEl.textContent = `${res.averageRating.toFixed(1)} ⭐ (${res.totalRatings} reseñas)`;
+            ratingEl.textContent = `${res.averageRating.toFixed(1)} ⭐ (${res.totalRatings} reseñas)`;
           } else {
-             ratingEl.textContent = 'Sin calificación';
+            ratingEl.textContent = 'Sin calificación';
           }
         }
       })
@@ -2214,7 +2214,7 @@ function updateActionButtonsVisibility() {
   document.querySelectorAll('[data-create-type="reservation"]').forEach(btn => {
     btn.classList.toggle("hidden", !hasPermission("reservations:write"));
   });
-  
+
   const safeZoneCreateBtn = document.getElementById("safeZoneCreateBtn");
   if (safeZoneCreateBtn) {
     safeZoneCreateBtn.classList.toggle("hidden", !hasPermission("trips:write"));
@@ -2253,7 +2253,7 @@ function startSession(user) {
     };
     return hasPermission(mapping[sec]);
   });
-  
+
   openSection(allowed || "overview");
 }
 
@@ -3587,7 +3587,7 @@ createModalForm?.addEventListener("submit", async (event) => {
       if (!fullName || !email || !password) {
         throw new Error("Completa los datos obligatorios del usuario.");
       }
-      
+
       if (password !== confirmPassword) {
         throw new Error("Las contraseñas no coinciden.");
       }
@@ -3602,7 +3602,7 @@ createModalForm?.addEventListener("submit", async (event) => {
           reader.readAsDataURL(fileInput.files[0]);
         });
       }
-      
+
       if (!profilePicture) {
         throw new Error("La foto de perfil es obligatoria.");
       }
@@ -3927,12 +3927,12 @@ function viewUserTrips(userId) {
   const trips = state.adminData.trips || [];
   const reservations = state.adminData.reservations || [];
   const users = state.adminData.users || [];
-  
+
   const user = users.find(u => String(u.id) === String(userId));
   if (!user) return;
-  
+
   const userTripsList = [];
-  
+
   // Viajes como conductor
   trips.forEach(t => {
     if (String(t.driverId) === String(userId)) {
@@ -3948,7 +3948,7 @@ function viewUserTrips(userId) {
       });
     }
   });
-  
+
   // Viajes como pasajero
   reservations.forEach(r => {
     if (String(r.passengerUserId) === String(userId)) {
@@ -3967,14 +3967,14 @@ function viewUserTrips(userId) {
       }
     }
   });
-  
+
   const tbody = document.getElementById("userTripsModalBody");
   if (!userTripsList.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay viajes registrados para este usuario.</td></tr>';
   } else {
     // Ordenar por fecha descendente
     userTripsList.sort((a, b) => new Date(b.time) - new Date(a.time));
-    
+
     tbody.innerHTML = userTripsList.map(item => {
       const hasRoute = hasTripCoordinates(item.origin) && hasTripCoordinates(item.dest);
       return `
@@ -4006,10 +4006,10 @@ function viewUserTrips(userId) {
     }).join("");
     void hydrateLocationLabels(tbody);
   }
-  
+
   const titleEl = document.getElementById("userTripsModalTitle");
   if (titleEl) titleEl.textContent = `Historial de Viajes: ${user.fullName}`;
-  
+
   document.getElementById("userTripsModalOverlay")?.classList.remove("hidden");
 }
 
@@ -4079,12 +4079,12 @@ document.addEventListener("click", async (event) => {
       const currentActive = toggleStatusBtn.dataset.active === "true";
       const newActive = !currentActive;
       const actionText = newActive ? "habilitar" : "deshabilitar";
-      
+
       const confirmed = confirm(`¿Deseas ${actionText} a este usuario?`);
       if (!confirmed) {
         return;
       }
-      
+
       await toggleUserStatus(id, newActive);
       setMessage(adminDataMessage, `Usuario ${newActive ? 'habilitado' : 'deshabilitado'} correctamente.`, "success");
     } catch (error) {
@@ -4323,17 +4323,17 @@ const THEME_MODES = {
 function applyClientTheme(colors) {
   if (!colors) return;
   const root = document.documentElement;
-  
+
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const primary = isDarkMode ? (colors.primaryDark || "#8fac98") : (colors.primaryLight || "#5f7f6c");
   const secondary = isDarkMode ? (colors.secondaryDark || "#d0a27d") : (colors.secondaryLight || "#b67a52");
   const text = isDarkMode ? (colors.textDark || "#edf2ee") : (colors.textLight || "#24302b");
-  
+
   root.style.setProperty("--accent", primary);
   root.style.setProperty("--accent-2", secondary);
-  
+
   let bg, bgDeep, panelAlt, panel, border;
-  
+
   if (primary.toLowerCase() === "#82254b" || secondary.toLowerCase() === "#6e1e3f") {
     // Univalle specific premium color theme integration!
     if (isDarkMode) {
@@ -4358,28 +4358,28 @@ function applyClientTheme(colors) {
     panel = isDarkMode ? (colors.cardDark || mode.panel) : (colors.cardLight || mode.panel);
     border = isDarkMode ? (colors.borderDark || "rgba(255, 255, 255, 0.16)") : (colors.borderLight || "rgba(31, 29, 26, 0.16)");
   }
-  
+
   root.style.setProperty("--bg", bg);
   root.style.setProperty("--bg-deep", bgDeep);
   root.style.setProperty("--panel-alt", panelAlt);
   root.style.setProperty("--panel", panel);
   root.style.setProperty("--border-color", border);
   root.style.setProperty("--text", text);
-  
+
   const primaryRgb = hexToRgb(primary);
   root.style.setProperty("--primary-ring", `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.06)`);
-  
+
   // Calcular y establecer el color de texto secundario (muted) al 60% de opacidad
   const textRgb = hexToRgb(text);
   root.style.setProperty("--muted", `rgba(${textRgb.r}, ${textRgb.g}, ${textRgb.b}, 0.6)`);
-  
+
   const secondaryRgb = hexToRgb(secondary);
   root.style.setProperty("--ring-color", `rgba(${secondaryRgb.r}, ${secondaryRgb.g}, ${secondaryRgb.b}, 0.22)`);
-  
+
   // Calcular contraste para el texto del sidebar
   const luminance = (secondaryRgb.r * 0.299 + secondaryRgb.g * 0.587 + secondaryRgb.b * 0.114) / 255;
   root.style.setProperty("--sidebar-text", luminance > 0.6 ? "#1a1a1a" : "#ffffff");
-  
+
   localStorage.setItem("cp.theme", JSON.stringify(colors));
 }
 
@@ -4450,14 +4450,14 @@ document.querySelectorAll(".preset-card").forEach(card => {
       if (document.getElementById("themeBgDark")) document.getElementById("themeBgDark").value = colors.bgDark;
       if (document.getElementById("themeCardDark")) document.getElementById("themeCardDark").value = colors.cardDark;
       if (document.getElementById("themeBorderDark")) document.getElementById("themeBorderDark").value = colors.borderDark;
-      
+
       updateHexLabels();
       updatePresetActiveState(presetName);
       applyClientTheme(colors);
       if (presetName === "Custom") {
         updateCustomPresetVisuals(colors);
       }
-      
+
       // Auto-guardar al seleccionar preset
       apiFetch("/api/settings/theme", {
         method: "PUT",
@@ -4490,32 +4490,32 @@ const getCurrentThemeColors = () => {
 
 let themeSaveTimeout = null;
 ["themePrimaryLight", "themeSecondaryLight", "themeTextLight", "themeBgLight", "themeCardLight", "themeBorderLight",
- "themePrimaryDark", "themeSecondaryDark", "themeTextDark", "themeBgDark", "themeCardDark", "themeBorderDark"].forEach(id => {
-  document.getElementById(id)?.addEventListener("input", () => {
-    const val = document.getElementById(id).value;
-    const hexEl = document.getElementById(id + "Hex");
-    if (hexEl) hexEl.textContent = val;
-    
-    const currentColors = getCurrentThemeColors();
-    
-    // Guardar dinámicamente en presets.Custom
-    presets.Custom = { ...currentColors };
-    updateCustomPresetVisuals(currentColors);
-    
-    applyClientTheme(currentColors);
-    updatePresetActiveState("Custom");
+  "themePrimaryDark", "themeSecondaryDark", "themeTextDark", "themeBgDark", "themeCardDark", "themeBorderDark"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", () => {
+      const val = document.getElementById(id).value;
+      const hexEl = document.getElementById(id + "Hex");
+      if (hexEl) hexEl.textContent = val;
 
-    // Auto-guardar en el backend con debounce
-    clearTimeout(themeSaveTimeout);
-    themeSaveTimeout = setTimeout(() => {
-      apiFetch("/api/settings/theme", {
-        method: "PUT",
-        headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {},
-        body: JSON.stringify(currentColors)
-      }).catch(console.error);
-    }, 1000);
+      const currentColors = getCurrentThemeColors();
+
+      // Guardar dinámicamente en presets.Custom
+      presets.Custom = { ...currentColors };
+      updateCustomPresetVisuals(currentColors);
+
+      applyClientTheme(currentColors);
+      updatePresetActiveState("Custom");
+
+      // Auto-guardar en el backend con debounce
+      clearTimeout(themeSaveTimeout);
+      themeSaveTimeout = setTimeout(() => {
+        apiFetch("/api/settings/theme", {
+          method: "PUT",
+          headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {},
+          body: JSON.stringify(currentColors)
+        }).catch(console.error);
+      }, 1000);
+    });
   });
-});
 
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   const currentColors = getCurrentThemeColors();
@@ -4528,7 +4528,7 @@ async function fetchThemeOnStartup() {
   if (localTheme) {
     try {
       applyClientTheme(JSON.parse(localTheme));
-    } catch (e) {}
+    } catch (e) { }
   }
   try {
     const response = await fetch(`${normalizeUrl(state.apiBaseUrl)}/api/settings/theme`, {
@@ -4553,7 +4553,7 @@ async function loadThemeSettings() {
       method: "GET",
       headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {}
     });
-    
+
     const primaryLight = colors.primaryLight || "#5f7f6c";
     const secondaryLight = colors.secondaryLight || "#b67a52";
     const textLight = colors.textLight || "#24302b";
@@ -4579,7 +4579,7 @@ async function loadThemeSettings() {
     if (document.getElementById("themeBgDark")) document.getElementById("themeBgDark").value = bgDark;
     if (document.getElementById("themeCardDark")) document.getElementById("themeCardDark").value = cardDark;
     if (document.getElementById("themeBorderDark")) document.getElementById("themeBorderDark").value = borderDark;
-    
+
     updateHexLabels();
 
     // Actualizar el preset Custom con los colores cargados de la BD
@@ -4598,36 +4598,36 @@ async function loadThemeSettings() {
       borderDark
     };
     updateCustomPresetVisuals(presets.Custom);
-    
+
     let matchedPreset = colors.preset;
-    
+
     const normalizeColor = (c) => c ? c.replace(/\s+/g, '').toLowerCase() : '';
-    
+
     if (!matchedPreset || !presets[matchedPreset]) {
       for (const [name, pColors] of Object.entries(presets)) {
         if (name === "Custom") continue;
         if (normalizeColor(pColors.primaryLight) === normalizeColor(primaryLight) &&
-            normalizeColor(pColors.secondaryLight) === normalizeColor(secondaryLight) &&
-            normalizeColor(pColors.textLight) === normalizeColor(textLight) &&
-            normalizeColor(pColors.bgLight) === normalizeColor(bgLight) &&
-            normalizeColor(pColors.cardLight) === normalizeColor(cardLight) &&
-            normalizeColor(pColors.borderLight) === normalizeColor(borderLight) &&
-            normalizeColor(pColors.primaryDark) === normalizeColor(primaryDark) &&
-            normalizeColor(pColors.secondaryDark) === normalizeColor(secondaryDark) &&
-            normalizeColor(pColors.textDark) === normalizeColor(textDark) &&
-            normalizeColor(pColors.bgDark) === normalizeColor(bgDark) &&
-            normalizeColor(pColors.cardDark) === normalizeColor(cardDark) &&
-            normalizeColor(pColors.borderDark) === normalizeColor(borderDark)) {
+          normalizeColor(pColors.secondaryLight) === normalizeColor(secondaryLight) &&
+          normalizeColor(pColors.textLight) === normalizeColor(textLight) &&
+          normalizeColor(pColors.bgLight) === normalizeColor(bgLight) &&
+          normalizeColor(pColors.cardLight) === normalizeColor(cardLight) &&
+          normalizeColor(pColors.borderLight) === normalizeColor(borderLight) &&
+          normalizeColor(pColors.primaryDark) === normalizeColor(primaryDark) &&
+          normalizeColor(pColors.secondaryDark) === normalizeColor(secondaryDark) &&
+          normalizeColor(pColors.textDark) === normalizeColor(textDark) &&
+          normalizeColor(pColors.bgDark) === normalizeColor(bgDark) &&
+          normalizeColor(pColors.cardDark) === normalizeColor(cardDark) &&
+          normalizeColor(pColors.borderDark) === normalizeColor(borderDark)) {
           matchedPreset = name;
           break;
         }
       }
     }
-    
+
     if (!matchedPreset) {
       matchedPreset = "Custom";
     }
-    
+
     updatePresetActiveState(matchedPreset);
     applyClientTheme(presets[matchedPreset]);
     setMessage(messageEl, "Configuración cargada correctamente.", "success");
@@ -4640,46 +4640,46 @@ document.getElementById("themeSettingsForm")?.addEventListener("submit", async (
   event.preventDefault();
   const messageEl = document.getElementById("settingsMessage");
   setMessage(messageEl, "Guardando colores...");
-  
+
   const colors = getCurrentThemeColors();
-  
+
   try {
     await apiFetch("/api/settings/theme", {
       method: "PUT",
       headers: state.currentUser ? { "X-User-Id": state.currentUser.id } : {},
       body: JSON.stringify(colors)
     });
-    
+
     presets.Custom = { ...colors };
     updateCustomPresetVisuals(colors);
     applyClientTheme(colors);
-    
+
     // Determinar si corresponde a algún preset predefinido o es Personalizado
     const normalizeColor = (c) => c ? c.replace(/\s+/g, '').toLowerCase() : '';
     let matchedPreset = null;
     for (const [name, pColors] of Object.entries(presets)) {
       if (name === "Custom") continue;
       if (normalizeColor(pColors.primaryLight) === normalizeColor(colors.primaryLight) &&
-          normalizeColor(pColors.secondaryLight) === normalizeColor(colors.secondaryLight) &&
-          normalizeColor(pColors.textLight) === normalizeColor(colors.textLight) &&
-          normalizeColor(pColors.bgLight) === normalizeColor(colors.bgLight) &&
-          normalizeColor(pColors.cardLight) === normalizeColor(colors.cardLight) &&
-          normalizeColor(pColors.borderLight) === normalizeColor(colors.borderLight) &&
-          normalizeColor(pColors.primaryDark) === normalizeColor(colors.primaryDark) &&
-          normalizeColor(pColors.secondaryDark) === normalizeColor(colors.secondaryDark) &&
-          normalizeColor(pColors.textDark) === normalizeColor(colors.textDark) &&
-          normalizeColor(pColors.bgDark) === normalizeColor(colors.bgDark) &&
-          normalizeColor(pColors.cardDark) === normalizeColor(colors.cardDark) &&
-          normalizeColor(pColors.borderDark) === normalizeColor(colors.borderDark)) {
+        normalizeColor(pColors.secondaryLight) === normalizeColor(colors.secondaryLight) &&
+        normalizeColor(pColors.textLight) === normalizeColor(colors.textLight) &&
+        normalizeColor(pColors.bgLight) === normalizeColor(colors.bgLight) &&
+        normalizeColor(pColors.cardLight) === normalizeColor(colors.cardLight) &&
+        normalizeColor(pColors.borderLight) === normalizeColor(colors.borderLight) &&
+        normalizeColor(pColors.primaryDark) === normalizeColor(colors.primaryDark) &&
+        normalizeColor(pColors.secondaryDark) === normalizeColor(colors.secondaryDark) &&
+        normalizeColor(pColors.textDark) === normalizeColor(colors.textDark) &&
+        normalizeColor(pColors.bgDark) === normalizeColor(colors.bgDark) &&
+        normalizeColor(pColors.cardDark) === normalizeColor(colors.cardDark) &&
+        normalizeColor(pColors.borderDark) === normalizeColor(colors.borderDark)) {
         matchedPreset = name;
         break;
       }
     }
-    
+
     if (!matchedPreset) {
       matchedPreset = "Custom";
     }
-    
+
     updatePresetActiveState(matchedPreset);
     setMessage(messageEl, "¡Colores guardados exitosamente! Se han propagado al sistema.", "success");
   } catch (error) {
@@ -5247,16 +5247,16 @@ function formatRoleNameCleanly(roleName) {
   if (!roleName) return "Admin";
   if (roleName === "SuperAdmin") return "Administrador principal";
   if (roleName === "Admin") return "Administrador";
-  
+
   const match = roleName.match(/^Admin\s*-\s*(.+?)\s*\([^\)]+\)$/);
   if (match) {
     return match[1];
   }
-  
+
   if (roleName.startsWith("Admin - ")) {
     return roleName.substring(8);
   }
-  
+
   return roleName;
 }
 
@@ -5301,8 +5301,8 @@ function renderAdminsTable(users) {
     const cleanRoles = formattedRoles.includes("Administrador principal")
       ? "Administrador principal"
       : [...new Set(formattedRoles)].join(", ");
-    const permsText = (user.permissions && user.permissions.length > 0) 
-      ? user.permissions.map(formatPermissionLabel).join(", ") 
+    const permsText = (user.permissions && user.permissions.length > 0)
+      ? user.permissions.map(formatPermissionLabel).join(", ")
       : "Ninguno";
 
     return `
@@ -5353,7 +5353,7 @@ adminCreateBtn?.addEventListener("click", () => {
   if (adminModalMessage) {
     setMessage(adminModalMessage, "");
   }
-  
+
   if (adminRolePreset) {
     adminRolePreset.value = "Soporte";
     handlePresetChange();
@@ -5381,7 +5381,7 @@ adminModalForm?.addEventListener("submit", async (event) => {
   const email = document.getElementById("adminEmail").value.trim().toLowerCase();
   const password = document.getElementById("adminPassword").value;
   const preset = adminRolePreset.value;
-  
+
   let roleName = "";
   if (preset === "Personalizado") {
     roleName = adminCustomRoleName.value.trim();
@@ -5442,7 +5442,7 @@ function exportToPDF(data, headers, filename) {
     alert("No hay datos para exportar.");
     return;
   }
-  
+
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
     alert("Por favor habilita las ventanas emergentes para exportar a PDF.");
@@ -5450,7 +5450,7 @@ function exportToPDF(data, headers, filename) {
   }
 
   const titleText = filename.replace(/_/g, ' ').toUpperCase();
-  
+
   const html = `
     <!DOCTYPE html>
     <html lang="es">
@@ -5560,7 +5560,7 @@ function exportToPDF(data, headers, filename) {
     </body>
     </html>
   `;
-  
+
   printWindow.document.write(html);
   printWindow.document.close();
 }
@@ -5618,7 +5618,7 @@ async function exportToExcel(data, headers, filename) {
   data.forEach((rowData, index) => {
     const row = worksheet.addRow(rowData);
     const isAlternate = index % 2 === 1;
-    
+
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       // Ajustar ancho de columna
       const currentWidth = worksheet.getColumn(colNumber).width;
@@ -5657,7 +5657,7 @@ function performExport(data, headers, filename, format) {
     alert("No hay datos para exportar.");
     return;
   }
-  
+
   if (format === "pdf") {
     exportToPDF(data, headers, filename);
   } else if (format === "excel") {
@@ -5708,10 +5708,10 @@ document.querySelectorAll("[data-audit-export]").forEach((button) => {
 function getExportUsersData() {
   const users = state.adminData.users || [];
   const exportType = document.getElementById("exportUserTypeSelect")?.value || "all";
-  
+
   let filteredUsers = users;
   let filename = "usuarios_todos";
-  
+
   if (exportType === "students") {
     filteredUsers = users.filter(u => Number(u.roleId) === 1 || String(u.role || "").toLowerCase().includes("student") || String(u.role || "").toLowerCase().includes("passenger"));
     filename = "usuarios_estudiantes";
@@ -5737,10 +5737,10 @@ function getExportUsersData() {
       return true;
     });
   }
-  
+
   let headers = ["ID", "Nombre", "Email", "Rol", "Telefono", "Fecha Creacion"];
   let data = filteredUsers.map(u => [u.id, u.fullName, u.email, formatUserRole(u.role), u.phoneNumber, u.createdAt]);
-  
+
   if (exportType === "drivers") {
     headers = ["ID", "Nombre", "Email", "Rol", "Telefono", "Vehiculos", "Placa", "Fecha Creacion"];
     data = filteredUsers.map(d => {
@@ -5754,7 +5754,7 @@ function getExportUsersData() {
 
 function getExportTripsData() {
   let trips = state.adminData.trips || [];
-  
+
   const startStr = document.getElementById("tripsFilterStartDate")?.value;
   const endStr = document.getElementById("tripsFilterEndDate")?.value;
   if (startStr || endStr) {
@@ -5899,7 +5899,7 @@ document.getElementById("exportMetricsExcel")?.addEventListener("click", () => {
     worksheet.addRow([]);
     const title = worksheet.addRow([titleRow]);
     title.font = { bold: true, size: 14, color: { argb: hexColor } };
-    
+
     const headerRow = worksheet.addRow(dataHeaders);
     headerRow.eachCell((cell) => {
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: hexColor } };
@@ -6005,7 +6005,7 @@ document.getElementById("exportMetricsCsv")?.addEventListener("click", () => {
   const usersCount = document.getElementById("analyticsUsersCount")?.textContent || "0";
   const tripsCount = document.getElementById("analyticsTripsCount")?.textContent || "0";
   const reservationsCount = document.getElementById("analyticsReservationsCount")?.textContent || "0";
-  
+
   const data = [
     ["Nuevos Usuarios", usersCount],
     ["Viajes Realizados", tripsCount],
@@ -6019,7 +6019,7 @@ document.getElementById("exportMetricsPdf")?.addEventListener("click", () => {
   const usersCount = document.getElementById("analyticsUsersCount")?.textContent || "0";
   const tripsCount = document.getElementById("analyticsTripsCount")?.textContent || "0";
   const reservationsCount = document.getElementById("analyticsReservationsCount")?.textContent || "0";
-  
+
   exportMetricsToPDF(usersCount, tripsCount, reservationsCount);
 });
 
@@ -6029,7 +6029,7 @@ function exportMetricsToPDF(usersCount, tripsCount, reservationsCount) {
     alert("Por favor habilita las ventanas emergentes para exportar a PDF.");
     return;
   }
-  
+
   const base64Trips = tripsChartInstance ? tripsChartInstance.toBase64Image() : null;
   const base64Users = usersChartInstance ? usersChartInstance.toBase64Image() : null;
   const base64Reservations = reservationsChartInstance ? reservationsChartInstance.toBase64Image() : null;
@@ -6179,7 +6179,7 @@ function exportMetricsToPDF(usersCount, tripsCount, reservationsCount) {
     </body>
     </html>
   `;
-  
+
   printWindow.document.write(html);
   printWindow.document.close();
 }
@@ -6264,7 +6264,7 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
   const primaryColor = style.getPropertyValue('--accent').trim() || '#82254B';
   const secondaryColor = style.getPropertyValue('--accent-2').trim() || '#6E1E3F';
   const textSecondaryColor = style.getPropertyValue('--text').trim() || '#111827';
-  
+
   Chart.defaults.color = textSecondaryColor;
   Chart.defaults.font.family = "'Inter', sans-serif";
 
@@ -6277,7 +6277,7 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
       if (item.createdAt) {
         const d = new Date(item.createdAt);
         if (!isNaN(d)) {
-          d.setHours(0,0,0,0);
+          d.setHours(0, 0, 0, 0);
           if (!minDate || d < minDate) minDate = new Date(d);
           if (!maxDate || d > maxDate) maxDate = new Date(d);
         }
@@ -6294,16 +6294,16 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
     maxDate = new Date();
   }
 
-  const isSameDay = minDate.getFullYear() === maxDate.getFullYear() && 
-                    minDate.getMonth() === maxDate.getMonth() && 
-                    minDate.getDate() === maxDate.getDate();
+  const isSameDay = minDate.getFullYear() === maxDate.getFullYear() &&
+    minDate.getMonth() === maxDate.getMonth() &&
+    minDate.getDate() === maxDate.getDate();
   if (isSameDay) {
     minDate.setDate(minDate.getDate() - 6);
   }
 
   const tripDates = [];
   const tripsByDay = {};
-  
+
   for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toLocaleDateString();
     if (tripsByDay[dateStr] === undefined) {
@@ -6315,7 +6315,7 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
   filteredTrips.forEach(t => {
     if (!t.createdAt) return;
     const d = new Date(t.createdAt);
-    d.setHours(0,0,0,0);
+    d.setHours(0, 0, 0, 0);
     const dateStr = d.toLocaleDateString();
     if (tripsByDay[dateStr] !== undefined) {
       tripsByDay[dateStr]++;
@@ -6324,7 +6324,7 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
       tripDates.push(dateStr);
     }
   });
-  
+
   const tripCounts = tripDates.map(d => tripsByDay[d]);
 
   const ctxTrips = document.getElementById('tripsChart')?.getContext('2d');
@@ -6380,7 +6380,7 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
     'Abordadas': 0,
     'Canceladas': 0
   };
-  
+
   filteredReservations.forEach(r => {
     const statusKey = getReservationStatusKey(r.statusId ?? r.status ?? r.statusLabel);
     if (statusKey === "pending") reservationsStatus['Pendientes']++;
@@ -6413,7 +6413,7 @@ function renderAdminCharts(filteredUsers, filteredTrips, filteredReservations) {
 document.getElementById("analyticsConsultBtn")?.addEventListener("click", () => {
   const startStr = document.getElementById("analyticsStartDate")?.value;
   const endStr = document.getElementById("analyticsEndDate")?.value;
-  
+
   let start = null;
   let end = null;
 
@@ -6427,7 +6427,7 @@ document.getElementById("analyticsConsultBtn")?.addEventListener("click", () => 
       else start = null;
     }
   }
-  
+
   if (endStr) {
     if (endStr.includes("-") && endStr.split("-")[0].length === 4) {
       const [y, m, d] = endStr.split("-");
@@ -6455,7 +6455,7 @@ document.getElementById("analyticsConsultBtn")?.addEventListener("click", () => 
   document.getElementById("analyticsUsersCount").textContent = filteredUsers.length;
   document.getElementById("analyticsTripsCount").textContent = filteredTrips.length;
   document.getElementById("analyticsReservationsCount").textContent = filteredReservations.length;
-  
+
   renderAdminCharts(filteredUsers, filteredTrips, filteredReservations);
 });
 
