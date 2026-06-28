@@ -129,7 +129,7 @@ public static class DevelopmentDataSeeder
         }
 
         await SeedPermissionsAndRolesAsync(context);
-         await SeedDemoDataAsync(context);
+        // await SeedDemoDataAsync(context);
         // await SeedAuditScenarioAsync(context);
         await SeedDefaultThemeAsync(context);
     }
